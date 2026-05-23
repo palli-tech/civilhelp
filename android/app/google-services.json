@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "390555985671",
+    "project_id": "civilhelp-prod",
+    "storage_bucket": "civilhelp-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:390555985671:android:d95a09c54d3610f188c7a2",
+        "android_client_info": {
+          "package_name": "com.civilhelp.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKsQY6OEJUWPHCfoUidDEeOtzuwJeA1d0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "390555985671-vvd33923jko492l7dc7h0m6cg30ief39.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.civilhelp.app"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:390555985671:android:9aae9b7f605db67e88c7a2",
+        "android_client_info": {
+          "package_name": "com.example.civilhelp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKsQY6OEJUWPHCfoUidDEeOtzuwJeA1d0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "390555985671-vvd33923jko492l7dc7h0m6cg30ief39.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.civilhelp.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
