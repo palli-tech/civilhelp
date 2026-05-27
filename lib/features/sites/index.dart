@@ -1,5 +1,4 @@
-﻿export 'models/index.dart';
-export 'repositories/index.dart';
+﻿export 'repositories/index.dart';
 export 'providers/index.dart';
 export 'screens/index.dart';
 export 'widgets/index.dart';

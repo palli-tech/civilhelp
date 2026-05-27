@@ -20,7 +20,7 @@ class DashboardCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bgColor = backgroundColor ??
-        (isDarkMode ? Colors.grey[800] : Colors.orange.withOpacity(0.1));
+        (isDarkMode ? Colors.grey[800] : Colors.orange.withValues(alpha: 0.1));
 
     return Material(
       color: bgColor,
@@ -31,12 +31,13 @@ class DashboardCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.2),
+                  color: Colors.orange.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -45,18 +46,18 @@ class DashboardCard extends StatelessWidget {
                   size: 28,
                 ),
               ),
-              const SizedBox(height: 16),
+              const Spacer(),
               Text(
                 value,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
+                      color: Theme.of(context).colorScheme.outline,
                     ),
               ),
             ],

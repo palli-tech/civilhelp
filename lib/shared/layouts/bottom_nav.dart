@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../auth/providers/auth_provider.dart';
+import 'package:civilhelp/app/router.dart';
+import '../../features/auth/providers/auth_provider.dart';
 
 class BottomNav extends ConsumerWidget {
   const BottomNav({super.key});
@@ -33,13 +34,12 @@ class BottomNav extends ConsumerWidget {
             Navigator.of(context).pushNamed('/dashboard');
             break;
           case 1:
-            // Navigate to sites
+            Navigator.of(context).pushNamed('/sites');
             break;
           case 2:
-            // Navigate to labour
+            Navigator.of(context).pushNamed('/labour');
             break;
           case 3:
-            // Show more menu
             _showMoreMenu(context, ref);
             break;
         }
@@ -59,15 +59,23 @@ class BottomNav extends ConsumerWidget {
               title: const Text('Attendance'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to attendance
+                Navigator.of(context).pushNamed(AppRoutes.attendance);
               },
             ),
             ListTile(
               leading: const Icon(Icons.money),
-              title: const Text('Expenses'),
+              title: const Text('Payments'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to expenses
+                Navigator.of(context).pushNamed(AppRoutes.payments);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.account_balance_wallet),
+              title: const Text('Advances'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).pushNamed(AppRoutes.advances);
               },
             ),
             ListTile(
@@ -75,7 +83,7 @@ class BottomNav extends ConsumerWidget {
               title: const Text('Invoices'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to invoices
+                // Future route: /invoices
               },
             ),
             ListTile(

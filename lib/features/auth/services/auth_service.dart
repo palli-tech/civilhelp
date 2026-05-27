@@ -19,7 +19,7 @@ class AuthService {
 
   User? get currentUser => _firebaseAuth.currentUser;
 
-  Future<UserCredential> signInWithGoogle() async {
+    Future<UserCredential> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       
@@ -37,9 +37,13 @@ class AuthService {
 
       final userCredential =
           await _firebaseAuth.signInWithCredential(credential);
+      
+      final user = userCredential.user;
+      if (user == null) {
+        throw Exception('User is null after sign-in');
+      }
 
-      // Create or update user in Firestore
-      await _createUserIfNotExists(userCredential.user!);
+      await _createUserIfNotExists(user);
 
       return userCredential;
     } catch (e) {

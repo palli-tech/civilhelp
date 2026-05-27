@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/core/providers/company_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/site_model.dart';
 import '../repositories/site_repository.dart';
@@ -8,18 +9,16 @@ final siteRepositoryProvider = Provider<SiteRepository>((ref) {
   return SiteRepository();
 });
 
-/// Get current user's company ID
-final userCompanyIdProvider = FutureProvider<String>((ref) async {
-  final user = ref.watch(currentUserProvider);
-  // Default company ID - in production, fetch from user document
-  return user?.uid ?? 'default-company';
-});
-
 /// Stream of all sites for the user's company
 final sitesStreamProvider = StreamProvider<List<SiteModel>>((ref) {
   final repository = ref.watch(siteRepositoryProvider);
-  final companyId = ref.watch(userCompanyIdProvider).value ?? 'default-company';
-  return repository.getSitesByCompanyStream(companyId);
+  final userCompanyId = ref.watch(userCompanyIdProvider);
+
+  return userCompanyId.when(
+    data: (companyId) => repository.getSitesByCompanyStream(companyId),
+    loading: () => Stream.value([]),
+    error: (error, _) => Stream.error(error),
+  );
 });
 
 /// Get a single site by ID
@@ -51,7 +50,7 @@ final createSiteProvider = FutureProvider.family<SiteModel, (
   );
 
   // Refresh the sites list
-  ref.refresh(sitesStreamProvider);
+  ref.invalidate(sitesStreamProvider);
 
   return site;
 });
@@ -77,8 +76,8 @@ final updateSiteProvider = FutureProvider.family<void, (
   );
 
   // Refresh the sites list and single site
-  ref.refresh(sitesStreamProvider);
-  ref.refresh(siteByIdProvider(params.$1));
+  ref.invalidate(sitesStreamProvider);
+  ref.invalidate(siteByIdProvider(params.$1));
 });
 
 /// Delete a site
@@ -88,5 +87,5 @@ final deleteSiteProvider = FutureProvider.family<void, String>((ref, siteId) asy
   await repository.deleteSite(siteId);
 
   // Refresh the sites list
-  ref.refresh(sitesStreamProvider);
+  ref.invalidate(sitesStreamProvider);
 });

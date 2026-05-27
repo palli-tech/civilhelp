@@ -1,14 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/app/router.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../providers/dashboard_metrics_provider.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/quick_action_tile.dart';
 
-class SupervisorDashboard extends StatelessWidget {
+class SupervisorDashboard extends ConsumerWidget {
   const SupervisorDashboard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeSites = ref.watch(activeSitesCountProvider);
+    final labourPresent = ref.watch(labourPresentTodayCountProvider);
+    final pendingPayments = ref.watch(pendingPaymentsCountProvider);
+    final outstandingAdvanceTotal = ref.watch(outstandingAdvanceTotalProvider);
+
+    String formatCount(AsyncValue<int> value) {
+      return value.when(
+        data: (count) => count.toString(),
+        loading: () => '--',
+        error: (_, _) => 'N/A',
+      );
+    }
+
+    String formatAmount(AsyncValue<double> value) {
+      return value.when(
+        data: (amount) => '₹${amount.toStringAsFixed(0)}',
+        loading: () => '--',
+        error: (_, _) => 'N/A',
+      );
+    }
+
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
@@ -29,45 +53,45 @@ class SupervisorDashboard extends StatelessWidget {
             Text(
               'Supervisor Role',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
+                    color: Theme.of(context).colorScheme.outline,
                   ),
             ),
             const SizedBox(height: 24),
 
-            // Dashboard Cards Grid
             GridView.count(
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
+              childAspectRatio: 1.3,
+              primary: false,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 DashboardCard(
                   title: 'Active Sites',
-                  value: '5',
+                  value: formatCount(activeSites),
                   icon: Icons.location_on,
                 ),
                 DashboardCard(
                   title: 'Labour Present',
-                  value: '24',
+                  value: formatCount(labourPresent),
                   icon: Icons.people,
                 ),
                 DashboardCard(
-                  title: 'Tasks Today',
-                  value: '12',
-                  icon: Icons.task_alt,
+                  title: 'Pending Payments',
+                  value: formatCount(pendingPayments),
+                  icon: Icons.money,
                 ),
                 DashboardCard(
-                  title: 'Pending Approvals',
-                  value: '3',
-                  icon: Icons.pending_actions,
+                  title: 'Advance Outstanding',
+                  value: formatAmount(outstandingAdvanceTotal),
+                  icon: Icons.account_balance_wallet,
                 ),
               ],
             ),
 
             const SizedBox(height: 32),
 
-            // Quick Actions
             Text(
               'Quick Actions',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -83,19 +107,25 @@ class SupervisorDashboard extends StatelessWidget {
                   QuickActionTile(
                     label: 'Mark Attendance',
                     icon: Icons.check_circle,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.of(context).pushNamed(AppRoutes.attendance);
+                    },
                   ),
                   const Divider(height: 0),
                   QuickActionTile(
-                    label: 'Create Task',
-                    icon: Icons.add_task,
-                    onTap: () {},
+                    label: 'Create Payment',
+                    icon: Icons.payment,
+                    onTap: () {
+                      Navigator.of(context).pushNamed(AppRoutes.payments);
+                    },
                   ),
                   const Divider(height: 0),
                   QuickActionTile(
-                    label: 'View Reports',
-                    icon: Icons.assessment,
-                    onTap: () {},
+                    label: 'View Advances',
+                    icon: Icons.account_balance_wallet,
+                    onTap: () {
+                      Navigator.of(context).pushNamed(AppRoutes.advances);
+                    },
                   ),
                 ],
               ),

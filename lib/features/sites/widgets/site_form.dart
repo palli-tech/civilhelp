@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:civilhelp/core/enums/site_status.dart';
 
 class SiteForm extends StatefulWidget {
   final String? siteName;
   final String? location;
   final String? client;
   final DateTime? startDate;
-  final String? status;
-  final VoidCallback onSubmit;
+  final SiteStatus? status;
+  final Future<void> Function()? onSubmit;
 
   const SiteForm({
     super.key,
@@ -19,15 +20,15 @@ class SiteForm extends StatefulWidget {
   });
 
   @override
-  State<SiteForm> createState() => _SiteFormState();
+  State<SiteForm> createState() => SiteFormState();
 }
 
-class _SiteFormState extends State<SiteForm> {
+class SiteFormState extends State<SiteForm> {
   late final TextEditingController _nameController;
   late final TextEditingController _locationController;
   late final TextEditingController _clientController;
   late DateTime _selectedDate;
-  late String _selectedStatus;
+  late SiteStatus _selectedStatus;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -37,7 +38,7 @@ class _SiteFormState extends State<SiteForm> {
     _locationController = TextEditingController(text: widget.location ?? '');
     _clientController = TextEditingController(text: widget.client ?? '');
     _selectedDate = widget.startDate ?? DateTime.now();
-    _selectedStatus = widget.status ?? 'active';
+    _selectedStatus = widget.status ?? SiteStatus.active;
   }
 
   @override
@@ -138,8 +139,8 @@ class _SiteFormState extends State<SiteForm> {
             ),
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _selectedStatus,
+          DropdownButtonFormField<SiteStatus>(
+            initialValue: _selectedStatus,
             decoration: InputDecoration(
               labelText: 'Status',
               prefixIcon: const Icon(Icons.info),
@@ -147,12 +148,9 @@ class _SiteFormState extends State<SiteForm> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            items: const [
-              DropdownMenuItem(value: 'active', child: Text('Active')),
-              DropdownMenuItem(value: 'completed', child: Text('Completed')),
-              DropdownMenuItem(value: 'paused', child: Text('Paused')),
-              DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
-            ],
+            items: SiteStatus.values.map((status) {
+              return DropdownMenuItem(value: status, child: Text(status.name));
+            }).toList(),
             onChanged: (value) {
               if (value != null) {
                 setState(() {
@@ -165,10 +163,12 @@ class _SiteFormState extends State<SiteForm> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState?.validate() ?? false) {
-                  widget.onSubmit();
-                }
+              onPressed: () async {
+                final isValid = _formKey.currentState?.validate() ?? false;
+
+                if (!isValid) return;
+
+                await widget.onSubmit?.call();
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
@@ -188,5 +188,5 @@ class _SiteFormState extends State<SiteForm> {
   String get location => _locationController.text;
   String get client => _clientController.text;
   DateTime get startDate => _selectedDate;
-  String get status => _selectedStatus;
+  SiteStatus get status => _selectedStatus;
 }

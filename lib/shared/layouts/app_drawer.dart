@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../auth/providers/auth_provider.dart';
-import '../../core/enums/user_role.dart';
+import 'package:civilhelp/app/router.dart';
+import '../../features/auth/providers/auth_provider.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -67,7 +67,7 @@ class AppDrawer extends ConsumerWidget {
             title: const Text('Sites'),
             onTap: () {
               Navigator.pop(context);
-              // Future route: /sites
+              Navigator.of(context).pushNamed('/sites');
             },
           ),
           ListTile(
@@ -75,7 +75,7 @@ class AppDrawer extends ConsumerWidget {
             title: const Text('Labour'),
             onTap: () {
               Navigator.pop(context);
-              // Future route: /labour
+              Navigator.of(context).pushNamed('/labour');
             },
           ),
           ListTile(
@@ -83,15 +83,23 @@ class AppDrawer extends ConsumerWidget {
             title: const Text('Attendance'),
             onTap: () {
               Navigator.pop(context);
-              // Future route: /attendance
+              Navigator.of(context).pushNamed(AppRoutes.attendance);
             },
           ),
           ListTile(
             leading: const Icon(Icons.money),
-            title: const Text('Expenses'),
+            title: const Text('Payments'),
             onTap: () {
               Navigator.pop(context);
-              // Future route: /expenses
+              Navigator.of(context).pushNamed(AppRoutes.payments);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.account_balance_wallet),
+            title: const Text('Advances'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).pushNamed(AppRoutes.advances);
             },
           ),
           ListTile(

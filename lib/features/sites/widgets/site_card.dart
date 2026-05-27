@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../models/site_model.dart';
-
 class SiteCard extends StatelessWidget {
-  final SiteModel site;
+  final dynamic site;
   final VoidCallback onTap;
   final VoidCallback? onDelete;
 
@@ -70,8 +68,8 @@ class SiteCard extends StatelessWidget {
                       ),
                       if (onDelete != null)
                         PopupMenuItem(
-                          child: const Text('Delete'),
                           onTap: onDelete,
+                          child: const Text('Delete'),
                         ),
                     ],
                   ),

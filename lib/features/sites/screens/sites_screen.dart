@@ -63,7 +63,7 @@ class SitesScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async {
-              ref.refresh(sitesStreamProvider);
+              ref.invalidate(sitesStreamProvider);
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -120,7 +120,7 @@ class SitesScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () {
-                    ref.refresh(sitesStreamProvider);
+                    ref.invalidate(sitesStreamProvider);
                   },
                   child: const Text('Retry'),
                 ),

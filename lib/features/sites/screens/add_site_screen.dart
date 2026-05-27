@@ -19,7 +19,7 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
   @override
   void initState() {
     super.initState();
-    _formKey = GlobalKey<_SiteFormState>();
+    _formKey = GlobalKey<SiteFormState>();
   }
 
   Future<void> _handleSubmit() async {
@@ -32,13 +32,16 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
 
     try {
       await ref.read(
-        createSiteProvider((
-          formState.siteName,
-          formState.location,
-          formState.client,
-          formState.startDate,
-          formState.status,
-        )).future,
+        createSiteProvider(
+          (
+                formState.siteName,
+                formState.location,
+                formState.client,
+                formState.startDate,
+                formState.status,
+              )
+              as (String, String, String, DateTime, String),
+        ).future,
       );
 
       if (mounted) {
@@ -68,17 +71,14 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Add Site'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Add Site'), elevation: 0),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             SiteForm(
               key: _formKey,
-              onSubmit: _isLoading ? () {} : _handleSubmit,
+              onSubmit: _isLoading ? () async {} : _handleSubmit,
             ),
             if (_isLoading)
               Padding(

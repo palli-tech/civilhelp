@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../auth/providers/auth_provider.dart';
 
 class ResponsiveLayout extends ConsumerWidget {
   final Widget mobileBody;
@@ -46,9 +45,7 @@ class ResponsiveLayout extends ConsumerWidget {
                 if (drawer != null && isTablet)
                   SizedBox(
                     width: 280,
-                    child: SingleChildScrollView(
-                      child: drawer,
-                    ),
+                    child: drawer,
                   ),
                 Expanded(child: body),
               ],

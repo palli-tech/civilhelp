@@ -1,9 +1,10 @@
+import 'package:civilhelp/core/enums/site_status.dart';
+import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
-import '../../shared/layouts/app_scaffold.dart';
 import '../providers/site_provider.dart';
+import 'package:civilhelp/features/attendance/providers/attendance_provider.dart';
 
 class SiteDetailsScreen extends ConsumerWidget {
   final String siteId;
@@ -52,7 +53,7 @@ class SiteDetailsScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -73,9 +74,9 @@ class SiteDetailsScreen extends ConsumerWidget {
                             ),
                           ),
                           Chip(
-                            label: Text(site.status),
+                            label: Text(site.status.name),
                             backgroundColor:
-                                _getStatusColor(site.status).withOpacity(0.2),
+                                _getStatusColor(site.status).withValues(alpha: 0.2),
                             labelStyle: TextStyle(
                               color: _getStatusColor(site.status),
                               fontWeight: FontWeight.w600,
@@ -198,27 +199,70 @@ class SiteDetailsScreen extends ConsumerWidget {
                       ),
                 ),
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.calendar_today,
-                            size: 48, color: Colors.grey[400]),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Attendance tracking coming soon',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
+                Builder(
+                  builder: (context) {
+                    final attendanceAsync = ref.watch(attendanceBySiteStreamProvider(siteId));
+                    return attendanceAsync.when(
+                      data: (attendance) {
+                        final presentCount = attendance
+                            .where((entry) => entry.status.toLowerCase() == 'present')
+                            .length;
+                        final absentCount = attendance
+                            .where((entry) => entry.status.toLowerCase() == 'absent')
+                            .length;
+                        final halfDayCount = attendance
+                            .where((entry) => entry.status.toLowerCase() == 'half day')
+                            .length;
+
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Recent attendance records',
+                                style: Theme.of(context).textTheme.bodyLarge,
                               ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _MiniStat(label: 'Present', value: presentCount.toString()),
+                                  _MiniStat(label: 'Absent', value: absentCount.toString()),
+                                  _MiniStat(label: 'Half Day', value: halfDayCount.toString()),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Total records: ${attendance.length}',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      loading: () => Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
-                    ),
-                  ),
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      error: (error, _) => Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text('Unable to load attendance: $error'),
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 32),
@@ -302,19 +346,51 @@ class SiteDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return Colors.green;
-      case 'completed':
-        return Colors.blue;
-      case 'paused':
-        return Colors.orange;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
+Color _getStatusColor(SiteStatus status) {
+  switch (status) {
+    case SiteStatus.active:
+      return Colors.green;
+
+    case SiteStatus.completed:
+      return Colors.blue;
+
+    case SiteStatus.onHold:
+      return Colors.orange;
+  }
+}
+}
+
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MiniStat({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

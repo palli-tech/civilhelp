@@ -65,7 +65,7 @@ class DashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    ref.refresh(userRoleProvider);
+                    ref.invalidate(userRoleProvider);
                   },
                   child: const Text('Retry'),
                 ),
