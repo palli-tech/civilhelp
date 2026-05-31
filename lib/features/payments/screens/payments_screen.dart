@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
+import '../models/payment_model.dart';
 import '../providers/payment_provider.dart';
 import '../widgets/payment_card.dart';
 import '../../labour/data/models/labour_model.dart';
@@ -33,10 +34,7 @@ class PaymentsScreen extends ConsumerWidget {
     );
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Payments'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Payments'), elevation: 0),
       fab: fab,
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -50,11 +48,7 @@ class PaymentsScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.money,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
+                          Icon(Icons.money, size: 64, color: Colors.grey[400]),
                           const SizedBox(height: 16),
                           Text(
                             'No payments recorded yet',
@@ -63,15 +57,19 @@ class PaymentsScreen extends ConsumerWidget {
                           const SizedBox(height: 8),
                           Text(
                             'Create payments after attendance is recorded for labour',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey[600]),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),
                           ElevatedButton.icon(
                             onPressed: () {
-                              _showNewPaymentDialog(context, ref, sitesAsync, labourAsync);
+                              _showNewPaymentDialog(
+                                context,
+                                ref,
+                                sitesAsync,
+                                labourAsync,
+                              );
                             },
                             icon: const Icon(Icons.add),
                             label: const Text('Create Payment'),
@@ -83,19 +81,112 @@ class PaymentsScreen extends ConsumerWidget {
 
                   return ListView.separated(
                     itemCount: payments.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final payment = payments[index];
-                      return PaymentCard(payment: payment);
+                      return PaymentCard(
+                        payment: payment,
+                        onEdit: () {
+                          _showEditPaymentDialog(context, ref, payment);
+                        },
+                        onDelete: () {
+                          _showDeletePaymentDialog(context, ref, payment);
+                        },
+                      );
                     },
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) => Center(child: Text('Failed to load payments: $error')),
+                error: (error, stack) =>
+                    Center(child: Text('Failed to load payments: $error')),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showEditPaymentDialog(
+    BuildContext context,
+    WidgetRef ref,
+    PaymentModel payment,
+  ) {
+    String status = payment.status;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Edit Payment'),
+        content: DropdownButtonFormField<String>(
+          initialValue: status,
+          items: const [
+            DropdownMenuItem(value: 'pending', child: Text('Pending')),
+            DropdownMenuItem(value: 'completed', child: Text('Completed')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              status = value;
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await ref.read(
+                updatePaymentProvider(payment.copyWith(status: status)).future,
+              );
+
+              if (context.mounted) {
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Payment updated')),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeletePaymentDialog(
+    BuildContext context,
+    WidgetRef ref,
+    PaymentModel payment,
+  ) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Payment'),
+        content: Text('Delete payment for ${payment.labourName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await ref.read(deletePaymentProvider(payment.id).future);
+
+              if (context.mounted) {
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Payment deleted')),
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }
@@ -131,10 +222,12 @@ class PaymentsScreen extends ConsumerWidget {
                         decoration: const InputDecoration(labelText: 'Site'),
                         items: sitesAsync.when(
                           data: (sites) => sites
-                              .map((site) => DropdownMenuItem(
-                                    value: site.id,
-                                    child: Text(site.name),
-                                  ))
+                              .map(
+                                (site) => DropdownMenuItem(
+                                  value: site.id,
+                                  child: Text(site.name),
+                                ),
+                              )
                               .toList(),
                           loading: () => const [],
                           error: (_, _) => const [],
@@ -144,7 +237,8 @@ class PaymentsScreen extends ConsumerWidget {
                             selectedSiteId = value;
                           });
                         },
-                        validator: (value) => value == null ? 'Select a site' : null,
+                        validator: (value) =>
+                            value == null ? 'Select a site' : null,
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
@@ -152,10 +246,12 @@ class PaymentsScreen extends ConsumerWidget {
                         decoration: const InputDecoration(labelText: 'Labour'),
                         items: labourAsync.when(
                           data: (labour) => labour
-                              .map((entry) => DropdownMenuItem(
-                                    value: entry.id,
-                                    child: Text(entry.fullName),
-                                  ))
+                              .map(
+                                (entry) => DropdownMenuItem(
+                                  value: entry.id,
+                                  child: Text(entry.fullName),
+                                ),
+                              )
                               .toList(),
                           loading: () => const [],
                           error: (_, _) => const [],
@@ -165,7 +261,8 @@ class PaymentsScreen extends ConsumerWidget {
                             selectedLabourId = value;
                           });
                         },
-                        validator: (value) => value == null ? 'Select a labour' : null,
+                        validator: (value) =>
+                            value == null ? 'Select a labour' : null,
                       ),
                       const SizedBox(height: 12),
                       TextButton(
@@ -173,8 +270,12 @@ class PaymentsScreen extends ConsumerWidget {
                           final picked = await showDatePicker(
                             context: context,
                             initialDate: periodStart,
-                            firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            firstDate: DateTime.now().subtract(
+                              const Duration(days: 365),
+                            ),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
                           if (picked != null) {
                             setState(() {
@@ -182,7 +283,9 @@ class PaymentsScreen extends ConsumerWidget {
                             });
                           }
                         },
-                        child: Text('Period start: ${periodStart.toLocal().toShortDateString()}'),
+                        child: Text(
+                          'Period start: ${periodStart.toLocal().toShortDateString()}',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextButton(
@@ -190,8 +293,12 @@ class PaymentsScreen extends ConsumerWidget {
                           final picked = await showDatePicker(
                             context: context,
                             initialDate: periodEnd,
-                            firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            firstDate: DateTime.now().subtract(
+                              const Duration(days: 365),
+                            ),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
                           if (picked != null) {
                             setState(() {
@@ -199,15 +306,23 @@ class PaymentsScreen extends ConsumerWidget {
                             });
                           }
                         },
-                        child: Text('Period end: ${periodEnd.toLocal().toShortDateString()}'),
+                        child: Text(
+                          'Period end: ${periodEnd.toLocal().toShortDateString()}',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: paymentStatus,
                         decoration: const InputDecoration(labelText: 'Status'),
                         items: const [
-                          DropdownMenuItem(value: 'pending', child: Text('Pending')),
-                          DropdownMenuItem(value: 'completed', child: Text('Completed')),
+                          DropdownMenuItem(
+                            value: 'pending',
+                            child: Text('Pending'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'completed',
+                            child: Text('Completed'),
+                          ),
                         ],
                         onChanged: (value) {
                           if (value != null) {
@@ -234,30 +349,32 @@ class PaymentsScreen extends ConsumerWidget {
                       return;
                     }
 
-                    final selectedSite = sitesAsync.valueOrNull
-                        ?.firstWhere((site) => site.id == selectedSiteId);
-                    final selectedLabour = labourAsync.valueOrNull
-                        ?.firstWhere((labour) => labour.id == selectedLabourId);
+                    final selectedSite = sitesAsync.valueOrNull?.firstWhere(
+                      (site) => site.id == selectedSiteId,
+                    );
+                    final selectedLabour = labourAsync.valueOrNull?.firstWhere(
+                      (labour) => labour.id == selectedLabourId,
+                    );
 
                     if (selectedSite == null || selectedLabour == null) {
                       return;
                     }
 
-                    final paymentSummary = await ref.read(calculatePaymentProvider(
-                      (
+                    final paymentSummary = await ref.read(
+                      calculatePaymentProvider((
                         selectedLabour.id,
                         selectedLabour.dailyWage,
                         periodStart,
                         periodEnd,
-                      ),
-                    ).future);
+                      )).future,
+                    );
 
                     final grossPayment = paymentSummary.grossAmount;
                     final advancesTotal = paymentSummary.advancesTotal;
                     final netAmount = paymentSummary.netAmount;
 
-                    final payment = await ref.read(createPaymentProvider(
-                      (
+                    final payment = await ref.read(
+                      createPaymentProvider((
                         selectedLabour.id,
                         selectedLabour.fullName,
                         selectedSite.id,
@@ -268,13 +385,17 @@ class PaymentsScreen extends ConsumerWidget {
                         advancesTotal,
                         netAmount,
                         paymentStatus,
-                      ),
-                    ).future);
+                      )).future,
+                    );
 
                     if (context.mounted) {
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Payment recorded for ${payment.labourName}')),
+                        SnackBar(
+                          content: Text(
+                            'Payment recorded for ${payment.labourName}',
+                          ),
+                        ),
                       );
                     }
                   },

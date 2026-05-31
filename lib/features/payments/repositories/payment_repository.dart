@@ -18,7 +18,7 @@ class PaymentRepository {
   final FirebaseFirestore _firestore;
 
   PaymentRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   Future<PaymentModel> createPayment({
     required String labourId,
@@ -54,6 +54,17 @@ class PaymentRepository {
     return PaymentModel.fromFirestore(doc);
   }
 
+  Future<void> updatePayment(PaymentModel payment) async {
+    await _firestore
+        .collection('payments')
+        .doc(payment.id)
+        .update(payment.toMap());
+  }
+
+  Future<void> deletePayment(String paymentId) async {
+    await _firestore.collection('payments').doc(paymentId).delete();
+  }
+
   Stream<List<PaymentModel>> getPaymentsByCompanyStream(String companyId) {
     try {
       return _firestore
@@ -61,9 +72,11 @@ class PaymentRepository {
           .where('companyId', isEqualTo: companyId)
           .orderBy('createdAt', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => PaymentModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => PaymentModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }
@@ -80,9 +93,11 @@ class PaymentRepository {
           .where('status', isEqualTo: status)
           .orderBy('createdAt', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => PaymentModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => PaymentModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }
@@ -110,7 +125,9 @@ class PaymentRepository {
       final hoursWorked = (data['hoursWorked'] as num?)?.toDouble() ?? 0.0;
 
       if (status.toLowerCase() == 'present') {
-        gross += dailyWage * (hoursWorked > 0 ? (hoursWorked / 8.0).clamp(0.0, 1.0) : 1.0);
+        gross +=
+            dailyWage *
+            (hoursWorked > 0 ? (hoursWorked / 8.0).clamp(0.0, 1.0) : 1.0);
       } else if (status.toLowerCase() == 'half day') {
         gross += dailyWage * 0.5;
       }
@@ -129,10 +146,7 @@ class PaymentRepository {
       return sumx + amount;
     });
 
-    return PaymentSummary(
-      grossAmount: gross,
-      advancesTotal: advancesTotal,
-    );
+    return PaymentSummary(grossAmount: gross, advancesTotal: advancesTotal);
   }
 
   Stream<List<PaymentModel>> getPaymentsByLabourStream(
@@ -146,9 +160,11 @@ class PaymentRepository {
           .where('labourId', isEqualTo: labourId)
           .orderBy('createdAt', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => PaymentModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => PaymentModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }

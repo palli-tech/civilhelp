@@ -85,3 +85,16 @@ final createPaymentProvider = FutureProvider.family<PaymentModel, (
 
   return payment;
 });
+
+final updatePaymentProvider =
+    FutureProvider.family<void, PaymentModel>((ref, payment) async {
+  await ref.read(paymentRepositoryProvider).updatePayment(payment);
+});
+
+final deletePaymentProvider =
+    FutureProvider.family<void, String>((ref, paymentId) async {
+  await ref.read(paymentRepositoryProvider).deletePayment(paymentId);
+
+  ref.invalidate(paymentsStreamProvider);
+  ref.invalidate(pendingPaymentsCountProvider);
+});
