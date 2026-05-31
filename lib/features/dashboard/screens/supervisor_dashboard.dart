@@ -73,7 +73,7 @@ class SupervisorDashboard extends ConsumerWidget {
                   icon: Icons.location_on,
                 ),
                 DashboardCard(
-                  title: 'Labour Present',
+                  title: 'Today Labour Attendance',
                   value: formatCount(labourPresent),
                   icon: Icons.people,
                 ),
