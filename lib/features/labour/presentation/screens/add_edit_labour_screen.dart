@@ -45,7 +45,7 @@ class _AddEditLabourScreenState extends ConsumerState<AddEditLabourScreen> {
             formState.assignedSiteId,
             formState.assignedSiteName,
             formState.joinedDate,
-            formState.status.name,
+            formState.status.toString().split('.').last,
           )).future,
         );
 
@@ -67,7 +67,7 @@ class _AddEditLabourScreenState extends ConsumerState<AddEditLabourScreen> {
             formState.assignedSiteId,
             formState.assignedSiteName,
             formState.joinedDate,
-            formState.status.name,
+            formState.status.toString().split('.').last,
           )).future,
         );
 

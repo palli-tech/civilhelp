@@ -351,6 +351,9 @@ Color _getStatusColor(SiteStatus status) {
     case SiteStatus.active:
       return Colors.green;
 
+    case SiteStatus.inactive:
+      return Colors.grey;
+      
     case SiteStatus.completed:
       return Colors.blue;
 

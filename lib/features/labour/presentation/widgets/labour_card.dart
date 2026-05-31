@@ -119,7 +119,7 @@ class LabourCard extends StatelessWidget {
                   ),
                   Chip(
                     label: Text(
-                      labour.status.name.toUpperCase(),
+                      labour.status.toString().split('.').last.toUpperCase(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,

@@ -36,6 +36,28 @@ class AttendanceRepository {
     return AttendanceModel.fromFirestore(doc);
   }
 
+Future<void> updateAttendance(AttendanceModel attendance) async {
+  await _firestore
+      .collection('attendance')
+      .doc(attendance.id)
+      .update({
+    'labourId': attendance.labourId,
+    'labourName': attendance.labourName,
+    'siteId': attendance.siteId,
+    'siteName': attendance.siteName,
+    'date': Timestamp.fromDate(attendance.date),
+    'status': attendance.status,
+    'hoursWorked': attendance.hoursWorked,
+    'updatedAt': Timestamp.now(),
+  });
+}
+
+Future<void> deleteAttendance(String attendanceId) async {
+  await _firestore
+      .collection('attendance')
+      .doc(attendanceId)
+      .delete();
+}
   Stream<List<AttendanceModel>> getAttendanceByCompanyStream(String companyId) {
     try {
       return _firestore

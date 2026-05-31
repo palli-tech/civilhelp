@@ -1,1 +1,31 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"civilhelp-prod","appId":"1:390555985671:android:9aae9b7f605db67e88c7a2","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"civilhelp-prod","configurations":{"android":"1:390555985671:android:9aae9b7f605db67e88c7a2","ios":"1:390555985671:ios:2bd1c0eef834c7b688c7a2","macos":"1:390555985671:ios:2bd1c0eef834c7b688c7a2","web":"1:390555985671:web:05bf5a7b377a88c888c7a2","windows":"1:390555985671:web:c9701664accb85ed88c7a2"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "civilhelp-prod",
+          "appId": "1:390555985671:android:9aae9b7f605db67e88c7a2",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "civilhelp-prod",
+          "configurations": {
+            "android": "1:390555985671:android:9aae9b7f605db67e88c7a2",
+            "ios": "1:390555985671:ios:2bd1c0eef834c7b688c7a2",
+            "macos": "1:390555985671:ios:2bd1c0eef834c7b688c7a2",
+            "web": "1:390555985671:web:05bf5a7b377a88c888c7a2",
+            "windows": "1:390555985671:web:c9701664accb85ed88c7a2"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "asia-south1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

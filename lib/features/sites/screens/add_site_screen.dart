@@ -38,9 +38,8 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
                 formState.location,
                 formState.client,
                 formState.startDate,
-                formState.status,
+                formState.status.name,
               )
-              as (String, String, String, DateTime, String),
         ).future,
       );
 

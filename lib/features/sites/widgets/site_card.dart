@@ -13,8 +13,12 @@ class SiteCard extends StatelessWidget {
     this.onDelete,
   });
 
+  String _statusName() {
+    return site.status.toString().split('.').last;
+  }
+
   Color _getStatusColor() {
-    switch (site.status.toLowerCase()) {
+    switch (_statusName().toLowerCase()) {
       case 'active':
         return Colors.green;
       case 'completed':
@@ -121,7 +125,7 @@ class SiteCard extends StatelessWidget {
                   ),
                   Chip(
                     label: Text(
-                      site.status,
+                      _statusName(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,

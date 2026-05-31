@@ -247,11 +247,13 @@ class LabourDetailsScreen extends ConsumerWidget {
     String labourId,
     LabourStatus newStatus,
   ) {
+    final statusValue = newStatus.toString().split('.').last;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Change Status'),
-        content: Text('Change status to ${newStatus.name}?'),
+        content: Text('Change status to $statusValue?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -262,11 +264,11 @@ class LabourDetailsScreen extends ConsumerWidget {
               Navigator.pop(context);
               try {
                 await ref.read(
-                  updateLabourStatusProvider((labourId, newStatus.name)).future,
+                  updateLabourStatusProvider((labourId, statusValue)).future,
                 );
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Status updated to ${newStatus.name}')),
+                    SnackBar(content: Text('Status updated to $statusValue')),
                   );
                 }
               } catch (e) {

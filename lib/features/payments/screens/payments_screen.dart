@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import '../providers/payment_provider.dart';
+import '../widgets/payment_card.dart';
 import '../../labour/data/models/labour_model.dart';
 import '../../sites/models/site_model.dart';
 
@@ -16,55 +18,75 @@ class PaymentsScreen extends ConsumerWidget {
     final sitesAsync = ref.watch(sitesStreamProvider);
     final labourAsync = ref.watch(labourStreamProvider);
 
-    return Scaffold(
+    final FloatingActionButton? fab = paymentsAsync.when(
+      data: (payments) => payments.isEmpty
+          ? null
+          : FloatingActionButton(
+              onPressed: () {
+                _showNewPaymentDialog(context, ref, sitesAsync, labourAsync);
+              },
+              tooltip: 'Create Payment',
+              child: const Icon(Icons.add),
+            ),
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
+    return AppScaffold(
       appBar: AppBar(
         title: const Text('Payments'),
         elevation: 0,
       ),
-      body: Padding(
+      fab: fab,
+      child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Payments backlog',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _showNewPaymentDialog(context, ref, sitesAsync, labourAsync);
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create Payment'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
             Expanded(
               child: paymentsAsync.when(
                 data: (payments) {
                   if (payments.isEmpty) {
-                    return const Center(
-                      child: Text('No payments recorded yet.'),
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.money,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No payments recorded yet',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create payments after attendance is recorded for labour',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              _showNewPaymentDialog(context, ref, sitesAsync, labourAsync);
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text('Create Payment'),
+                          ),
+                        ],
+                      ),
                     );
                   }
 
                   return ListView.separated(
                     itemCount: payments.length,
-                    separatorBuilder: (context, index) => const Divider(),
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final payment = payments[index];
-                      return ListTile(
-                        title: Text(payment.labourName),
-                        subtitle: Text(
-                          '${payment.siteName} • ${payment.status} • ${payment.periodStart.toLocal().toShortDateString()} - ${payment.periodEnd.toLocal().toShortDateString()}',
-                        ),
-                        trailing: Text('₹${payment.netAmount.toStringAsFixed(0)}'),
-                      );
+                      return PaymentCard(payment: payment);
                     },
                   );
                 },

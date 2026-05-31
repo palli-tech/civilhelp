@@ -12,18 +12,26 @@ class LabourListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final labourAsync = ref.watch(labourStreamProvider);
 
+    final FloatingActionButton? fab = labourAsync.when(
+      data: (labourList) => labourList.isEmpty
+          ? null
+          : FloatingActionButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed('/add-labour');
+              },
+              tooltip: 'Add Labour',
+              child: const Icon(Icons.add),
+            ),
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Labour'),
         elevation: 0,
       ),
-      fab: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).pushNamed('/add-labour');
-        },
-        tooltip: 'Add Labour',
-        child: const Icon(Icons.add),
-      ),
+      fab: fab,
       child: labourAsync.when(
         data: (labourList) {
           if (labourList.isEmpty) {

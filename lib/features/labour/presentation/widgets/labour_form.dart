@@ -247,7 +247,8 @@ class LabourFormState extends State<LabourForm> {
               ),
             ),
             items: LabourStatus.values.map((status) {
-              final name = status.name[0].toUpperCase() + status.name.substring(1);
+              final rawName = status.toString().split('.').last;
+              final name = rawName[0].toUpperCase() + rawName.substring(1);
               return DropdownMenuItem(value: status, child: Text(name));
             }).toList(),
             onChanged: (value) {

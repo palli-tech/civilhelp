@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import '../providers/advance_provider.dart';
@@ -16,40 +17,66 @@ class AdvancesScreen extends ConsumerWidget {
     final sitesAsync = ref.watch(sitesStreamProvider);
     final labourAsync = ref.watch(labourStreamProvider);
 
-    return Scaffold(
+    final FloatingActionButton? fab = advancesAsync.when(
+      data: (advances) => advances.isEmpty
+          ? null
+          : FloatingActionButton(
+              onPressed: () {
+                _showNewAdvanceDialog(context, ref, sitesAsync, labourAsync);
+              },
+              tooltip: 'Add Advance',
+              child: const Icon(Icons.add),
+            ),
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
+    return AppScaffold(
       appBar: AppBar(
         title: const Text('Advances'),
         elevation: 0,
       ),
-      body: Padding(
+      fab: fab,
+      child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Advance requests',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _showNewAdvanceDialog(context, ref, sitesAsync, labourAsync);
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Advance'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
             Expanded(
               child: advancesAsync.when(
                 data: (advances) {
                   if (advances.isEmpty) {
-                    return const Center(
-                      child: Text('No advances recorded yet.'),
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.account_balance_wallet,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No advances recorded yet',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Add advances to track loaned amounts and repayments',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              _showNewAdvanceDialog(context, ref, sitesAsync, labourAsync);
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Advance'),
+                          ),
+                        ],
+                      ),
                     );
                   }
 

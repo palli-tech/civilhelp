@@ -27,9 +27,12 @@ class LabourStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusText = status.toString().split('.').last;
+    final displayText = statusText[0].toUpperCase() + statusText.substring(1);
+
     return Chip(
       label: Text(
-        status.name[0].toUpperCase() + status.name.substring(1),
+        displayText,
         style: TextStyle(
           color: Colors.white,
           fontSize: fontSize ?? 12,

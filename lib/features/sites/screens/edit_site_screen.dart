@@ -29,55 +29,55 @@ _formKey = GlobalKey<SiteFormState>();
 }
 
 Future<void> _handleSubmit() async {
-final formState = _formKey.currentState;
+  final formState = _formKey.currentState;
 
+  if (formState == null) return;
 
-if (formState == null) return;
+  setState(() {
+    _isLoading = true;
+  });
 
-setState(() {
-  _isLoading = true;
-});
+  try {
+    await ref.read(
+      updateSiteProvider(
+        (
+          widget.siteId,
+          formState.siteName,
+          formState.location,
+          formState.client,
+          formState.startDate,
+          formState.status.name,
+        ),
+      ).future,
+    );
 
-try {
-  await ref.read(
-    updateSiteProvider((
-      widget.siteId,
-      formState.siteName,
-      formState.location,
-      formState.client,
-      formState.startDate,
-      formState.status,
-    ) as (String, String, String, String, DateTime, String)).future,
-  );
+    if (!mounted) return;
 
-  if (!mounted) return;
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Site updated successfully'),
-    ),
-  );
-
-  Navigator.of(context).pop();
-} catch (e) {
-  if (!mounted) return;
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        'Error updating site: ${e.toString()}',
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Site updated successfully'),
       ),
-      backgroundColor: Colors.red,
-    ),
-  );
-} finally {
-  if (mounted) {
-    setState(() {
-      _isLoading = false;
-    });
-  }
-}
+    );
 
+    Navigator.of(context).pop();
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Error updating site: ${e.toString()}',
+        ),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 }
 
 @override

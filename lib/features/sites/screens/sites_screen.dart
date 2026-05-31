@@ -12,18 +12,26 @@ class SitesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final sitesAsync = ref.watch(sitesStreamProvider);
 
+    final FloatingActionButton? fab = sitesAsync.when(
+      data: (sites) => sites.isEmpty
+          ? null
+          : FloatingActionButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed('/add-site');
+              },
+              tooltip: 'Add Site',
+              child: const Icon(Icons.add),
+            ),
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Sites'),
         elevation: 0,
       ),
-      fab: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).pushNamed('/add-site');
-        },
-        tooltip: 'Add Site',
-        child: const Icon(Icons.add),
-      ),
+      fab: fab,
       child: sitesAsync.when(
         data: (sites) {
           if (sites.isEmpty) {
