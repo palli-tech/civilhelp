@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/core/providers/company_provider.dart';
@@ -60,7 +61,29 @@ final updateAttendanceProvider = FutureProvider.family<void, AttendanceModel>((
   ref,
   attendance,
 ) async {
-  await ref.read(attendanceRepositoryProvider).updateAttendance(attendance);
+  final repository = ref.read(attendanceRepositoryProvider);
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
+  // Prevent date collisions: if another attendance exists for same labour+date, block update
+  final existing = await repository.getAttendanceForLabourOnDate(
+    companyId: companyId,
+    labourId: attendance.labourId,
+    date: attendance.date,
+  );
+
+  if (existing != null && existing.id != attendance.id) {
+    throw Exception(
+      'Attendance already exists for this labour on the selected date',
+    );
+  }
+
+  await repository.updateAttendance(attendance);
+
+  // Invalidate affected streams
+  ref.invalidate(attendanceStreamProvider);
+  ref.invalidate(attendanceBySiteStreamProvider(attendance.siteId));
+  ref.invalidate(attendanceByLabourStreamProvider(attendance.labourId));
+  ref.invalidate(attendanceTodayStreamProvider);
 });
 
 final deleteAttendanceProvider = FutureProvider.family<void, String>((
@@ -68,6 +91,12 @@ final deleteAttendanceProvider = FutureProvider.family<void, String>((
   attendanceId,
 ) async {
   await ref.read(attendanceRepositoryProvider).deleteAttendance(attendanceId);
+
+  // Invalidate all attendance streams after delete
+  ref.invalidate(attendanceStreamProvider);
+  ref.invalidate(attendanceBySiteStreamProvider);
+  ref.invalidate(attendanceByLabourStreamProvider);
+  ref.invalidate(attendanceTodayStreamProvider);
 });
 final createAttendanceProvider =
     FutureProvider.family<
@@ -85,6 +114,19 @@ final createAttendanceProvider =
       final repository = ref.watch(attendanceRepositoryProvider);
       final companyId = await ref.watch(userCompanyIdProvider.future);
       final currentUser = ref.watch(currentUserProvider);
+
+      // Duplicate prevention: check existing attendance for same labour+date
+      final existing = await repository.getAttendanceForLabourOnDate(
+        companyId: companyId,
+        labourId: params.$1,
+        date: params.$5,
+      );
+      debugPrint('EXISTING ATTENDANCE -> ${existing?.id}');
+      if (existing != null) {
+        throw Exception(
+          'Attendance already exists for the selected labour and date',
+        );
+      }
 
       final attendance = await repository.createAttendance(
         labourId: params.$1,

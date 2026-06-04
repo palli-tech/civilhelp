@@ -23,7 +23,7 @@ class SitesScreen extends ConsumerWidget {
               child: const Icon(Icons.add),
             ),
       loading: () => null,
-      error: (_, __) => null,
+      error: (_, _) => null,
     );
 
     return AppScaffold(

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 import '../models/attendance_model.dart';
 
@@ -6,7 +7,7 @@ class AttendanceRepository {
   final FirebaseFirestore _firestore;
 
   AttendanceRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   Future<AttendanceModel> createAttendance({
     required String labourId,
@@ -36,28 +37,23 @@ class AttendanceRepository {
     return AttendanceModel.fromFirestore(doc);
   }
 
-Future<void> updateAttendance(AttendanceModel attendance) async {
-  await _firestore
-      .collection('attendance')
-      .doc(attendance.id)
-      .update({
-    'labourId': attendance.labourId,
-    'labourName': attendance.labourName,
-    'siteId': attendance.siteId,
-    'siteName': attendance.siteName,
-    'date': Timestamp.fromDate(attendance.date),
-    'status': attendance.status,
-    'hoursWorked': attendance.hoursWorked,
-    'updatedAt': Timestamp.now(),
-  });
-}
+  Future<void> updateAttendance(AttendanceModel attendance) async {
+    await _firestore.collection('attendance').doc(attendance.id).update({
+      'labourId': attendance.labourId,
+      'labourName': attendance.labourName,
+      'siteId': attendance.siteId,
+      'siteName': attendance.siteName,
+      'date': Timestamp.fromDate(attendance.date),
+      'status': attendance.status,
+      'hoursWorked': attendance.hoursWorked,
+      'updatedAt': Timestamp.now(),
+    });
+  }
 
-Future<void> deleteAttendance(String attendanceId) async {
-  await _firestore
-      .collection('attendance')
-      .doc(attendanceId)
-      .delete();
-}
+  Future<void> deleteAttendance(String attendanceId) async {
+    await _firestore.collection('attendance').doc(attendanceId).delete();
+  }
+
   Stream<List<AttendanceModel>> getAttendanceByCompanyStream(String companyId) {
     try {
       return _firestore
@@ -65,9 +61,11 @@ Future<void> deleteAttendance(String attendanceId) async {
           .where('companyId', isEqualTo: companyId)
           .orderBy('date', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => AttendanceModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => AttendanceModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }
@@ -84,9 +82,11 @@ Future<void> deleteAttendance(String attendanceId) async {
           .where('siteId', isEqualTo: siteId)
           .orderBy('date', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => AttendanceModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => AttendanceModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }
@@ -103,9 +103,11 @@ Future<void> deleteAttendance(String attendanceId) async {
           .where('labourId', isEqualTo: labourId)
           .orderBy('date', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => AttendanceModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => AttendanceModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }
@@ -124,9 +126,11 @@ Future<void> deleteAttendance(String attendanceId) async {
           .where('date', isLessThan: Timestamp.fromDate(end))
           .orderBy('date', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => AttendanceModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => AttendanceModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }
@@ -141,6 +145,40 @@ Future<void> deleteAttendance(String attendanceId) async {
       return getAttendanceByDateRangeStream(companyId, startOfDay, endOfDay);
     } catch (e) {
       return Stream.error(e);
+    }
+  }
+
+  /// Get a single attendance for a labour on the given date (day range).
+  /// Returns the first matching AttendanceModel or null if none.
+  Future<AttendanceModel?> getAttendanceForLabourOnDate({
+    required String companyId,
+    required String labourId,
+    required DateTime date,
+  }) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    try {
+      debugPrint(
+        'QUERY -> company=$companyId labour=$labourId '
+        'start=$startOfDay end=$endOfDay',
+      );
+
+      final query = await _firestore
+          .collection('attendance')
+          .where('companyId', isEqualTo: companyId)
+          .where('labourId', isEqualTo: labourId)
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+          .limit(1)
+          .get();
+      debugPrint('QUERY RESULT -> docs=${query.docs.length}');
+
+      if (query.docs.isEmpty) return null;
+
+      return AttendanceModel.fromFirestore(query.docs.first);
+    } catch (e) {
+      rethrow;
     }
   }
 }

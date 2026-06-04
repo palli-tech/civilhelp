@@ -74,3 +74,21 @@ final createAdvanceProvider = FutureProvider.family<AdvanceModel, (
 
   return advance;
 });
+
+final updateAdvanceProvider =
+    FutureProvider.family<void, AdvanceModel>((ref, advance) async {
+  await ref.read(advanceRepositoryProvider).updateAdvance(advance);
+
+  ref.invalidate(advancesStreamProvider);
+  ref.invalidate(outstandingAdvancesStreamProvider);
+  ref.invalidate(outstandingAdvanceTotalProvider);
+});
+
+final deleteAdvanceProvider =
+    FutureProvider.family<void, String>((ref, advanceId) async {
+  await ref.read(advanceRepositoryProvider).deleteAdvance(advanceId);
+
+  ref.invalidate(advancesStreamProvider);
+  ref.invalidate(outstandingAdvancesStreamProvider);
+  ref.invalidate(outstandingAdvanceTotalProvider);
+});

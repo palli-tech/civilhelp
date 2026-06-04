@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
+import '../models/advance_model.dart';
 import '../providers/advance_provider.dart';
 import '../../labour/data/models/labour_model.dart';
 import '../../sites/models/site_model.dart';
@@ -28,14 +29,11 @@ class AdvancesScreen extends ConsumerWidget {
               child: const Icon(Icons.add),
             ),
       loading: () => null,
-      error: (_, __) => null,
+      error: (_, _) => null,
     );
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Advances'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Advances'), elevation: 0),
       fab: fab,
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -62,15 +60,19 @@ class AdvancesScreen extends ConsumerWidget {
                           const SizedBox(height: 8),
                           Text(
                             'Add advances to track loaned amounts and repayments',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey[600]),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),
                           ElevatedButton.icon(
                             onPressed: () {
-                              _showNewAdvanceDialog(context, ref, sitesAsync, labourAsync);
+                              _showNewAdvanceDialog(
+                                context,
+                                ref,
+                                sitesAsync,
+                                labourAsync,
+                              );
                             },
                             icon: const Icon(Icons.add),
                             label: const Text('Add Advance'),
@@ -85,25 +87,176 @@ class AdvancesScreen extends ConsumerWidget {
                     separatorBuilder: (context, index) => const Divider(),
                     itemBuilder: (context, index) {
                       final advance = advances[index];
-                      return ListTile(
-                        title: Text(advance.labourName),
-                        subtitle: Text(
-                          '${advance.siteName} • ₹${advance.amount.toStringAsFixed(0)} • ${advance.reason}',
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 6,
                         ),
-                        trailing: Icon(
-                          advance.paidBack ? Icons.check_circle : Icons.money_off,
-                          color: advance.paidBack ? Colors.green : Colors.orange,
+                        child: ListTile(
+                          title: Text(
+                            advance.labourName,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Text(advance.siteName),
+                              Text(
+                                '₹${advance.amount.toStringAsFixed(0)} • ${advance.reason}',
+                              ),
+                            ],
+                          ),
+                          trailing: PopupMenuButton<String>(
+                            onSelected: (value) {
+                              switch (value) {
+                                case 'edit':
+                                  _showEditAdvanceDialog(context, ref, advance);
+                                  break;
+
+                                case 'delete':
+                                  _showDeleteAdvanceDialog(
+                                    context,
+                                    ref,
+                                    advance,
+                                  );
+                                  break;
+                              }
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem(value: 'edit', child: Text('Edit')),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Delete'),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) => Center(child: Text('Failed to load advances: $error')),
+                error: (error, stack) =>
+                    Center(child: Text('Failed to load advances: $error')),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteAdvanceDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AdvanceModel advance,
+  ) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Advance'),
+        content: Text('Delete advance for ${advance.labourName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await ref.read(deleteAdvanceProvider(advance.id).future);
+
+              if (context.mounted) {
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Advance deleted')),
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditAdvanceDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AdvanceModel advance,
+  ) {
+    final amountController = TextEditingController(
+      text: advance.amount.toString(),
+    );
+
+    final reasonController = TextEditingController(text: advance.reason);
+
+    bool paidBack = advance.paidBack;
+
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Edit Advance'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: amountController,
+                  decoration: const InputDecoration(labelText: 'Amount'),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(labelText: 'Reason'),
+                ),
+                const SizedBox(height: 12),
+                CheckboxListTile(
+                  value: paidBack,
+                  title: const Text('Paid Back'),
+                  onChanged: (value) {
+                    setState(() {
+                      paidBack = value ?? false;
+                    });
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  await ref.read(
+                    updateAdvanceProvider(
+                      advance.copyWith(
+                        amount:
+                            double.tryParse(amountController.text) ??
+                            advance.amount,
+                        reason: reasonController.text,
+                        paidBack: paidBack,
+                      ),
+                    ).future,
+                  );
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Advance updated')),
+                    );
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -137,12 +290,14 @@ class AdvancesScreen extends ConsumerWidget {
                       DropdownButtonFormField<String>(
                         initialValue: selectedSiteId,
                         decoration: const InputDecoration(labelText: 'Site'),
-                                                items: sitesAsync.when(
+                        items: sitesAsync.when(
                           data: (sites) => sites
-                              .map((site) => DropdownMenuItem(
-                                    value: site.id,
-                                    child: Text(site.name),
-                                  ))
+                              .map(
+                                (site) => DropdownMenuItem(
+                                  value: site.id,
+                                  child: Text(site.name),
+                                ),
+                              )
                               .toList(),
                           loading: () => const [],
                           error: (error, stackTrace) => const [],
@@ -152,7 +307,8 @@ class AdvancesScreen extends ConsumerWidget {
                             selectedSiteId = value;
                           });
                         },
-                        validator: (value) => value == null ? 'Select a site' : null,
+                        validator: (value) =>
+                            value == null ? 'Select a site' : null,
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
@@ -160,10 +316,12 @@ class AdvancesScreen extends ConsumerWidget {
                         decoration: const InputDecoration(labelText: 'Labour'),
                         items: labourAsync.when(
                           data: (labour) => labour
-                              .map((entry) => DropdownMenuItem(
-                                    value: entry.id,
-                                    child: Text(entry.fullName),
-                                  ))
+                              .map(
+                                (entry) => DropdownMenuItem(
+                                  value: entry.id,
+                                  child: Text(entry.fullName),
+                                ),
+                              )
                               .toList(),
                           loading: () => const [],
                           error: (_, _) => const [],
@@ -173,7 +331,8 @@ class AdvancesScreen extends ConsumerWidget {
                             selectedLabourId = value;
                           });
                         },
-                        validator: (value) => value == null ? 'Select a labour' : null,
+                        validator: (value) =>
+                            value == null ? 'Select a labour' : null,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -206,8 +365,12 @@ class AdvancesScreen extends ConsumerWidget {
                           final picked = await showDatePicker(
                             context: context,
                             initialDate: selectedDate,
-                            firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            firstDate: DateTime.now().subtract(
+                              const Duration(days: 365),
+                            ),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
                           if (picked != null) {
                             setState(() {
@@ -215,7 +378,9 @@ class AdvancesScreen extends ConsumerWidget {
                             });
                           }
                         },
-                        child: Text('Date: ${selectedDate.toLocal().toShortDateString()}'),
+                        child: Text(
+                          'Date: ${selectedDate.toLocal().toShortDateString()}',
+                        ),
                       ),
                     ],
                   ),
@@ -234,17 +399,19 @@ class AdvancesScreen extends ConsumerWidget {
                       return;
                     }
 
-                    final selectedSite = sitesAsync.valueOrNull
-                        ?.firstWhere((site) => site.id == selectedSiteId);
-                    final selectedLabour = labourAsync.valueOrNull
-                        ?.firstWhere((labour) => labour.id == selectedLabourId);
+                    final selectedSite = sitesAsync.valueOrNull?.firstWhere(
+                      (site) => site.id == selectedSiteId,
+                    );
+                    final selectedLabour = labourAsync.valueOrNull?.firstWhere(
+                      (labour) => labour.id == selectedLabourId,
+                    );
 
                     if (selectedSite == null || selectedLabour == null) {
                       return;
                     }
 
-                    final advance = await ref.read(createAdvanceProvider(
-                      (
+                    final advance = await ref.read(
+                      createAdvanceProvider((
                         selectedLabour.id,
                         selectedLabour.fullName,
                         selectedSite.id,
@@ -252,13 +419,17 @@ class AdvancesScreen extends ConsumerWidget {
                         double.tryParse(amountValue) ?? 0.0,
                         reason,
                         selectedDate,
-                      ),
-                    ).future);
+                      )).future,
+                    );
 
                     if (context.mounted) {
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Advance created for ${advance.labourName}')),
+                        SnackBar(
+                          content: Text(
+                            'Advance created for ${advance.labourName}',
+                          ),
+                        ),
                       );
                     }
                   },

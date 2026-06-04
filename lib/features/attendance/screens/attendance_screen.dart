@@ -7,6 +7,7 @@ import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import '../models/attendance_model.dart';
 import '../providers/attendance_provider.dart';
 import '../widgets/attendance_card.dart';
+import '../widgets/attendance_form.dart';
 import '../../labour/data/models/labour_model.dart';
 import '../../sites/models/site_model.dart';
 
@@ -30,7 +31,7 @@ class AttendanceScreen extends ConsumerWidget {
               child: const Icon(Icons.add),
             ),
       loading: () => null,
-      error: (_, __) => null,
+      error: (_, _) => null,
     );
 
     return AppScaffold(
@@ -92,7 +93,8 @@ class AttendanceScreen extends ConsumerWidget {
                       return AttendanceCard(
                         attendance: entry,
                         onEdit: () {
-                          _showEditAttendanceDialog(context, ref, entry);
+                          _showEditAttendanceDialog(context, ref, entry,
+                              sitesAsync, labourAsync);
                         },
                         onDelete: () {
                           _showDeleteAttendanceDialog(context, ref, entry);
@@ -116,70 +118,77 @@ class AttendanceScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AttendanceModel attendance,
+    AsyncValue<List<SiteModel>> sitesAsync,
+    AsyncValue<List<LabourModel>> labourAsync,
   ) {
-    String selectedStatus = attendance.status;
-    double hoursWorked = attendance.hoursWorked;
+    final formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+    String? inlineError;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Attendance'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: selectedStatus,
-              items: const [
-                DropdownMenuItem(value: 'Present', child: Text('Present')),
-                DropdownMenuItem(value: 'Absent', child: Text('Absent')),
-                DropdownMenuItem(value: 'Half Day', child: Text('Half Day')),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  selectedStatus = value;
-                }
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              initialValue: hoursWorked.toString(),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Hours Worked'),
-              onChanged: (value) {
-                hoursWorked = double.tryParse(value) ?? attendance.hoursWorked;
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              await ref.read(
-                updateAttendanceProvider(
-                  attendance.copyWith(
-                    status: selectedStatus,
-                    hoursWorked: hoursWorked,
+    sitesAsync.whenData((sites) {
+      labourAsync.whenData((labour) {
+        showDialog<void>(
+          context: context,
+          builder: (context) {
+            return StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                title: const Text('Edit Attendance'),
+                content: AttendanceForm(
+                  formKey: formKey,
+                  sites: sites,
+                  labour: labour,
+                  initialAttendance: attendance,
+                  isLoading: isLoading,
+                  inlineError: inlineError,
+                  onChanged: () {
+                    if (inlineError != null) setState(() => inlineError = null);
+                  },
+                  submitLabel: 'Update',
+                  onSubmit: (siteId, siteName, labourId, labourName, date,
+                      status, hoursWorked) async {
+                    setState(() => isLoading = true);
+                    try {
+                      // Preserve original labour and site; only update date/status/hours
+                      final updated = attendance.copyWith(
+                        date: date,
+                        status: status,
+                        hoursWorked: hoursWorked,
+                      );
+
+                      await ref.read(updateAttendanceProvider(updated).future);
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Attendance updated')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        // Map duplicate/business errors to inline validation
+                        final msg = e.toString();
+                        if (msg.contains('Attendance already exists')) {
+                          inlineError = 'Attendance already exists for this labour on the selected date';
+                        } else {
+                          inlineError = 'Error: $e';
+                        }
+                        setState(() => isLoading = false);
+                      }
+                    }
+                  },
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: isLoading ? null : () => Navigator.pop(context),
+                    child: const Text('Cancel'),
                   ),
-                ).future,
-              );
-
-              if (context.mounted) {
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Attendance updated')),
-                );
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+                ],
+              ),
+            );
+          },
+        );
+      });
+    });
   }
 
   void _showDeleteAttendanceDialog(
@@ -225,200 +234,76 @@ class AttendanceScreen extends ConsumerWidget {
     AsyncValue<List<LabourModel>> labourAsync,
   ) {
     final formKey = GlobalKey<FormState>();
-    DateTime selectedDate = DateTime.now();
-    String selectedStatus = 'Present';
-    String? selectedSiteId;
-    String? selectedLabourId;
-    double hoursWorked = 8.0;
+    bool isLoading = false;
+    String? inlineError;
 
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Mark Attendance'),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (sitesAsync.hasError)
-                        const Text('Unable to load sites.'),
-                      if (labourAsync.hasError)
-                        const Text('Unable to load labour.'),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedSiteId,
-                        decoration: const InputDecoration(labelText: 'Site'),
-                        items: sitesAsync.when(
-                          data: (sites) => sites
-                              .map(
-                                (site) => DropdownMenuItem(
-                                  value: site.id,
-                                  child: Text(site.name),
-                                ),
-                              )
-                              .toList(),
-                          loading: () => const [],
-                          error: (_, _) => const [],
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedSiteId = value;
-                          });
-                        },
-                        validator: (value) =>
-                            value == null ? 'Select a site' : null,
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedLabourId,
-                        decoration: const InputDecoration(labelText: 'Labour'),
-                        items: labourAsync.when(
-                          data: (labour) => labour
-                              .map(
-                                (entry) => DropdownMenuItem(
-                                  value: entry.id,
-                                  child: Text(entry.fullName),
-                                ),
-                              )
-                              .toList(),
-                          loading: () => const [],
-                          error: (_, _) => const [],
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedLabourId = value;
-                          });
-                        },
-                        validator: (value) =>
-                            value == null ? 'Select a labour' : null,
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedStatus,
-                        decoration: const InputDecoration(labelText: 'Status'),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'Present',
-                            child: Text('Present'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Absent',
-                            child: Text('Absent'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Half Day',
-                            child: Text('Half Day'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              selectedStatus = value;
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        initialValue: hoursWorked.toStringAsFixed(1),
-                        decoration: const InputDecoration(
-                          labelText: 'Hours Worked',
-                        ),
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          hoursWorked = double.tryParse(value) ?? 8.0;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate,
-                            firstDate: DateTime.now().subtract(
-                              const Duration(days: 365),
-                            ),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
-                          );
-                          if (picked != null) {
-                            setState(() {
-                              selectedDate = picked;
-                            });
-                          }
-                        },
-                        child: Text(
-                          'Date: ${selectedDate.toLocal().toShortDateString()}',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
+    sitesAsync.whenData((sites) {
+      labourAsync.whenData((labour) {
+        showDialog<void>(
+          context: context,
+          builder: (context) {
+            return StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                title: const Text('Mark Attendance'),
+                content: AttendanceForm(
+                  formKey: formKey,
+                  sites: sites,
+                  labour: labour,
+                  isLoading: isLoading,
+                  inlineError: inlineError,
+                  onChanged: () {
+                    if (inlineError != null) setState(() => inlineError = null);
                   },
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) {
-                      return;
-                    }
-
-                    final selectedSite = sitesAsync.valueOrNull?.firstWhere(
-                      (site) => site.id == selectedSiteId,
-                    );
-                    final selectedLabour = labourAsync.valueOrNull?.firstWhere(
-                      (labour) => labour.id == selectedLabourId,
-                    );
-
-                    if (selectedSite == null || selectedLabour == null) {
-                      return;
-                    }
-
-                    final attendance = await ref.read(
-                      createAttendanceProvider((
-                        selectedLabour.id,
-                        selectedLabour.fullName,
-                        selectedSite.id,
-                        selectedSite.name,
-                        selectedDate,
-                        selectedStatus,
-                        hoursWorked,
-                      )).future,
-                    );
-
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Attendance saved for ${attendance.labourName}',
-                          ),
-                        ),
+                  onSubmit: (siteId, siteName, labourId, labourName, date,
+                      status, hoursWorked) async {
+                    setState(() => isLoading = true);
+                    try {
+                      final attendance = await ref.read(
+                        createAttendanceProvider((
+                          labourId,
+                          labourName,
+                          siteId,
+                          siteName,
+                          date,
+                          status,
+                          hoursWorked,
+                        )).future,
                       );
+
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Attendance saved for ${attendance.labourName}',
+                            ),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        final msg = e.toString();
+                        if (msg.contains('Attendance already exists')) {
+                          inlineError = 'Attendance already exists for this labour on the selected date';
+                        } else {
+                          inlineError = 'Error: $e';
+                        }
+                        setState(() => isLoading = false);
+                      }
                     }
                   },
-                  child: const Text('Save'),
                 ),
-              ],
+                actions: [
+                  TextButton(
+                    onPressed: isLoading ? null : () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ),
             );
           },
         );
-      },
-    );
-  }
-}
-
-extension on DateTime {
-  String toShortDateString() {
-    return '${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')}/${year.toString()}';
+      });
+    });
   }
 }

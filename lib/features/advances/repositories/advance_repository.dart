@@ -6,7 +6,7 @@ class AdvanceRepository {
   final FirebaseFirestore _firestore;
 
   AdvanceRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   Future<AdvanceModel> createAdvance({
     required String labourId,
@@ -38,6 +38,17 @@ class AdvanceRepository {
     return AdvanceModel.fromFirestore(doc);
   }
 
+  Future<void> updateAdvance(AdvanceModel advance) async {
+    await _firestore
+        .collection('advances')
+        .doc(advance.id)
+        .update(advance.toMap());
+  }
+
+  Future<void> deleteAdvance(String advanceId) async {
+    await _firestore.collection('advances').doc(advanceId).delete();
+  }
+
   Stream<List<AdvanceModel>> getAdvancesByCompanyStream(String companyId) {
     try {
       return _firestore
@@ -45,9 +56,11 @@ class AdvanceRepository {
           .where('companyId', isEqualTo: companyId)
           .orderBy('date', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => AdvanceModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => AdvanceModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }
@@ -63,9 +76,11 @@ class AdvanceRepository {
           .where('paidBack', isEqualTo: false)
           .orderBy('date', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => AdvanceModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => AdvanceModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }
@@ -82,9 +97,11 @@ class AdvanceRepository {
           .where('labourId', isEqualTo: labourId)
           .orderBy('date', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => AdvanceModel.fromFirestore(doc))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => AdvanceModel.fromFirestore(doc))
+                .toList(),
+          );
     } catch (e) {
       return Stream.error(e);
     }
