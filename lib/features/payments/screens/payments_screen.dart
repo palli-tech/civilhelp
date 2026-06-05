@@ -6,6 +6,7 @@ import 'package:civilhelp/features/labour/presentation/providers/labour_provider
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import '../models/payment_model.dart';
 import '../providers/payment_provider.dart';
+import '../repositories/payment_repository.dart';
 import '../widgets/payment_card.dart';
 import '../../labour/data/models/labour_model.dart';
 import '../../sites/models/site_model.dart';
@@ -203,12 +204,84 @@ class PaymentsScreen extends ConsumerWidget {
     String? selectedSiteId;
     String? selectedLabourId;
     String paymentStatus = 'pending';
+    PaymentSummary? paymentSummary;
+    bool isCalculating = false;
+    bool isSaving = false;
+    String? inlineValidationMessage;
 
     showDialog<void>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            void clearValidation() {
+              if (inlineValidationMessage != null) {
+                setState(() {
+                  inlineValidationMessage = null;
+                });
+              }
+            }
+
+            Future<void> recalculatePayment() async {
+              clearValidation();
+
+              if (periodStart.isAfter(periodEnd)) {
+                setState(() {
+                  inlineValidationMessage =
+                      'Period start date must be before or equal to period end date.';
+                  paymentSummary = null;
+                });
+                return;
+              }
+
+              if (selectedLabourId == null) {
+                setState(() {
+                  paymentSummary = null;
+                });
+                return;
+              }
+
+              setState(() {
+                isCalculating = true;
+              });
+
+              try {
+                final labour = labourAsync.valueOrNull?.firstWhere(
+                  (l) => l.id == selectedLabourId,
+                  orElse: () => throw Exception('Labour not found'),
+                );
+
+                if (labour != null) {
+                  final summary = await ref.read(
+                    calculatePaymentProvider((
+                      labour.id,
+                      labour.dailyWage,
+                      periodStart,
+                      periodEnd,
+                    )).future,
+                  );
+
+                  if (context.mounted) {
+                    setState(() {
+                      paymentSummary = summary;
+                      isCalculating = false;
+                      if (summary.grossAmount <= 0) {
+                        inlineValidationMessage =
+                            'No payable attendance found for the selected period.';
+                      }
+                    });
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  setState(() {
+                    paymentSummary = null;
+                    isCalculating = false;
+                  });
+                }
+              }
+            }
+
             return AlertDialog(
               title: const Text('Create Payment'),
               content: Form(
@@ -260,6 +333,7 @@ class PaymentsScreen extends ConsumerWidget {
                           setState(() {
                             selectedLabourId = value;
                           });
+                          recalculatePayment();
                         },
                         validator: (value) =>
                             value == null ? 'Select a labour' : null,
@@ -273,14 +347,13 @@ class PaymentsScreen extends ConsumerWidget {
                             firstDate: DateTime.now().subtract(
                               const Duration(days: 365),
                             ),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
+                            lastDate: periodEnd,
                           );
                           if (picked != null) {
                             setState(() {
                               periodStart = picked;
                             });
+                            recalculatePayment();
                           }
                         },
                         child: Text(
@@ -293,9 +366,7 @@ class PaymentsScreen extends ConsumerWidget {
                           final picked = await showDatePicker(
                             context: context,
                             initialDate: periodEnd,
-                            firstDate: DateTime.now().subtract(
-                              const Duration(days: 365),
-                            ),
+                            firstDate: periodStart,
                             lastDate: DateTime.now().add(
                               const Duration(days: 365),
                             ),
@@ -304,6 +375,7 @@ class PaymentsScreen extends ConsumerWidget {
                             setState(() {
                               periodEnd = picked;
                             });
+                            recalculatePayment();
                           }
                         },
                         child: Text(
@@ -332,6 +404,52 @@ class PaymentsScreen extends ConsumerWidget {
                           }
                         },
                       ),
+                      const SizedBox(height: 16),
+                      if (inlineValidationMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text(
+                            inlineValidationMessage!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      if (isCalculating)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: SizedBox(
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      else if (paymentSummary != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Gross Amount: ₹${paymentSummary!.grossAmount.toStringAsFixed(2)}',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Advances: ₹${paymentSummary!.advancesTotal.toStringAsFixed(2)}',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Net Amount: ₹${paymentSummary!.netAmount.toStringAsFixed(2)}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -344,62 +462,97 @@ class PaymentsScreen extends ConsumerWidget {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) {
-                      return;
-                    }
+                  onPressed: (isCalculating ||
+                          isSaving ||
+                          periodStart.isAfter(periodEnd) ||
+                          paymentSummary == null ||
+                          paymentSummary!.grossAmount <= 0)
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) {
+                            return;
+                          }
 
-                    final selectedSite = sitesAsync.valueOrNull?.firstWhere(
-                      (site) => site.id == selectedSiteId,
-                    );
-                    final selectedLabour = labourAsync.valueOrNull?.firstWhere(
-                      (labour) => labour.id == selectedLabourId,
-                    );
+                          final selectedSite = sitesAsync.valueOrNull?.firstWhere(
+                            (site) => site.id == selectedSiteId,
+                          );
+                          final selectedLabour =
+                              labourAsync.valueOrNull?.firstWhere(
+                            (labour) => labour.id == selectedLabourId,
+                          );
 
-                    if (selectedSite == null || selectedLabour == null) {
-                      return;
-                    }
+                          if (selectedSite == null || selectedLabour == null) {
+                            return;
+                          }
 
-                    final paymentSummary = await ref.read(
-                      calculatePaymentProvider((
-                        selectedLabour.id,
-                        selectedLabour.dailyWage,
-                        periodStart,
-                        periodEnd,
-                      )).future,
-                    );
+                          setState(() {
+                            isSaving = true;
+                            clearValidation();
+                          });
 
-                    final grossPayment = paymentSummary.grossAmount;
-                    final advancesTotal = paymentSummary.advancesTotal;
-                    final netAmount = paymentSummary.netAmount;
+                          // Validate duplicate / overlapping payments before creating.
+                          final isDuplicate = await ref.read(
+                            hasOverlappingPaymentProvider((
+                              selectedLabour.id,
+                              periodStart,
+                              periodEnd,
+                            )).future,
+                          );
 
-                    final payment = await ref.read(
-                      createPaymentProvider((
-                        selectedLabour.id,
-                        selectedLabour.fullName,
-                        selectedSite.id,
-                        selectedSite.name,
-                        periodStart,
-                        periodEnd,
-                        grossPayment,
-                        advancesTotal,
-                        netAmount,
-                        paymentStatus,
-                      )).future,
-                    );
+                          if (isDuplicate) {
+                            if (context.mounted) {
+                              setState(() {
+                                isSaving = false;
+                                inlineValidationMessage =
+                                    'A payment for this labour and period already exists.';
+                              });
+                            }
+                            return;
+                          }
 
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Payment recorded for ${payment.labourName}',
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('Save'),
+                          final grossPayment =
+                              paymentSummary!.grossAmount;
+
+                          try {
+                            final payment = await ref.read(
+                              createPaymentProvider((
+                                selectedLabour.id,
+                                selectedLabour.fullName,
+                                selectedSite.id,
+                                selectedSite.name,
+                                periodStart,
+                                periodEnd,
+                                grossPayment,
+                                paymentStatus,
+                              )).future,
+                            );
+
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Payment recorded for ${payment.labourName}',
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              setState(() {
+                                isSaving = false;
+                                inlineValidationMessage = e.toString();
+                              });
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save'),
                 ),
               ],
             );
@@ -415,3 +568,4 @@ extension on DateTime {
     return '${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')}/${year.toString()}';
   }
 }
+

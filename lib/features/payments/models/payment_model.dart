@@ -15,6 +15,7 @@ class PaymentModel {
   final String companyId;
   final DateTime createdAt;
   final String createdBy;
+  final List<String> appliedAdvanceIds;
 
   const PaymentModel({
     required this.id,
@@ -31,6 +32,7 @@ class PaymentModel {
     required this.companyId,
     required this.createdAt,
     required this.createdBy,
+    this.appliedAdvanceIds = const [],
   });
 
   factory PaymentModel.fromMap(Map<String, dynamic> map, String documentId) {
@@ -49,6 +51,11 @@ class PaymentModel {
       companyId: map['companyId'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdBy: map['createdBy'] ?? '',
+      appliedAdvanceIds: (map['appliedAdvanceIds'] as List<dynamic>?)
+              ?.map((e) => e?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
+              .toList() ??
+          <String>[],
     );
   }
 
@@ -75,6 +82,7 @@ class PaymentModel {
       'companyId': companyId,
       'createdAt': Timestamp.fromDate(createdAt),
       'createdBy': createdBy,
+      'appliedAdvanceIds': appliedAdvanceIds,
     };
   }
 
@@ -93,6 +101,7 @@ class PaymentModel {
     String? companyId,
     DateTime? createdAt,
     String? createdBy,
+    List<String>? appliedAdvanceIds,
   }) {
     return PaymentModel(
       id: id ?? this.id,
@@ -109,6 +118,7 @@ class PaymentModel {
       companyId: companyId ?? this.companyId,
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,
+      appliedAdvanceIds: appliedAdvanceIds ?? this.appliedAdvanceIds,
     );
   }
 }

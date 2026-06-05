@@ -1,11 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/core/providers/company_provider.dart';
+import 'package:civilhelp/features/advances/repositories/advance_repository.dart';
+import 'package:civilhelp/features/advances/providers/advance_provider.dart';
 import '../models/payment_model.dart';
 import '../repositories/payment_repository.dart';
 
+final advanceRepositoryProvider = Provider<AdvanceRepository>((ref) {
+  return AdvanceRepository();
+});
+
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
-  return PaymentRepository();
+  return PaymentRepository(advanceRepository: ref.watch(advanceRepositoryProvider));
 });
 
 final paymentsStreamProvider = StreamProvider<List<PaymentModel>>((ref) {
@@ -58,14 +64,13 @@ final createPaymentProvider = FutureProvider.family<PaymentModel, (
   DateTime periodStart,
   DateTime periodEnd,
   double grossAmount,
-  double advancesTotal,
-  double netAmount,
   String status,
 )>((ref, params) async {
   final repository = ref.watch(paymentRepositoryProvider);
   final companyId = await ref.watch(userCompanyIdProvider.future);
 
-  final payment = await repository.createPayment(
+  // Use transactional creation which also settles advances atomically.
+  final payment = await repository.createPaymentWithAdvancesApplied(
     labourId: params.$1,
     labourName: params.$2,
     siteId: params.$3,
@@ -73,15 +78,14 @@ final createPaymentProvider = FutureProvider.family<PaymentModel, (
     periodStart: params.$5,
     periodEnd: params.$6,
     grossAmount: params.$7,
-    advancesTotal: params.$8,
-    netAmount: params.$9,
-    status: params.$10,
+    status: params.$8,
     companyId: companyId,
     createdBy: 'system',
   );
 
   ref.invalidate(paymentsStreamProvider);
   ref.invalidate(pendingPaymentsCountProvider);
+  ref.invalidate(advancesStreamProvider);
 
   return payment;
 });
@@ -98,3 +102,20 @@ final deletePaymentProvider =
   ref.invalidate(paymentsStreamProvider);
   ref.invalidate(pendingPaymentsCountProvider);
 });
+
+final hasOverlappingPaymentProvider = FutureProvider.family<bool, (
+  String labourId,
+  DateTime periodStart,
+  DateTime periodEnd,
+)>((ref, params) async {
+  final repository = ref.watch(paymentRepositoryProvider);
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
+  return repository.hasOverlappingPayment(
+    companyId: companyId,
+    labourId: params.$1,
+    periodStart: params.$2,
+    periodEnd: params.$3,
+  );
+});
+
