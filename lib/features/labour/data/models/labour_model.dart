@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:civilhelp/core/enums/labour_status.dart';
+import 'package:civilhelp/core/enums/payment_mode.dart';
 import 'package:civilhelp/features/labour/domain/entities/labour_entity.dart';
 
 class LabourModel extends LabourEntity {
@@ -9,6 +10,7 @@ class LabourModel extends LabourEntity {
     required super.phoneNumber,
     required super.aadhaarNumber,
     required super.dailyWage,
+    super.paymentMode = PaymentMode.dailyWage,
     required super.assignedSiteId,
     required super.assignedSiteName,
     required super.status,
@@ -25,6 +27,12 @@ class LabourModel extends LabourEntity {
       phoneNumber: map['phoneNumber'] ?? '',
       aadhaarNumber: map['aadhaarNumber'] ?? '',
       dailyWage: (map['dailyWage'] as num?)?.toDouble() ?? 0.0,
+      paymentMode: map['paymentMode'] != null
+          ? PaymentMode.values.firstWhere(
+              (e) => e.name == map['paymentMode'],
+              orElse: () => PaymentMode.dailyWage,
+            )
+          : PaymentMode.dailyWage,
       assignedSiteId: map['assignedSiteId'] ?? '',
       assignedSiteName: map['assignedSiteName'] ?? '',
       status: LabourStatus.values.firstWhere(
@@ -42,7 +50,9 @@ class LabourModel extends LabourEntity {
     );
   }
 
-  factory LabourModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory LabourModel.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final data = doc.data();
 
     if (data == null) {
@@ -58,6 +68,7 @@ class LabourModel extends LabourEntity {
       'phoneNumber': phoneNumber,
       'aadhaarNumber': aadhaarNumber,
       'dailyWage': dailyWage,
+      'paymentMode': paymentMode.name,
       'assignedSiteId': assignedSiteId,
       'assignedSiteName': assignedSiteName,
       'status': status.name,
@@ -75,6 +86,7 @@ class LabourModel extends LabourEntity {
     String? phoneNumber,
     String? aadhaarNumber,
     double? dailyWage,
+    PaymentMode? paymentMode,
     String? assignedSiteId,
     String? assignedSiteName,
     LabourStatus? status,
@@ -89,6 +101,7 @@ class LabourModel extends LabourEntity {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       aadhaarNumber: aadhaarNumber ?? this.aadhaarNumber,
       dailyWage: dailyWage ?? this.dailyWage,
+      paymentMode: paymentMode ?? this.paymentMode,
       assignedSiteId: assignedSiteId ?? this.assignedSiteId,
       assignedSiteName: assignedSiteName ?? this.assignedSiteName,
       status: status ?? this.status,
@@ -106,6 +119,7 @@ class LabourModel extends LabourEntity {
       phoneNumber: phoneNumber,
       aadhaarNumber: aadhaarNumber,
       dailyWage: dailyWage,
+      paymentMode: paymentMode,
       assignedSiteId: assignedSiteId,
       assignedSiteName: assignedSiteName,
       status: status,

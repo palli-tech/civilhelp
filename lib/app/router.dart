@@ -13,6 +13,8 @@ import 'package:civilhelp/features/sites/screens/sites_screen.dart';
 import 'package:civilhelp/features/attendance/screens/attendance_screen.dart';
 import 'package:civilhelp/features/payments/screens/payments_screen.dart';
 import 'package:civilhelp/features/advances/screens/advances_screen.dart';
+import 'package:civilhelp/features/reports/screens/reports_dashboard_screen.dart';
+import 'package:civilhelp/features/reports/screens/worker_ledger_screen.dart';
 
 class AppRoutes {
   static const splash = '/';
@@ -29,6 +31,8 @@ class AppRoutes {
   static const attendance = '/attendance';
   static const payments = '/payments';
   static const advances = '/advances';
+  static const reports = '/reports';
+  static const workerLedger = '/worker-ledger';
 }
 
 class AppRouter {
@@ -116,6 +120,16 @@ class AppRouter {
       case AppRoutes.advances:
         return MaterialPageRoute(
           builder: (_) => const AdvancesScreen(),
+          settings: settings,
+        );
+      case AppRoutes.reports:
+        return MaterialPageRoute(
+          builder: (_) => const ReportsDashboardScreen(),
+          settings: settings,
+        );
+      case AppRoutes.workerLedger:
+        return MaterialPageRoute(
+          builder: (_) => const WorkerLedgerScreen(),
           settings: settings,
         );
       default:

@@ -38,7 +38,7 @@ final pendingPaymentsCountProvider = StreamProvider<int>((ref) {
   );
 });
 
-final calculatePaymentProvider = FutureProvider.family<PaymentSummary, (
+final calculatePaymentProvider = FutureProvider.autoDispose.family<PaymentSummary, (
   String labourId,
   double dailyWage,
   DateTime periodStart,
@@ -64,12 +64,10 @@ final createPaymentProvider = FutureProvider.family<PaymentModel, (
   DateTime periodStart,
   DateTime periodEnd,
   double grossAmount,
-  String status,
 )>((ref, params) async {
   final repository = ref.watch(paymentRepositoryProvider);
   final companyId = await ref.watch(userCompanyIdProvider.future);
 
-  // Use transactional creation which also settles advances atomically.
   final payment = await repository.createPaymentWithAdvancesApplied(
     labourId: params.$1,
     labourName: params.$2,
@@ -78,21 +76,36 @@ final createPaymentProvider = FutureProvider.family<PaymentModel, (
     periodStart: params.$5,
     periodEnd: params.$6,
     grossAmount: params.$7,
-    status: params.$8,
     companyId: companyId,
     createdBy: 'system',
   );
 
   ref.invalidate(paymentsStreamProvider);
   ref.invalidate(pendingPaymentsCountProvider);
-  ref.invalidate(advancesStreamProvider);
 
   return payment;
+});
+
+final markPaymentPaidProvider = FutureProvider.family<void, String>((ref, paymentId) async {
+  await ref.read(paymentRepositoryProvider).markPaymentAsPaid(paymentId);
+  ref.invalidate(paymentsStreamProvider);
+  ref.invalidate(pendingPaymentsCountProvider);
+  ref.invalidate(advancesStreamProvider);
+  ref.invalidate(outstandingAdvancesStreamProvider);
+  ref.invalidate(outstandingAdvanceTotalProvider);
+});
+
+final updatePaymentStatusProvider = FutureProvider.family<void, (String paymentId, String status)>((ref, params) async {
+  await ref.read(paymentRepositoryProvider).updatePaymentStatus(params.$1, params.$2);
+  ref.invalidate(paymentsStreamProvider);
+  ref.invalidate(pendingPaymentsCountProvider);
 });
 
 final updatePaymentProvider =
     FutureProvider.family<void, PaymentModel>((ref, payment) async {
   await ref.read(paymentRepositoryProvider).updatePayment(payment);
+  ref.invalidate(paymentsStreamProvider);
+  ref.invalidate(pendingPaymentsCountProvider);
 });
 
 final deletePaymentProvider =
@@ -101,6 +114,9 @@ final deletePaymentProvider =
 
   ref.invalidate(paymentsStreamProvider);
   ref.invalidate(pendingPaymentsCountProvider);
+  ref.invalidate(advancesStreamProvider);
+  ref.invalidate(outstandingAdvancesStreamProvider);
+  ref.invalidate(outstandingAdvanceTotalProvider);
 });
 
 final hasOverlappingPaymentProvider = FutureProvider.family<bool, (

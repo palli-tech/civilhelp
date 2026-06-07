@@ -87,6 +87,14 @@ class AdminDashboard extends StatelessWidget {
                   ),
                   const Divider(height: 0),
                   QuickActionTile(
+                    label: 'Reports',
+                    icon: Icons.bar_chart,
+                    onTap: () {
+                      Navigator.pushNamed(context, '/reports');
+                    },
+                  ),
+                  const Divider(height: 0),
+                  QuickActionTile(
                     label: 'System Logs',
                     icon: Icons.history,
                     onTap: () {},

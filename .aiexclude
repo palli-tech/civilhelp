@@ -1,0 +1,41 @@
+# Block Flutter and Dart build outputs
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+
+# Block dependency management files
+.pub-cache/
+.pub/
+
+# Block Android-specific build and IDE artifacts
+android/.gradle/
+android/app/build/
+android/local.properties
+*.aar
+*.apk
+*.aab
+
+# Block iOS/macOS-specific build artifacts
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+macos/Pods/
+macos/.symlinks/
+
+#Block linux
+linux/
+windows/
+
+# Block web-specific build artifacts
+web/manifest.json
+
+# Block IDE configuration folders
+.idea/
+.vscode/
+*.iml
+
+# Block general temporary and log files
+*.log
+.crashlytics/

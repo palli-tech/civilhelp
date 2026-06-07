@@ -17,6 +17,7 @@ class AttendanceRepository {
     required DateTime date,
     required String status,
     required double hoursWorked,
+    required double musterQuantity,
     required String companyId,
     required String createdBy,
   }) async {
@@ -28,6 +29,7 @@ class AttendanceRepository {
       'date': Timestamp.fromDate(date),
       'status': status,
       'hoursWorked': hoursWorked,
+      'musterQuantity': musterQuantity,
       'companyId': companyId,
       'createdAt': Timestamp.now(),
       'createdBy': createdBy,
@@ -35,6 +37,76 @@ class AttendanceRepository {
 
     final doc = await docRef.get();
     return AttendanceModel.fromFirestore(doc);
+  }
+
+  Future<(int created, int skipped)> createBulkAttendance({
+    required String siteId,
+    required String siteName,
+    required DateTime date,
+    required String companyId,
+    required String createdBy,
+    required List<({String labourId, String labourName, String status, double hoursWorked, double musterQuantity})> labourRecords,
+  }) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    // 1. Fetch existing attendances for this site and date to prevent duplicates
+    final existingQuery = await _firestore
+        .collection('attendance')
+        .where('companyId', isEqualTo: companyId)
+        .where('siteId', isEqualTo: siteId)
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+        .get();
+
+    final existingLabourIds = existingQuery.docs
+        .map((doc) => doc.data()['labourId'] as String)
+        .toSet();
+
+    int skipped = 0;
+    int created = 0;
+    
+    // 2. Use a WriteBatch for efficient creation
+    WriteBatch batch = _firestore.batch();
+    int batchCount = 0;
+    
+    for (final record in labourRecords) {
+      if (existingLabourIds.contains(record.labourId)) {
+        skipped++;
+        continue;
+      }
+
+      final docRef = _firestore.collection('attendance').doc();
+      batch.set(docRef, {
+        'labourId': record.labourId,
+        'labourName': record.labourName,
+        'siteId': siteId,
+        'siteName': siteName,
+        'date': Timestamp.fromDate(date),
+        'status': record.status,
+        'hoursWorked': record.hoursWorked,
+        'musterQuantity': record.musterQuantity,
+        'companyId': companyId,
+        'createdAt': Timestamp.now(),
+        'createdBy': createdBy,
+      });
+      
+      created++;
+      batchCount++;
+      
+      // Firestore batch limit is 500
+      if (batchCount == 499) {
+        await batch.commit();
+        batch = _firestore.batch();
+        batchCount = 0;
+      }
+    }
+    
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+    
+    return (created, skipped);
   }
 
   Future<void> updateAttendance(AttendanceModel attendance) async {
@@ -46,6 +118,7 @@ class AttendanceRepository {
       'date': Timestamp.fromDate(attendance.date),
       'status': attendance.status,
       'hoursWorked': attendance.hoursWorked,
+      'musterQuantity': attendance.musterQuantity,
       'updatedAt': Timestamp.now(),
     });
   }
@@ -182,3 +255,5 @@ class AttendanceRepository {
     }
   }
 }
+
+

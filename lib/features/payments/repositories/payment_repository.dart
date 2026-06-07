@@ -1,4 +1,7 @@
+import 'dart:developer' as developer;
+
 import 'package:civilhelp/features/advances/repositories/advance_repository.dart';
+import 'package:civilhelp/features/attendance/models/attendance_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/payment_model.dart';
@@ -70,7 +73,123 @@ class PaymentRepository {
   }
 
   Future<void> deletePayment(String paymentId) async {
-    await _firestore.collection('payments').doc(paymentId).delete();
+    final paymentDoc = await _firestore.collection('payments').doc(paymentId).get();
+    if (!paymentDoc.exists) return;
+
+    final data = paymentDoc.data()!;
+    final appliedAmounts = (data['appliedAdvanceAmounts'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(k, (v as num).toDouble())) ?? {};
+
+    await _firestore.runTransaction((tx) async {
+      // Revert the recovered amounts on the associated advances
+      for (final entry in appliedAmounts.entries) {
+        final advRef = _firestore.collection('advances').doc(entry.key);
+        final advSnap = await tx.get(advRef);
+        if (advSnap.exists) {
+          final advData = advSnap.data()!;
+          final currentRecovered = (advData['recoveredAmount'] as num?)?.toDouble() ?? 0.0;
+          final newRecovered = (currentRecovered - entry.value).clamp(0.0, double.infinity);
+          
+          tx.update(advRef, {
+            'recoveredAmount': newRecovered,
+            'paidBack': false, // Unmark paidBack if we revert any amount
+          });
+        }
+      }
+      tx.delete(paymentDoc.reference);
+    });
+  }
+
+  Future<void> markPaymentAsPaid(String paymentId) async {
+    final paymentRef = _firestore.collection('payments').doc(paymentId);
+    
+    // 1. Fetch payment outside transaction to get companyId and labourId
+    final initialSnap = await paymentRef.get();
+    if (!initialSnap.exists) {
+      throw Exception('Payment not found');
+    }
+    
+    final initialData = initialSnap.data()!;
+    if (initialData['status'] == 'paid') {
+      return; // Already paid
+    }
+
+    final companyId = initialData['companyId'] as String;
+    final labourId = initialData['labourId'] as String;
+    
+    // 2. Query candidate advances outside transaction
+    final advancesSnapshot = await _firestore
+        .collection('advances')
+        .where('companyId', isEqualTo: companyId)
+        .where('labourId', isEqualTo: labourId)
+        .where('paidBack', isEqualTo: false)
+        .get();
+
+    final candidateRefs = advancesSnapshot.docs.map((d) => d.reference).toList();
+    
+    await _firestore.runTransaction((tx) async {
+      final paymentSnap = await tx.get(paymentRef);
+      if (!paymentSnap.exists) {
+        throw Exception('Payment not found');
+      }
+      
+      final data = paymentSnap.data()!;
+      if (data['status'] == 'paid') {
+        return; // Already paid
+      }
+
+      final grossAmount = (data['grossAmount'] as num).toDouble();
+      double remainingDeduction = grossAmount;
+      double appliedTotal = 0.0;
+      final List<String> appliedIds = [];
+      final Map<String, double> appliedAmounts = {};
+
+      for (final ref in candidateRefs) {
+        if (remainingDeduction <= 0) break;
+
+        final advSnap = await tx.get(ref);
+        final advData = advSnap.data();
+        if (advData == null) continue;
+
+        final paidBack = advData['paidBack'] as bool? ?? false;
+        if (!paidBack) {
+          final amount = (advData['amount'] as num?)?.toDouble() ?? 0.0;
+          final recovered = (advData['recoveredAmount'] as num?)?.toDouble() ?? 0.0;
+          final outstanding = amount - recovered;
+
+          if (outstanding > 0) {
+            final toApply = outstanding > remainingDeduction ? remainingDeduction : outstanding;
+            appliedTotal += toApply;
+            remainingDeduction -= toApply;
+            appliedIds.add(advSnap.id);
+            appliedAmounts[advSnap.id] = toApply;
+            
+            final newRecovered = recovered + toApply;
+            final isFullyPaid = newRecovered >= amount;
+            
+            tx.update(ref, {
+              'recoveredAmount': newRecovered,
+              'paidBack': isFullyPaid,
+            });
+          }
+        }
+      }
+
+      final netAmount = grossAmount - appliedTotal;
+
+      tx.update(paymentRef, {
+        'status': 'paid',
+        'paidDate': Timestamp.now(),
+        'advancesTotal': appliedTotal,
+        'netAmount': netAmount,
+        'appliedAdvanceIds': appliedIds,
+        'appliedAdvanceAmounts': appliedAmounts,
+      });
+    });
+  }
+
+  Future<void> updatePaymentStatus(String paymentId, String status) async {
+    await _firestore.collection('payments').doc(paymentId).update({'status': status});
   }
 
   Stream<List<PaymentModel>> getPaymentsByCompanyStream(String companyId) {
@@ -111,6 +230,27 @@ class PaymentRepository {
     }
   }
 
+  Future<PaymentSummary> calculateFinalPaymentSummary(PaymentModel payment) async {
+    final advancesSnapshot = await _firestore
+        .collection('advances')
+        .where('companyId', isEqualTo: payment.companyId)
+        .where('labourId', isEqualTo: payment.labourId)
+        .where('paidBack', isEqualTo: false)
+        .get();
+
+    final totalOutstandingAdvances = advancesSnapshot.docs.fold<double>(0.0, (sumx, doc) {
+      final data = doc.data();
+      final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
+      final recoveredAmount = (data['recoveredAmount'] as num?)?.toDouble() ?? 0.0;
+      final outstanding = amount - recoveredAmount;
+      return sumx + (outstanding > 0 ? outstanding : 0.0);
+    });
+    
+    final advancesTotal = totalOutstandingAdvances > payment.grossAmount ? payment.grossAmount : totalOutstandingAdvances;
+
+    return PaymentSummary(grossAmount: payment.grossAmount, advancesTotal: advancesTotal);
+  }
+
   Future<PaymentSummary> calculatePaymentSummaryForPeriod({
     required String companyId,
     required String labourId,
@@ -128,17 +268,8 @@ class PaymentRepository {
 
     var gross = 0.0;
     for (final doc in attendanceSnapshot.docs) {
-      final data = doc.data();
-      final status = data['status'] as String? ?? 'absent';
-      final hoursWorked = (data['hoursWorked'] as num?)?.toDouble() ?? 0.0;
-
-      if (status.toLowerCase() == 'present') {
-        gross +=
-            dailyWage *
-            (hoursWorked > 0 ? (hoursWorked / 8.0).clamp(0.0, 1.0) : 1.0);
-      } else if (status.toLowerCase() == 'half day') {
-        gross += dailyWage * 0.5;
-      }
+      final attendance = AttendanceModel.fromFirestore(doc);
+      gross += attendance.calculateEarnings(dailyWage);
     }
 
     final advancesSnapshot = await _firestore
@@ -148,11 +279,16 @@ class PaymentRepository {
         .where('paidBack', isEqualTo: false)
         .get();
 
-    final advancesTotal = advancesSnapshot.docs.fold<double>(0.0, (sumx, doc) {
+    final totalOutstandingAdvances = advancesSnapshot.docs.fold<double>(0.0, (sumx, doc) {
       final data = doc.data();
       final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
-      return sumx + amount;
+      final recoveredAmount = (data['recoveredAmount'] as num?)?.toDouble() ?? 0.0;
+      final outstanding = amount - recoveredAmount;
+      return sumx + (outstanding > 0 ? outstanding : 0.0);
     });
+    
+    // Cap the advance deduction to the gross amount so netAmount is not negative
+    final advancesTotal = totalOutstandingAdvances > gross ? gross : totalOutstandingAdvances;
 
     return PaymentSummary(grossAmount: gross, advancesTotal: advancesTotal);
   }
@@ -199,8 +335,8 @@ class PaymentRepository {
       final existingEnd = (data['periodEnd'] as Timestamp?)?.toDate();
       
       if (existingStart != null && existingEnd != null) {
-        // Overlap check: existing.periodStart < new.periodEnd AND existing.periodEnd > new.periodStart
-        if (existingStart.isBefore(periodEnd) && existingEnd.isAfter(periodStart)) {
+        // Overlap check: newStart <= existingEnd AND newEnd >= existingStart
+        if (periodStart.compareTo(existingEnd) <= 0 && periodEnd.compareTo(existingStart) >= 0) {
           return true;
         }
       }
@@ -221,10 +357,10 @@ class PaymentRepository {
     required DateTime periodStart,
     required DateTime periodEnd,
     required double grossAmount,
-    required String status,
     required String companyId,
     required String createdBy,
   }) async {
+    developer.log('DEBUG: Starting createPaymentWithAdvancesApplied for labourId: $labourId, grossAmount: $grossAmount');
     if (periodStart.isAfter(periodEnd)) {
       throw Exception('Period start date must be before or equal to period end date.');
     }
@@ -241,7 +377,7 @@ class PaymentRepository {
     );
 
     if (exists) {
-      throw Exception('A payment for this labour and period already exists');
+      throw Exception('Payment periods cannot overlap. A payment already exists for these dates.');
     }
 
     // Candidate unpaid advances (snapshot outside transaction). We'll re-check
@@ -254,30 +390,71 @@ class PaymentRepository {
         .get();
 
     final candidateRefs = advancesSnapshot.docs.map((d) => d.reference).toList();
+    developer.log('DEBUG: Candidate advance refs count: ${candidateRefs.length}');
+
+    final prefix = 'PAY-${periodStart.year}${periodStart.month.toString().padLeft(2, '0')}-';
+    final lastPaymentQuery = await _firestore
+        .collection('payments')
+        .where('companyId', isEqualTo: companyId)
+        .where('paymentNumber', isGreaterThanOrEqualTo: prefix)
+        .where('paymentNumber', isLessThan: '$prefix\uf8ff')
+        .orderBy('paymentNumber', descending: true)
+        .limit(1)
+        .get();
+
+    int sequence = 1;
+    if (lastPaymentQuery.docs.isNotEmpty) {
+      final lastNum = lastPaymentQuery.docs.first.data()['paymentNumber'] as String?;
+      if (lastNum != null && lastNum.startsWith(prefix)) {
+        final seqStr = lastNum.substring(prefix.length);
+        sequence = (int.tryParse(seqStr) ?? 0) + 1;
+      }
+    }
+    final paymentNumber = '$prefix${sequence.toString().padLeft(4, '0')}';
+    developer.log('DEBUG: Generated payment number: $paymentNumber');
 
     final paymentsCol = _firestore.collection('payments');
     final newDocRef = paymentsCol.doc();
 
     await _firestore.runTransaction((tx) async {
+      double remainingDeduction = grossAmount;
       double appliedTotal = 0.0;
       final List<String> appliedIds = [];
+      final Map<String, double> appliedAmounts = {};
 
-      // Re-check each candidate advance inside the transaction and accumulate.
+      developer.log('DEBUG: Transaction starting. remainingDeduction: $remainingDeduction');
+
+      // Re-check each candidate advance inside the transaction and accumulate intended deductions.
       for (final ref in candidateRefs) {
+        if (remainingDeduction <= 0) break;
+
         final advSnap = await tx.get(ref);
         final advData = advSnap.data();
         if (advData == null) continue;
+
         final paidBack = advData['paidBack'] as bool? ?? false;
         if (!paidBack) {
           final amount = (advData['amount'] as num?)?.toDouble() ?? 0.0;
-          appliedTotal += amount;
-          appliedIds.add(advSnap.id);
+          final recovered = (advData['recoveredAmount'] as num?)?.toDouble() ?? 0.0;
+          final outstanding = amount - recovered;
+
+          if (outstanding > 0) {
+            final toApply = outstanding > remainingDeduction ? remainingDeduction : outstanding;
+            developer.log('DEBUG: Applying to advance ${advSnap.id}. outstanding: $outstanding, toApply: $toApply');
+            appliedTotal += toApply;
+            remainingDeduction -= toApply;
+            appliedIds.add(advSnap.id);
+            appliedAmounts[advSnap.id] = toApply;
+            // DO NOT mutate the advance here. This is a Pending payment.
+          }
         }
       }
 
       final netAmount = grossAmount - appliedTotal;
+      developer.log('DEBUG: Transaction completing. appliedTotal: $appliedTotal, netAmount: $netAmount');
 
       final paymentData = {
+        'paymentNumber': paymentNumber,
         'labourId': labourId,
         'labourName': labourName,
         'siteId': siteId,
@@ -287,23 +464,15 @@ class PaymentRepository {
         'grossAmount': grossAmount,
         'advancesTotal': appliedTotal,
         'netAmount': netAmount,
-        'status': status,
+        'status': 'pending',
         'companyId': companyId,
         'createdAt': Timestamp.now(),
         'createdBy': createdBy,
         'appliedAdvanceIds': appliedIds,
+        'appliedAdvanceAmounts': appliedAmounts,
       };
 
       tx.set(newDocRef, paymentData);
-
-      // Mark applied advances as paid and reference the payment id.
-      for (final id in appliedIds) {
-        final advRef = _firestore.collection('advances').doc(id);
-        tx.update(advRef, {
-          'paidBack': true,
-          'appliedToPaymentId': newDocRef.id,
-        });
-      }
     });
 
     final created = await newDocRef.get();

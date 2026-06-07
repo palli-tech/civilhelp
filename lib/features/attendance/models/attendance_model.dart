@@ -9,6 +9,7 @@ class AttendanceModel {
   final DateTime date;
   final String status;
   final double hoursWorked;
+  final double musterQuantity;
   final String companyId;
   final DateTime createdAt;
   final String createdBy;
@@ -22,6 +23,7 @@ class AttendanceModel {
     required this.date,
     required this.status,
     required this.hoursWorked,
+    required this.musterQuantity,
     required this.companyId,
     required this.createdAt,
     required this.createdBy,
@@ -36,6 +38,11 @@ class AttendanceModel {
       siteName: map['siteName'] ?? '',
       date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: map['status'] ?? 'unknown',
+      musterQuantity: map['musterQuantity'] != null
+          ? (map['musterQuantity'] as num).toDouble()
+          : (map['status'] == 'Present'
+                ? 1.0
+                : (map['status'] == 'Half Day' ? 0.5 : 0.0)),
       hoursWorked: (map['hoursWorked'] as num?)?.toDouble() ?? 0.0,
       companyId: map['companyId'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -43,7 +50,9 @@ class AttendanceModel {
     );
   }
 
-  factory AttendanceModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory AttendanceModel.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final data = doc.data();
     if (data == null) {
       throw Exception('Attendance document does not exist');
@@ -60,6 +69,7 @@ class AttendanceModel {
       'date': Timestamp.fromDate(date),
       'status': status,
       'hoursWorked': hoursWorked,
+      'musterQuantity': musterQuantity,
       'companyId': companyId,
       'createdAt': Timestamp.fromDate(createdAt),
       'createdBy': createdBy,
@@ -75,6 +85,7 @@ class AttendanceModel {
     DateTime? date,
     String? status,
     double? hoursWorked,
+    double? musterQuantity,
     String? companyId,
     DateTime? createdAt,
     String? createdBy,
@@ -88,9 +99,19 @@ class AttendanceModel {
       date: date ?? this.date,
       status: status ?? this.status,
       hoursWorked: hoursWorked ?? this.hoursWorked,
+      musterQuantity: musterQuantity ?? this.musterQuantity,
       companyId: companyId ?? this.companyId,
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,
     );
+  }
+
+  double calculateEarnings(double dailyWage) {
+    if (status.toLowerCase() == 'present') {
+      return dailyWage * (hoursWorked > 0 ? (hoursWorked / 8.0).clamp(0.0, 1.0) : 1.0);
+    } else if (status.toLowerCase() == 'half day') {
+      return dailyWage * 0.5;
+    }
+    return 0.0;
   }
 }

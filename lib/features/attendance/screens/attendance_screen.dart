@@ -8,6 +8,7 @@ import '../models/attendance_model.dart';
 import '../providers/attendance_provider.dart';
 import '../widgets/attendance_card.dart';
 import '../widgets/attendance_form.dart';
+import '../widgets/bulk_attendance_form.dart';
 import '../../labour/data/models/labour_model.dart';
 import '../../sites/models/site_model.dart';
 
@@ -35,7 +36,17 @@ class AttendanceScreen extends ConsumerWidget {
     );
 
     return AppScaffold(
-      appBar: AppBar(title: const Text('Attendance'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Attendance'),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.group_add),
+            tooltip: 'Bulk Attendance',
+            onPressed: () => _showBulkAttendanceDialog(context, ref, sitesAsync, labourAsync),
+          ),
+        ],
+      ),
       fab: fab,
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -67,17 +78,35 @@ class AttendanceScreen extends ConsumerWidget {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              _showNewAttendanceDialog(
-                                context,
-                                ref,
-                                sitesAsync,
-                                labourAsync,
-                              );
-                            },
-                            icon: const Icon(Icons.add),
-                            label: const Text('Mark Attendance'),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  _showNewAttendanceDialog(
+                                    context,
+                                    ref,
+                                    sitesAsync,
+                                    labourAsync,
+                                  );
+                                },
+                                icon: const Icon(Icons.person_add),
+                                label: const Text('Single'),
+                              ),
+                              const SizedBox(width: 16),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  _showBulkAttendanceDialog(
+                                    context,
+                                    ref,
+                                    sitesAsync,
+                                    labourAsync,
+                                  );
+                                },
+                                icon: const Icon(Icons.group_add),
+                                label: const Text('Bulk'),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -145,14 +174,15 @@ class AttendanceScreen extends ConsumerWidget {
                   },
                   submitLabel: 'Update',
                   onSubmit: (siteId, siteName, labourId, labourName, date,
-                      status, hoursWorked) async {
+                      status, hoursWorked, musterQuantity) async {
                     setState(() => isLoading = true);
                     try {
-                      // Preserve original labour and site; only update date/status/hours
+                      // Preserve original labour and site; only update date/status/hours/muster
                       final updated = attendance.copyWith(
                         date: date,
                         status: status,
                         hoursWorked: hoursWorked,
+                        musterQuantity: musterQuantity,
                       );
 
                       await ref.read(updateAttendanceProvider(updated).future);
@@ -255,7 +285,7 @@ class AttendanceScreen extends ConsumerWidget {
                     if (inlineError != null) setState(() => inlineError = null);
                   },
                   onSubmit: (siteId, siteName, labourId, labourName, date,
-                      status, hoursWorked) async {
+                      status, hoursWorked, musterQuantity) async {
                     setState(() => isLoading = true);
                     try {
                       final attendance = await ref.read(
@@ -267,6 +297,7 @@ class AttendanceScreen extends ConsumerWidget {
                           date,
                           status,
                           hoursWorked,
+                          musterQuantity,
                         )).future,
                       );
 
@@ -306,4 +337,75 @@ class AttendanceScreen extends ConsumerWidget {
       });
     });
   }
+
+  void _showBulkAttendanceDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<List<SiteModel>> sitesAsync,
+    AsyncValue<List<LabourModel>> labourAsync,
+  ) {
+    sitesAsync.whenData((sites) {
+      labourAsync.whenData((labour) {
+        showDialog<void>(
+          context: context,
+          builder: (context) {
+            bool isLoading = false;
+            String? error;
+
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return Dialog.fullscreen(
+                  child: Scaffold(
+                    appBar: AppBar(
+                      title: const Text('Bulk Attendance'),
+                      leading: IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                    body: BulkAttendanceForm(
+                      sites: sites,
+                      labour: labour,
+                      isLoading: isLoading,
+                      error: error,
+                      onCancel: () => Navigator.pop(context),
+                      onSubmit: (siteId, siteName, date, records) async {
+                        setState(() => isLoading = true);
+                        try {
+                          final result = await ref.read(createBulkAttendanceProvider((
+                            siteId: siteId,
+                            siteName: siteName,
+                            date: date,
+                            labourRecords: records,
+                          )).future);
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Attendance Saved - Created: ${result.$1}, Skipped: ${result.$2}'),
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            setState(() {
+                              isLoading = false;
+                              error = e.toString();
+                            });
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      });
+    });
+  }
 }
+

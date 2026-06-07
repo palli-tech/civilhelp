@@ -16,6 +16,7 @@ class AttendanceForm extends StatefulWidget {
     DateTime date,
     String status,
     double hoursWorked,
+    double musterQuantity,
   ) onSubmit;
   final String submitLabel;
   final bool isLoading;
@@ -45,6 +46,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
   late String? selectedSiteId;
   late String? selectedLabourId;
   late double hoursWorked;
+  late double musterQuantity;
   late String hoursWorkedText;
 
   @override
@@ -61,6 +63,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
       selectedSiteId = att.siteId;
       selectedLabourId = att.labourId;
       hoursWorked = att.hoursWorked;
+      musterQuantity = att.musterQuantity;
       hoursWorkedText = att.hoursWorked.toStringAsFixed(1);
     } else {
       selectedDate = DateTime.now();
@@ -68,6 +71,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
       selectedSiteId = null;
       selectedLabourId = null;
       hoursWorked = 8.0;
+      musterQuantity = 1.0;
       hoursWorkedText = '8.0';
     }
   }
@@ -164,6 +168,9 @@ class _AttendanceFormState extends State<AttendanceForm> {
                 if (value != null) {
                   setState(() {
                     selectedStatus = value;
+                    if (value == 'Absent') { hoursWorkedText = '0.0'; hoursWorked = 0.0; musterQuantity = 0.0; }
+                    else if (value == 'Half Day') { hoursWorkedText = '4.0'; hoursWorked = 4.0; musterQuantity = 0.5; }
+                    else { hoursWorkedText = '8.0'; hoursWorked = 8.0; musterQuantity = 1.0; }
                   });
                   widget.onChanged?.call();
                 }
@@ -201,6 +208,32 @@ class _AttendanceFormState extends State<AttendanceForm> {
                 });
                 widget.onChanged?.call();
               },
+            ),
+            const SizedBox(height: 12),
+
+            // Muster dropdown
+            DropdownButtonFormField<double>(
+              initialValue: musterQuantity,
+              decoration: const InputDecoration(labelText: 'Muster', isDense: true),
+              items: const [
+                DropdownMenuItem(value: 0.0, child: Text('0.0 Muster')),
+                DropdownMenuItem(value: 0.5, child: Text('0.5 Muster')),
+                DropdownMenuItem(value: 0.75, child: Text('0.75 Muster')),
+                DropdownMenuItem(value: 1.0, child: Text('1.0 Muster')),
+                DropdownMenuItem(value: 1.25, child: Text('1.25 Muster')),
+                DropdownMenuItem(value: 1.5, child: Text('1.5 Muster')),
+                DropdownMenuItem(value: 2.0, child: Text('2.0 Muster')),
+              ],
+              onChanged: selectedStatus == 'Absent'
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() {
+                          musterQuantity = value;
+                        });
+                        widget.onChanged?.call();
+                      }
+                    },
             ),
             const SizedBox(height: 12),
 
@@ -283,6 +316,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
       selectedDate,
       selectedStatus,
       hoursWorked,
+      musterQuantity,
     );
   }
 }
@@ -292,3 +326,4 @@ extension on DateTime {
     return '${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')}/${year.toString()}';
   }
 }
+

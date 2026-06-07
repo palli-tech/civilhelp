@@ -13,6 +13,7 @@ class AdvanceModel {
   final String companyId;
   final DateTime createdAt;
   final String createdBy;
+  final double recoveredAmount;
 
   const AdvanceModel({
     required this.id,
@@ -27,6 +28,7 @@ class AdvanceModel {
     required this.companyId,
     required this.createdAt,
     required this.createdBy,
+    this.recoveredAmount = 0.0,
   });
 
   factory AdvanceModel.fromMap(Map<String, dynamic> map, String documentId) {
@@ -43,6 +45,7 @@ class AdvanceModel {
       companyId: map['companyId'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdBy: map['createdBy'] ?? '',
+      recoveredAmount: (map['recoveredAmount'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -67,6 +70,7 @@ class AdvanceModel {
       'companyId': companyId,
       'createdAt': Timestamp.fromDate(createdAt),
       'createdBy': createdBy,
+      'recoveredAmount': recoveredAmount,
     };
   }
 
@@ -83,6 +87,7 @@ class AdvanceModel {
     String? companyId,
     DateTime? createdAt,
     String? createdBy,
+    double? recoveredAmount,
   }) {
     return AdvanceModel(
       id: id ?? this.id,
@@ -97,6 +102,7 @@ class AdvanceModel {
       companyId: companyId ?? this.companyId,
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,
+      recoveredAmount: recoveredAmount ?? this.recoveredAmount,
     );
   }
 }

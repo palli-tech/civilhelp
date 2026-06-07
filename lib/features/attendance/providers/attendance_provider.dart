@@ -109,6 +109,7 @@ final createAttendanceProvider =
         DateTime date,
         String status,
         double hoursWorked,
+        double musterQuantity,
       )
     >((ref, params) async {
       final repository = ref.watch(attendanceRepositoryProvider);
@@ -136,6 +137,7 @@ final createAttendanceProvider =
         date: params.$5,
         status: params.$6,
         hoursWorked: params.$7,
+        musterQuantity: params.$8,
         companyId: companyId,
         createdBy: currentUser?.uid ?? 'unknown',
       );
@@ -147,3 +149,45 @@ final createAttendanceProvider =
 
       return attendance;
     });
+
+typedef BulkAttendanceParams = ({
+  String siteId,
+  String siteName,
+  DateTime date,
+  List<
+    ({String labourId, String labourName, String status, double hoursWorked, double musterQuantity})
+  >
+  labourRecords,
+});
+
+final createBulkAttendanceProvider =
+    FutureProvider.family<(int created, int skipped), BulkAttendanceParams>((
+      ref,
+      params,
+    ) async {
+      final repository = ref.watch(attendanceRepositoryProvider);
+      final companyId = await ref.watch(userCompanyIdProvider.future);
+      final currentUser = ref.watch(currentUserProvider);
+
+      final result = await repository.createBulkAttendance(
+        siteId: params.siteId,
+        siteName: params.siteName,
+        date: params.date,
+        companyId: companyId,
+        createdBy: currentUser?.uid ?? 'unknown',
+        labourRecords: params.labourRecords,
+      );
+
+      // Invalidate streams to refresh UI
+      ref.invalidate(attendanceStreamProvider);
+      ref.invalidate(attendanceBySiteStreamProvider(params.siteId));
+      ref.invalidate(attendanceTodayStreamProvider);
+
+      // Also invalidate for each individual labour involved
+      for (final record in params.labourRecords) {
+        ref.invalidate(attendanceByLabourStreamProvider(record.labourId));
+      }
+
+      return result;
+    });
+

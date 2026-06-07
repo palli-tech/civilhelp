@@ -88,9 +88,60 @@ class PaymentsScreen extends ConsumerWidget {
                       final payment = payments[index];
                       return PaymentCard(
                         payment: payment,
-                        onEdit: () {
-                          _showEditPaymentDialog(context, ref, payment);
+                        onMarkPaid: () async {
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => const Center(child: CircularProgressIndicator()),
+                          );
+
+                          try {
+                            final finalSummary = await ref.read(paymentRepositoryProvider).calculateFinalPaymentSummary(payment);
+                            
+                            if (context.mounted) {
+                              Navigator.of(context).pop(); // dismiss loading
+                              _confirmAction(
+                                context,
+                                ref,
+                                title: 'Mark Payment as Paid',
+                                content: 'Have you disbursed ₹${finalSummary.netAmount.toStringAsFixed(0)} to ${payment.labourName}?\n\nThis will formally recover any allocated advances.',
+                                actionText: 'Confirm Paid',
+                                actionColor: Colors.green,
+                                onConfirm: () async {
+                                  await ref.read(markPaymentPaidProvider(payment.id).future);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Payment marked as paid')),
+                                    );
+                                  }
+                                },
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              Navigator.of(context).pop(); // dismiss loading
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error calculating final amount: $e')),
+                              );
+                            }
+                          }
                         },
+                        onCancelPayment: () => _confirmAction(
+                          context,
+                          ref,
+                          title: 'Cancel Payment',
+                          content: 'Are you sure you want to cancel this pending payment for ${payment.labourName}?',
+                          actionText: 'Cancel Payment',
+                          actionColor: Colors.orange,
+                          onConfirm: () async {
+                            await ref.read(updatePaymentStatusProvider((payment.id, 'cancelled')).future);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Payment cancelled')),
+                              );
+                            }
+                          },
+                        ),
                         onDelete: () {
                           _showDeletePaymentDialog(context, ref, payment);
                         },
@@ -109,49 +160,40 @@ class PaymentsScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditPaymentDialog(
+  void _confirmAction(
     BuildContext context,
-    WidgetRef ref,
-    PaymentModel payment,
-  ) {
-    String status = payment.status;
-
+    WidgetRef ref, {
+    required String title,
+    required String content,
+    required String actionText,
+    required Color actionColor,
+    required Future<void> Function() onConfirm,
+  }) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Edit Payment'),
-        content: DropdownButtonFormField<String>(
-          initialValue: status,
-          items: const [
-            DropdownMenuItem(value: 'pending', child: Text('Pending')),
-            DropdownMenuItem(value: 'completed', child: Text('Completed')),
-          ],
-          onChanged: (value) {
-            if (value != null) {
-              status = value;
-            }
-          },
-        ),
+        title: Text(title),
+        content: Text(content),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Go Back'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: actionColor),
             onPressed: () async {
-              await ref.read(
-                updatePaymentProvider(payment.copyWith(status: status)).future,
-              );
-
-              if (context.mounted) {
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Payment updated')),
-                );
+              Navigator.pop(context);
+              try {
+                await onConfirm();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
               }
             },
-            child: const Text('Save'),
+            child: Text(actionText),
           ),
         ],
       ),
@@ -203,7 +245,6 @@ class PaymentsScreen extends ConsumerWidget {
     DateTime periodEnd = DateTime.now();
     String? selectedSiteId;
     String? selectedLabourId;
-    String paymentStatus = 'pending';
     PaymentSummary? paymentSummary;
     bool isCalculating = false;
     bool isSaving = false;
@@ -283,7 +324,7 @@ class PaymentsScreen extends ConsumerWidget {
             }
 
             return AlertDialog(
-              title: const Text('Create Payment'),
+              title: const Text('Create Pending Payment'),
               content: Form(
                 key: formKey,
                 child: SingleChildScrollView(
@@ -382,28 +423,6 @@ class PaymentsScreen extends ConsumerWidget {
                           'Period end: ${periodEnd.toLocal().toShortDateString()}',
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: paymentStatus,
-                        decoration: const InputDecoration(labelText: 'Status'),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'pending',
-                            child: Text('Pending'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'completed',
-                            child: Text('Completed'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              paymentStatus = value;
-                            });
-                          }
-                        },
-                      ),
                       const SizedBox(height: 16),
                       if (inlineValidationMessage != null)
                         Padding(
@@ -436,12 +455,12 @@ class PaymentsScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Advances: ₹${paymentSummary!.advancesTotal.toStringAsFixed(2)}',
+                                'Projected Advance Deduction: ₹${paymentSummary!.advancesTotal.toStringAsFixed(2)}',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Net Amount: ₹${paymentSummary!.netAmount.toStringAsFixed(2)}',
+                                'Net Payable: ₹${paymentSummary!.netAmount.toStringAsFixed(2)}',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
@@ -504,7 +523,7 @@ class PaymentsScreen extends ConsumerWidget {
                               setState(() {
                                 isSaving = false;
                                 inlineValidationMessage =
-                                    'A payment for this labour and period already exists.';
+                                    'Payment periods cannot overlap. A payment already exists for these dates.';
                               });
                             }
                             return;
@@ -523,7 +542,6 @@ class PaymentsScreen extends ConsumerWidget {
                                 periodStart,
                                 periodEnd,
                                 grossPayment,
-                                paymentStatus,
                               )).future,
                             );
 
@@ -532,7 +550,7 @@ class PaymentsScreen extends ConsumerWidget {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Payment recorded for ${payment.labourName}',
+                                    'Pending payment created for ${payment.labourName}',
                                   ),
                                 ),
                               );
@@ -552,7 +570,7 @@ class PaymentsScreen extends ConsumerWidget {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Save'),
+                      : const Text('Create'),
                 ),
               ],
             );

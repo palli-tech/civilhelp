@@ -83,7 +83,9 @@ class OwnerDashboard extends StatelessWidget {
                   QuickActionTile(
                     label: 'Financial Reports',
                     icon: Icons.assessment,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/reports');
+                    },
                   ),
                   const Divider(height: 0),
                   QuickActionTile(

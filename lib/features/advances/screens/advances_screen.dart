@@ -102,9 +102,19 @@ class AdvancesScreen extends ConsumerWidget {
                             children: [
                               const SizedBox(height: 4),
                               Text(advance.siteName),
-                              Text(
-                                '₹${advance.amount.toStringAsFixed(0)} • ${advance.reason}',
-                              ),
+                              if (advance.recoveredAmount > 0 && !advance.paidBack)
+                                Text(
+                                  '₹${advance.amount.toStringAsFixed(0)} • Recovered: ₹${advance.recoveredAmount.toStringAsFixed(0)} • Outstanding: ₹${(advance.amount - advance.recoveredAmount).toStringAsFixed(0)}',
+                                )
+                              else if (advance.paidBack)
+                                Text(
+                                  '₹${advance.amount.toStringAsFixed(0)} • Fully Recovered',
+                                  style: const TextStyle(color: Colors.green),
+                                )
+                              else
+                                Text(
+                                  '₹${advance.amount.toStringAsFixed(0)} • ${advance.reason}',
+                                ),
                             ],
                           ),
                           trailing: PopupMenuButton<String>(

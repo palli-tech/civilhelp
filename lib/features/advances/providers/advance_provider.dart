@@ -37,7 +37,7 @@ final outstandingAdvanceTotalProvider = StreamProvider<double>((ref) {
   return companyId.when(
     data: (id) => repository
         .getOutstandingAdvancesByCompanyStream(id)
-        .map((advances) => advances.fold<double>(0.0, (sum, item) => sum + item.amount)),
+        .map((advances) => advances.fold<double>(0.0, (sum, item) => sum + (item.amount - item.recoveredAmount))),
     loading: () => Stream.value(0.0),
     error: (error, _) => Stream.error(error),
   );
