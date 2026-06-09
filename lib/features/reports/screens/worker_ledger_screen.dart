@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:civilhelp/core/providers/company_provider.dart';
+import 'package:civilhelp/features/labour/data/models/labour_model.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
@@ -24,8 +25,12 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('WorkerLedgerScreen build called');
     final companyIdAsync = ref.watch(userCompanyIdProvider);
     final laboursAsync = ref.watch(labourStreamProvider);
+    
+    debugPrint('companyIdAsync: $companyIdAsync');
+    debugPrint('laboursAsync: $laboursAsync');
 
     return AppScaffold(
       appBar: AppBar(
@@ -33,6 +38,7 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
       ),
       child: companyIdAsync.when(
         data: (companyId) {
+          debugPrint('companyIdAsync data: $companyId');
           return Column(
             children: [
               _buildFilters(companyId, laboursAsync),
@@ -43,13 +49,19 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        loading: () {
+          debugPrint('companyIdAsync is loading');
+          return const Center(child: CircularProgressIndicator());
+        },
+        error: (err, stack) {
+          debugPrint('companyIdAsync error: $err');
+          return Center(child: Text('Error: $err'));
+        },
       ),
     );
   }
 
-  Widget _buildFilters(String companyId, AsyncValue laboursAsync) {
+  Widget _buildFilters(String companyId, AsyncValue<List<LabourModel>> laboursAsync) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       color: Theme.of(context).cardColor,
@@ -57,22 +69,29 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           laboursAsync.when(
-            data: (labours) => DropdownButtonFormField<String>(
-              initialValue: _selectedLabourId,
-              hint: const Text('Select Worker'),
-              isExpanded: true,
-              items: labours.map<DropdownMenuItem<String>>((labour) {
-                return DropdownMenuItem<String>(
-                  value: labour.id,
-                  child: Text('${labour.fullName} - ${labour.assignedSiteName}'),
-                );
-              }).toList(),
-              onChanged: (val) {
-                setState(() {
-                  _selectedLabourId = val;
-                });
-              },
-            ),
+            data: (labours) {
+              // Ensure selected ID exists in the list to prevent Dropdown assertion errors
+              final validValue = _selectedLabourId != null && labours.any((l) => l.id == _selectedLabourId) 
+                  ? _selectedLabourId 
+                  : null;
+
+              return DropdownButtonFormField<String>(
+                initialValue: validValue,
+                hint: const Text('Select Worker'),
+                isExpanded: true,
+                items: labours.map<DropdownMenuItem<String>>((labour) {
+                  return DropdownMenuItem<String>(
+                    value: labour.id,
+                    child: Text('${labour.fullName} - ${labour.assignedSiteName}'),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  setState(() {
+                    _selectedLabourId = val;
+                  });
+                },
+              );
+            },
             loading: () => const CircularProgressIndicator(),
             error: (err, stack) => Text('Error loading workers: $err'),
           ),
@@ -146,6 +165,7 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
     );
 
     final reportAsync = ref.watch(workerLedgerReportProvider(filter));
+    debugPrint('workerLedgerReportProvider: ${reportAsync.when(data: (d) => "data", loading: () => "loading", error: (e, s) => "error=$e")}');
 
     return reportAsync.when(
       data: (report) {

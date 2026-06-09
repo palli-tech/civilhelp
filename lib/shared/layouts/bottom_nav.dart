@@ -91,7 +91,7 @@ class BottomNav extends ConsumerWidget {
               title: const Text('Reports'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to reports
+                Navigator.of(context).pushNamed(AppRoutes.reports);
               },
             ),
             ListTile(

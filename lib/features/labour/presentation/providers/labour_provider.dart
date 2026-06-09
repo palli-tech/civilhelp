@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/features/auth/providers/auth_provider.dart';
@@ -10,15 +11,26 @@ final labourRepositoryProvider = Provider<LabourRepository>((ref) {
 
 /// Stream of all labour records for the user's company
 final labourStreamProvider = StreamProvider<List<LabourModel>>((ref) {
+  debugPrint('[DEBUG] labourStreamProvider started');
   final repository = ref.watch(labourRepositoryProvider);
   final user = ref.watch(currentUserProvider);
   final companyId = user?.uid;
 
+  debugPrint('[DEBUG] labourStreamProvider companyId: $companyId');
+
   if (companyId == null) {
+    debugPrint('[DEBUG] labourStreamProvider returning empty stream');
     return Stream.value([]);
   }
 
-  return repository.getLabourByCompanyStream(companyId);
+  debugPrint('[DEBUG] labourStreamProvider calling getLabourByCompanyStream');
+  return repository.getLabourByCompanyStream(companyId).map((data) {
+    debugPrint('[DEBUG] labourStreamProvider yielded ${data.length} items');
+    return data;
+  }).handleError((error) {
+    debugPrint('[DEBUG] labourStreamProvider error: $error');
+    throw error;
+  });
 });
 
 /// Get labour records by site

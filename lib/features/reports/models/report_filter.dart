@@ -24,4 +24,23 @@ class ReportFilter {
       labourId: labourId ?? this.labourId,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+  
+    return other is ReportFilter &&
+      other.companyId == companyId &&
+      other.startDate == startDate &&
+      other.endDate == endDate &&
+      other.labourId == labourId;
+  }
+
+  @override
+  int get hashCode {
+    return companyId.hashCode ^
+      startDate.hashCode ^
+      endDate.hashCode ^
+      labourId.hashCode;
+  }
 }

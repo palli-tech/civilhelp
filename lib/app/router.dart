@@ -15,6 +15,10 @@ import 'package:civilhelp/features/payments/screens/payments_screen.dart';
 import 'package:civilhelp/features/advances/screens/advances_screen.dart';
 import 'package:civilhelp/features/reports/screens/reports_dashboard_screen.dart';
 import 'package:civilhelp/features/reports/screens/worker_ledger_screen.dart';
+import 'package:civilhelp/features/reports/screens/attendance_summary_screen.dart';
+import 'package:civilhelp/features/reports/screens/advance_report_screen.dart';
+import 'package:civilhelp/features/reports/screens/payment_report_screen.dart';
+import 'package:civilhelp/features/reports/screens/monthly_payroll_screen.dart';
 
 class AppRoutes {
   static const splash = '/';
@@ -33,6 +37,10 @@ class AppRoutes {
   static const advances = '/advances';
   static const reports = '/reports';
   static const workerLedger = '/worker-ledger';
+  static const attendanceSummary = '/attendance-summary';
+  static const advanceReport = '/advance-report';
+  static const paymentReport = '/payment-report';
+  static const monthlyPayroll = '/monthly-payroll';
 }
 
 class AppRouter {
@@ -130,6 +138,26 @@ class AppRouter {
       case AppRoutes.workerLedger:
         return MaterialPageRoute(
           builder: (_) => const WorkerLedgerScreen(),
+          settings: settings,
+        );
+      case AppRoutes.attendanceSummary:
+        return MaterialPageRoute(
+          builder: (_) => const AttendanceSummaryScreen(),
+          settings: settings,
+        );
+      case AppRoutes.advanceReport:
+        return MaterialPageRoute(
+          builder: (_) => const AdvanceReportScreen(),
+          settings: settings,
+        );
+      case AppRoutes.paymentReport:
+        return MaterialPageRoute(
+          builder: (_) => const PaymentReportScreen(),
+          settings: settings,
+        );
+      case AppRoutes.monthlyPayroll:
+        return MaterialPageRoute(
+          builder: (_) => const MonthlyPayrollScreen(),
           settings: settings,
         );
       default:
