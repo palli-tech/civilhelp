@@ -50,47 +50,62 @@ class ReportRepository {
 
     // Fetch Attendances
     debugPrint('[DEBUG] ReportRepository: Executing attendance query');
-    final attendanceSnap = await _firestore
+    Query attQuery = _firestore
         .collection('attendance')
         .where('companyId', isEqualTo: companyId)
         .where('labourId', isEqualTo: labourId)
         .where('date', isGreaterThanOrEqualTo: startDate)
-        .where('date', isLessThanOrEqualTo: endDate)
-        .get();
+        .where('date', isLessThanOrEqualTo: endDate);
+        
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      attQuery = attQuery.where('siteId', isEqualTo: filter.siteId);
+    }
+    
+    final attendanceSnap = await attQuery.get();
     debugPrint('[DEBUG] ReportRepository: Attendance query completed. Found ${attendanceSnap.docs.length}');
 
     final attendances = attendanceSnap.docs
-        .map((doc) => AttendanceModel.fromFirestore(doc))
+        .map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
         .toList();
 
     // Fetch Advances
     debugPrint('[DEBUG] ReportRepository: Executing advances query');
-    final advancesSnap = await _firestore
+    Query advQuery = _firestore
         .collection('advances')
         .where('companyId', isEqualTo: companyId)
         .where('labourId', isEqualTo: labourId)
         .where('date', isGreaterThanOrEqualTo: startDate)
-        .where('date', isLessThanOrEqualTo: endDate)
-        .get();
+        .where('date', isLessThanOrEqualTo: endDate);
+        
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      advQuery = advQuery.where('siteId', isEqualTo: filter.siteId);
+    }
+    
+    final advancesSnap = await advQuery.get();
     debugPrint('[DEBUG] ReportRepository: Advances query completed. Found ${advancesSnap.docs.length}');
 
     final advances = advancesSnap.docs
-        .map((doc) => AdvanceModel.fromFirestore(doc))
+        .map((doc) => AdvanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
         .toList();
 
     // Fetch Payments
     debugPrint('[DEBUG] ReportRepository: Executing payments query');
-    final paymentsSnap = await _firestore
+    Query payQuery = _firestore
         .collection('payments')
         .where('companyId', isEqualTo: companyId)
         .where('labourId', isEqualTo: labourId)
         .where('periodStart', isGreaterThanOrEqualTo: startDate) // Note: Using periodStart to align with payment timeline
-        .where('periodStart', isLessThanOrEqualTo: endDate)
-        .get();
+        .where('periodStart', isLessThanOrEqualTo: endDate);
+        
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      payQuery = payQuery.where('siteId', isEqualTo: filter.siteId);
+    }
+    
+    final paymentsSnap = await payQuery.get();
     debugPrint('[DEBUG] ReportRepository: Payments query completed. Found ${paymentsSnap.docs.length}');
 
     final payments = paymentsSnap.docs
-        .map((doc) => PaymentModel.fromFirestore(doc))
+        .map((doc) => PaymentModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
         .toList();
 
     // Combine into events
@@ -189,6 +204,9 @@ class ReportRepository {
     if (filter.labourId != null && filter.labourId!.isNotEmpty) {
       query = query.where('labourId', isEqualTo: filter.labourId);
     }
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      query = query.where('siteId', isEqualTo: filter.siteId);
+    }
 
     final snap = await query.get();
     final attendances = snap.docs.map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
@@ -267,6 +285,9 @@ class ReportRepository {
     if (filter.labourId != null && filter.labourId!.isNotEmpty) {
       query = query.where('labourId', isEqualTo: filter.labourId);
     }
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      query = query.where('siteId', isEqualTo: filter.siteId);
+    }
 
     final snap = await query.get();
     final advances = snap.docs.map((doc) => AdvanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
@@ -297,6 +318,9 @@ class ReportRepository {
 
     if (filter.labourId != null && filter.labourId!.isNotEmpty) {
       query = query.where('labourId', isEqualTo: filter.labourId);
+    }
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      query = query.where('siteId', isEqualTo: filter.siteId);
     }
 
     final snap = await query.get();
@@ -341,6 +365,12 @@ class ReportRepository {
       attQuery = attQuery.where('labourId', isEqualTo: filter.labourId);
       advQuery = advQuery.where('labourId', isEqualTo: filter.labourId);
       payQuery = payQuery.where('labourId', isEqualTo: filter.labourId);
+    }
+    
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      attQuery = attQuery.where('siteId', isEqualTo: filter.siteId);
+      advQuery = advQuery.where('siteId', isEqualTo: filter.siteId);
+      payQuery = payQuery.where('siteId', isEqualTo: filter.siteId);
     }
 
     final results = await Future.wait([
@@ -474,6 +504,12 @@ class ReportRepository {
       attQuery = attQuery.where('labourId', isEqualTo: filter.labourId);
       advQuery = advQuery.where('labourId', isEqualTo: filter.labourId);
       payQuery = payQuery.where('labourId', isEqualTo: filter.labourId);
+    }
+    
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      attQuery = attQuery.where('siteId', isEqualTo: filter.siteId);
+      advQuery = advQuery.where('siteId', isEqualTo: filter.siteId);
+      payQuery = payQuery.where('siteId', isEqualTo: filter.siteId);
     }
 
     final results = await Future.wait([
