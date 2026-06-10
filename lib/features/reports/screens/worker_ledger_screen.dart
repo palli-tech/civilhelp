@@ -4,8 +4,11 @@ import 'package:intl/intl.dart';
 
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/features/sites/providers/site_provider.dart';
+import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import '../models/report_filter.dart';
 import '../providers/report_provider.dart';
+import '../providers/pdf_provider.dart';
 import '../models/worker_ledger_entry.dart';
 import '../models/worker_ledger_report_dto.dart';
 import '../widgets/report_filter_bar.dart';
@@ -33,6 +36,13 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Worker Ledger'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Export PDF',
+            onPressed: () => _handleExportPdf(context, companyIdAsync.valueOrNull),
+          ),
+        ],
       ),
       child: companyIdAsync.when(
         data: (companyId) {
@@ -190,6 +200,71 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleExportPdf(BuildContext context, String? companyId) async {
+    if (companyId == null) return;
+
+    if (_selectedLabourId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a worker to export.')),
+      );
+      return;
+    }
+
+    final filter = ReportFilter(
+      companyId: companyId,
+      startDate: _startDate,
+      endDate: DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59),
+      labourId: _selectedLabourId,
+      siteId: _selectedSiteId,
+    );
+
+    try {
+      final report = await ref.read(workerLedgerReportProvider(filter).future);
+
+      if (report.entries.isEmpty) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No data available to export.')),
+        );
+        return;
+      }
+
+      // Fetch names for header
+      String workerName = 'All Workers';
+      if (_selectedLabourId != null) {
+        final labours = await ref.read(labourStreamProvider.future);
+        final labour = labours.where((l) => l.id == _selectedLabourId).firstOrNull;
+        if (labour != null) workerName = labour.fullName;
+      }
+
+      String siteName = 'All Sites';
+      if (_selectedSiteId != null) {
+        final sites = await ref.read(sitesStreamProvider.future);
+        final site = sites.where((s) => s.id == _selectedSiteId).firstOrNull;
+        if (site != null) siteName = site.name;
+      }
+
+      final pdfService = ref.read(pdfServiceProvider);
+      
+      // In a real app, you might want to get the actual company name from a provider
+      final companyName = 'CivilHelp Construction';
+
+      await pdfService.previewWorkerLedgerPdf(
+
+        report: report,
+        filter: filter,
+        companyName: companyName,
+        workerName: workerName,
+        siteName: siteName,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to generate PDF: $e')),
+      );
+    }
   }
 }
 

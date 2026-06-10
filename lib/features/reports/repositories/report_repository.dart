@@ -676,15 +676,15 @@ class ReportRepository {
     }
 
     for (final att in attendances) {
-      if (att.siteId == null || att.siteId!.isEmpty) continue;
+      if (att.siteId.isEmpty) continue;
       
-      final current = getOrCreateSiteEntry(att.siteId!);
-      siteWorkers[att.siteId!]!.add(att.labourId);
+      final current = getOrCreateSiteEntry(att.siteId);
+      siteWorkers[att.siteId]!.add(att.labourId);
       
       final labour = await _getLabour(att.labourId);
       final earned = att.calculateEarnings(labour.dailyWage);
       
-      siteData[att.siteId!] = SitePerformanceEntry(
+      siteData[att.siteId] = SitePerformanceEntry(
         siteId: current.siteId,
         siteName: current.siteName,
         workerCount: current.workerCount,
@@ -697,10 +697,10 @@ class ReportRepository {
     }
 
     for (final adv in advances) {
-      if (adv.siteId == null || adv.siteId!.isEmpty) continue;
+      if (adv.siteId.isEmpty) continue;
 
-      final current = getOrCreateSiteEntry(adv.siteId!, fallbackName: adv.siteName.isNotEmpty ? adv.siteName : 'Unknown Site');
-      siteData[adv.siteId!] = SitePerformanceEntry(
+      final current = getOrCreateSiteEntry(adv.siteId, fallbackName: adv.siteName.isNotEmpty ? adv.siteName : 'Unknown Site');
+      siteData[adv.siteId] = SitePerformanceEntry(
         siteId: current.siteId,
         siteName: current.siteName,
         workerCount: current.workerCount,
@@ -713,10 +713,10 @@ class ReportRepository {
     }
 
     for (final pay in payments) {
-      if (pay.siteId == null || pay.siteId!.isEmpty) continue;
+      if (pay.siteId.isEmpty) continue;
 
-      final current = getOrCreateSiteEntry(pay.siteId!, fallbackName: pay.siteName.isNotEmpty ? pay.siteName : 'Unknown Site');
-      siteData[pay.siteId!] = SitePerformanceEntry(
+      final current = getOrCreateSiteEntry(pay.siteId, fallbackName: pay.siteName.isNotEmpty ? pay.siteName : 'Unknown Site');
+      siteData[pay.siteId] = SitePerformanceEntry(
         siteId: current.siteId,
         siteName: current.siteName,
         workerCount: current.workerCount,

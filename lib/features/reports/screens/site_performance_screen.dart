@@ -172,11 +172,11 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
 
   Widget _buildSummaryCard(String title, String value, Color color) {
     return Card(
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: color.withOpacity(0.5)),
+        side: BorderSide(color: color.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -186,7 +186,7 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
           children: [
             Text(
               title,
-              style: TextStyle(color: color.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.bold),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
