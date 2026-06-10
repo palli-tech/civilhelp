@@ -62,7 +62,7 @@ class _PaymentReportScreenState extends ConsumerState<PaymentReportScreen> {
                   : null;
 
               return DropdownButtonFormField<String>(
-                value: validValue,
+                initialValue: validValue,
                 hint: const Text('All Workers (Optional)'),
                 isExpanded: true,
                 items: [
@@ -168,7 +168,7 @@ class _PaymentReportScreenState extends ConsumerState<PaymentReportScreen> {
                     children: [
                       CircleAvatar(
                         radius: 30,
-                        backgroundColor: Colors.purple.withOpacity(0.2),
+                        backgroundColor: Colors.purple.withValues(alpha: 0.2),
                         child: const Icon(Icons.payment, color: Colors.purple, size: 30),
                       ),
                       const SizedBox(width: 24),
@@ -209,3 +209,4 @@ class _PaymentReportScreenState extends ConsumerState<PaymentReportScreen> {
     );
   }
 }
+

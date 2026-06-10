@@ -35,3 +35,8 @@ final monthlyPayrollReportProvider = FutureProvider.autoDispose.family<MonthlyPa
   final repository = ref.watch(reportRepositoryProvider);
   return await repository.getMonthlyPayrollReport(filter);
 });
+
+final outstandingBalanceReportProvider = FutureProvider.autoDispose.family<OutstandingBalanceReportDTO, ReportFilter>((ref, filter) async {
+  final repository = ref.watch(reportRepositoryProvider);
+  return await repository.getOutstandingBalanceReport(filter);
+});

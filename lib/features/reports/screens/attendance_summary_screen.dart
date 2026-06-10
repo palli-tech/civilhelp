@@ -8,7 +8,7 @@ import 'package:civilhelp/features/labour/presentation/providers/labour_provider
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
 import '../providers/report_provider.dart';
-import '../models/report_dtos.dart';
+//import '../models/report_dtos.dart';
 
 class AttendanceSummaryScreen extends ConsumerStatefulWidget {
   const AttendanceSummaryScreen({super.key});
@@ -63,7 +63,7 @@ class _AttendanceSummaryScreenState extends ConsumerState<AttendanceSummaryScree
                   : null;
 
               return DropdownButtonFormField<String>(
-                value: validValue,
+                initialValue: validValue,
                 hint: const Text('All Workers (Optional)'),
                 isExpanded: true,
                 items: [
@@ -240,7 +240,7 @@ class _SummaryCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 30,
-              backgroundColor: color.withOpacity(0.2),
+              backgroundColor: color.withValues(alpha: 0.2),
               child: Icon(icon, color: color, size: 30),
             ),
             const SizedBox(width: 24),

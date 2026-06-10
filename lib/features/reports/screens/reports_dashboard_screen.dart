@@ -79,8 +79,22 @@ class ReportsDashboardScreen extends StatelessWidget {
               },
             ),
           ),
+          const SizedBox(height: 8),
+          Card(
+            elevation: 2,
+            child: ListTile(
+              leading: const Icon(Icons.account_balance, color: Colors.indigo),
+              title: const Text('Outstanding Balance'),
+              subtitle: const Text('View outstanding balance for all workers.'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.outstandingBalance);
+              },
+            ),
+          ),
         ],
       ),
     );
   }
 }
+

@@ -62,7 +62,7 @@ class _MonthlyPayrollScreenState extends ConsumerState<MonthlyPayrollScreen> {
                   : null;
 
               return DropdownButtonFormField<String>(
-                value: validValue,
+                initialValue: validValue,
                 hint: const Text('All Workers (Optional)'),
                 isExpanded: true,
                 items: [

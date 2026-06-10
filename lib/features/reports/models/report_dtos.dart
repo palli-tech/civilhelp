@@ -61,3 +61,31 @@ class MonthlyPayrollReportDTO {
     required this.entries,
   });
 }
+
+class OutstandingBalanceWorkerEntry {
+  final String labourId;
+  final String workerName;
+  final double totalEarned;
+  final double totalAdvances;
+  final double totalPayments;
+  final double outstandingBalance;
+
+  const OutstandingBalanceWorkerEntry({
+    required this.labourId,
+    required this.workerName,
+    required this.totalEarned,
+    required this.totalAdvances,
+    required this.totalPayments,
+    required this.outstandingBalance,
+  });
+}
+
+class OutstandingBalanceReportDTO {
+  final List<OutstandingBalanceWorkerEntry> workerEntries;
+  final double totalOutstandingBalance;
+
+  const OutstandingBalanceReportDTO({
+    required this.workerEntries,
+    required this.totalOutstandingBalance,
+  });
+}

@@ -414,4 +414,123 @@ class ReportRepository {
 
     return MonthlyPayrollReportDTO(entries: finalEntries);
   }
+
+  Future<OutstandingBalanceReportDTO> getOutstandingBalanceReport(ReportFilter filter) async {
+    final companyId = filter.companyId;
+    final startDate = Timestamp.fromDate(filter.startDate);
+    final endDate = Timestamp.fromDate(filter.endDate);
+
+    Query attQuery = _firestore.collection('attendance')
+        .where('companyId', isEqualTo: companyId)
+        .where('date', isGreaterThanOrEqualTo: startDate)
+        .where('date', isLessThanOrEqualTo: endDate);
+        
+    Query advQuery = _firestore.collection('advances')
+        .where('companyId', isEqualTo: companyId)
+        .where('date', isGreaterThanOrEqualTo: startDate)
+        .where('date', isLessThanOrEqualTo: endDate);
+        
+    Query payQuery = _firestore.collection('payments')
+        .where('companyId', isEqualTo: companyId)
+        .where('periodStart', isGreaterThanOrEqualTo: startDate)
+        .where('periodStart', isLessThanOrEqualTo: endDate);
+
+    if (filter.labourId != null && filter.labourId!.isNotEmpty) {
+      attQuery = attQuery.where('labourId', isEqualTo: filter.labourId);
+      advQuery = advQuery.where('labourId', isEqualTo: filter.labourId);
+      payQuery = payQuery.where('labourId', isEqualTo: filter.labourId);
+    }
+
+    final results = await Future.wait([
+      attQuery.get(),
+      advQuery.get(),
+      payQuery.get(),
+    ]);
+
+    final attendances = results[0].docs.map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+    final advances = results[1].docs.map((doc) => AdvanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+    final payments = results[2].docs.map((doc) => PaymentModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+
+    Map<String, OutstandingBalanceWorkerEntry> workerData = {};
+
+    Future<void> initializeWorker(String labourId) async {
+      if (!workerData.containsKey(labourId)) {
+        final labour = await _getLabour(labourId);
+        workerData[labourId] = OutstandingBalanceWorkerEntry(
+          labourId: labourId,
+          workerName: labour.fullName,
+          totalEarned: 0,
+          totalAdvances: 0,
+          totalPayments: 0,
+          outstandingBalance: 0,
+        );
+      }
+    }
+
+    for (final att in attendances) {
+      await initializeWorker(att.labourId);
+      final labour = await _getLabour(att.labourId);
+      final earned = att.calculateEarnings(labour.dailyWage);
+      
+      final current = workerData[att.labourId]!;
+      workerData[att.labourId] = OutstandingBalanceWorkerEntry(
+        labourId: current.labourId,
+        workerName: current.workerName,
+        totalEarned: current.totalEarned + earned,
+        totalAdvances: current.totalAdvances,
+        totalPayments: current.totalPayments,
+        outstandingBalance: 0,
+      );
+    }
+
+    for (final adv in advances) {
+      await initializeWorker(adv.labourId);
+      final current = workerData[adv.labourId]!;
+      workerData[adv.labourId] = OutstandingBalanceWorkerEntry(
+        labourId: current.labourId,
+        workerName: current.workerName,
+        totalEarned: current.totalEarned,
+        totalAdvances: current.totalAdvances + adv.amount,
+        totalPayments: current.totalPayments,
+        outstandingBalance: 0,
+      );
+    }
+
+    for (final pay in payments) {
+      await initializeWorker(pay.labourId);
+      final current = workerData[pay.labourId]!;
+      workerData[pay.labourId] = OutstandingBalanceWorkerEntry(
+        labourId: current.labourId,
+        workerName: current.workerName,
+        totalEarned: current.totalEarned,
+        totalAdvances: current.totalAdvances,
+        totalPayments: current.totalPayments + pay.netAmount,
+        outstandingBalance: 0,
+      );
+    }
+
+    List<OutstandingBalanceWorkerEntry> finalEntries = [];
+    double totalOutstandingBalance = 0;
+
+    for (var entry in workerData.values) {
+      final outBalance = entry.totalEarned - entry.totalAdvances - entry.totalPayments;
+      totalOutstandingBalance += outBalance;
+      
+      finalEntries.add(OutstandingBalanceWorkerEntry(
+        labourId: entry.labourId,
+        workerName: entry.workerName,
+        totalEarned: entry.totalEarned,
+        totalAdvances: entry.totalAdvances,
+        totalPayments: entry.totalPayments,
+        outstandingBalance: outBalance,
+      ));
+    }
+
+    finalEntries.sort((a, b) => b.outstandingBalance.compareTo(a.outstandingBalance));
+
+    return OutstandingBalanceReportDTO(
+      workerEntries: finalEntries,
+      totalOutstandingBalance: totalOutstandingBalance,
+    );
+  }
 }

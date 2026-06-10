@@ -9,14 +9,14 @@ import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
 import '../providers/report_provider.dart';
 
-class AdvanceReportScreen extends ConsumerStatefulWidget {
-  const AdvanceReportScreen({super.key});
+class OutstandingBalanceScreen extends ConsumerStatefulWidget {
+  const OutstandingBalanceScreen({super.key});
 
   @override
-  ConsumerState<AdvanceReportScreen> createState() => _AdvanceReportScreenState();
+  ConsumerState<OutstandingBalanceScreen> createState() => _OutstandingBalanceScreenState();
 }
 
-class _AdvanceReportScreenState extends ConsumerState<AdvanceReportScreen> {
+class _OutstandingBalanceScreenState extends ConsumerState<OutstandingBalanceScreen> {
   String? _selectedLabourId;
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
@@ -28,7 +28,7 @@ class _AdvanceReportScreenState extends ConsumerState<AdvanceReportScreen> {
 
     return AppScaffold(
       appBar: AppBar(
-        title: const Text('Advance Report'),
+        title: const Text('Outstanding Balance'),
       ),
       child: companyIdAsync.when(
         data: (companyId) {
@@ -150,85 +150,114 @@ class _AdvanceReportScreenState extends ConsumerState<AdvanceReportScreen> {
       labourId: _selectedLabourId,
     );
 
-    final reportAsync = ref.watch(advanceReportProvider(filter));
+    final reportAsync = ref.watch(outstandingBalanceReportProvider(filter));
 
     return reportAsync.when(
       data: (report) {
+        if (report.workerEntries.isEmpty) {
+          return const Center(
+            child: Text('No outstanding balances for selected period.'),
+          );
+        }
+
         final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Card(
+                color: Theme.of(context).colorScheme.primaryContainer,
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Colors.orange.withValues(alpha: 0.2),
-                        child: const Icon(Icons.account_balance_wallet, color: Colors.orange, size: 30),
+                      Text(
+                        'Total Outstanding Balance',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
                       ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Total Advances Issued', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[700])),
-                            const SizedBox(height: 8),
-                            Text(currencyFmt.format(report.totalAdvances), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.orange)),
-                          ],
-                        ),
+                      Text(
+                        currencyFmt.format(report.totalOutstandingBalance),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: report.totalOutstandingBalance >= 0 ? Colors.green : Colors.red,
+                            ),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Card(
-                      elevation: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            Text(report.advanceCount.toString(), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.blue)),
-                            const SizedBox(height: 8),
-                            Text('Advance Count', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
-                          ],
-                        ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: report.workerEntries.length,
+                itemBuilder: (context, index) {
+                  final entry = report.workerEntries[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                entry.workerName,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                currencyFmt.format(entry.outstandingBalance),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: entry.outstandingBalance >= 0 ? Colors.green : Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildDetailCol('Earned', entry.totalEarned, currencyFmt),
+                              _buildDetailCol('Advances', entry.totalAdvances, currencyFmt),
+                              _buildDetailCol('Payments', entry.totalPayments, currencyFmt),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Card(
-                      elevation: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            Text(currencyFmt.format(report.remainingUnapplied), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.red)),
-                            const SizedBox(height: 8),
-                            Text('Unapplied/Remaining', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
-}
 
+  Widget _buildDetailCol(String title, double amount, NumberFormat format) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          format.format(amount),
+          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+        ),
+      ],
+    );
+  }
+}
