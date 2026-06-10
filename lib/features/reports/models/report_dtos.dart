@@ -1,16 +1,32 @@
-class AttendanceSummaryReportDTO {
-  final int totalDays;
-  final int presentCount;
-  final int halfDayCount;
-  final int absentCount;
+class AttendanceSummaryWorkerEntry {
+  final String labourId;
+  final String labourName;
+  final int attendanceDays;
   final double totalEarned;
+  final double averageDailyWage;
+
+  const AttendanceSummaryWorkerEntry({
+    required this.labourId,
+    required this.labourName,
+    required this.attendanceDays,
+    required this.totalEarned,
+    required this.averageDailyWage,
+  });
+}
+
+class AttendanceSummaryReportDTO {
+  final int totalWorkers;
+  final int totalAttendanceDays;
+  final double totalEarned;
+  final double averageDailyWage;
+  final List<AttendanceSummaryWorkerEntry> entries;
 
   const AttendanceSummaryReportDTO({
-    required this.totalDays,
-    required this.presentCount,
-    required this.halfDayCount,
-    required this.absentCount,
+    required this.totalWorkers,
+    required this.totalAttendanceDays,
     required this.totalEarned,
+    required this.averageDailyWage,
+    required this.entries,
   });
 }
 

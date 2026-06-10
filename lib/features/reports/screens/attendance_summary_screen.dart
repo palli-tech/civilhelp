@@ -8,7 +8,6 @@ import 'package:civilhelp/features/labour/presentation/providers/labour_provider
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
 import '../providers/report_provider.dart';
-//import '../models/report_dtos.dart';
 
 class AttendanceSummaryScreen extends ConsumerStatefulWidget {
   const AttendanceSummaryScreen({super.key});
@@ -155,137 +154,147 @@ class _AttendanceSummaryScreenState extends ConsumerState<AttendanceSummaryScree
 
     return reportAsync.when(
       data: (report) {
+        if (report.entries.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                const Text(
+                  'No attendance records found for selected filters',
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+              ],
+            ),
+          );
+        }
+
         final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              _SummaryCard(
-                title: 'Total Earned',
-                value: currencyFmt.format(report.totalEarned),
-                icon: Icons.currency_rupee,
-                color: Colors.green,
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Card(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildGlobalMetric(
+                              context, 'Total Workers', '${report.totalWorkers}'),
+                          _buildGlobalMetric(
+                              context, 'Attendance Days', '${report.totalAttendanceDays}'),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildGlobalMetric(
+                              context, 'Total Earnings', currencyFmt.format(report.totalEarned)),
+                          _buildGlobalMetric(
+                              context, 'Avg Daily Wage', currencyFmt.format(report.averageDailyWage)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Total Days',
-                      value: report.totalDays.toString(),
-                      color: Colors.blue,
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: report.entries.length,
+                itemBuilder: (context, index) {
+                  final entry = report.entries[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                entry.labourName,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                currencyFmt.format(entry.totalEarned),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildDetailCol('Days Worked', '${entry.attendanceDays}', null),
+                              _buildDetailCol('Total Earned', currencyFmt.format(entry.totalEarned), null),
+                              _buildDetailCol('Avg Daily Wage', currencyFmt.format(entry.averageDailyWage), null),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Present',
-                      value: report.presentCount.toString(),
-                      color: Colors.green,
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Half Day',
-                      value: report.halfDayCount.toString(),
-                      color: Colors.orange,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Absent',
-                      value: report.absentCount.toString(),
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
-}
 
-class _SummaryCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _SummaryCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: color.withValues(alpha: 0.2),
-              child: Icon(icon, color: color, size: 30),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[700])),
-                  const SizedBox(height: 8),
-                  Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: color)),
-                ],
+  Widget _buildGlobalMetric(BuildContext context, String title, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
               ),
-            ),
-          ],
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+        ),
+      ],
     );
   }
-}
 
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final Color color;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: color)),
-            const SizedBox(height: 8),
-            Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
-          ],
+  Widget _buildDetailCol(String title, String value, Color? color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(color: Colors.grey, fontSize: 12),
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: color),
+        ),
+      ],
     );
   }
 }

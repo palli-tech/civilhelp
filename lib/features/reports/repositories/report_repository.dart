@@ -193,30 +193,65 @@ class ReportRepository {
     final snap = await query.get();
     final attendances = snap.docs.map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
 
-    int presentCount = 0;
-    int halfDayCount = 0;
-    int absentCount = 0;
-    double totalEarned = 0.0;
+    Map<String, AttendanceSummaryWorkerEntry> workerData = {};
 
-    for (final att in attendances) {
-      if (att.status.toLowerCase() == 'present') {
-        presentCount++;
-      } else if (att.status.toLowerCase() == 'half day') {
-        halfDayCount++;
-      } else if (att.status.toLowerCase() == 'absent') {
-        absentCount++;
+    Future<void> initializeWorker(String labourId) async {
+      if (!workerData.containsKey(labourId)) {
+        final labour = await _getLabour(labourId);
+        workerData[labourId] = AttendanceSummaryWorkerEntry(
+          labourId: labourId,
+          labourName: labour.fullName,
+          attendanceDays: 0,
+          totalEarned: 0,
+          averageDailyWage: 0,
+        );
       }
-      
-      final labour = await _getLabour(att.labourId);
-      totalEarned += att.calculateEarnings(labour.dailyWage);
     }
 
+    for (final att in attendances) {
+      await initializeWorker(att.labourId);
+      final labour = await _getLabour(att.labourId);
+      final earned = att.calculateEarnings(labour.dailyWage);
+      
+      final current = workerData[att.labourId]!;
+      workerData[att.labourId] = AttendanceSummaryWorkerEntry(
+        labourId: current.labourId,
+        labourName: current.labourName,
+        attendanceDays: current.attendanceDays + 1,
+        totalEarned: current.totalEarned + earned,
+        averageDailyWage: 0, // Calculated later
+      );
+    }
+
+    List<AttendanceSummaryWorkerEntry> finalEntries = [];
+    int globalAttendanceDays = 0;
+    double globalTotalEarned = 0;
+
+    for (var entry in workerData.values) {
+      globalAttendanceDays += entry.attendanceDays;
+      globalTotalEarned += entry.totalEarned;
+      
+      double avgWage = entry.attendanceDays > 0 ? entry.totalEarned / entry.attendanceDays : 0;
+      
+      finalEntries.add(AttendanceSummaryWorkerEntry(
+        labourId: entry.labourId,
+        labourName: entry.labourName,
+        attendanceDays: entry.attendanceDays,
+        totalEarned: entry.totalEarned,
+        averageDailyWage: avgWage,
+      ));
+    }
+
+    finalEntries.sort((a, b) => b.attendanceDays.compareTo(a.attendanceDays));
+
+    double globalAvgWage = globalAttendanceDays > 0 ? globalTotalEarned / globalAttendanceDays : 0;
+
     return AttendanceSummaryReportDTO(
-      totalDays: attendances.length,
-      presentCount: presentCount,
-      halfDayCount: halfDayCount,
-      absentCount: absentCount,
-      totalEarned: totalEarned,
+      totalWorkers: workerData.length,
+      totalAttendanceDays: globalAttendanceDays,
+      totalEarned: globalTotalEarned,
+      averageDailyWage: globalAvgWage,
+      entries: finalEntries,
     );
   }
 
