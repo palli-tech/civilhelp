@@ -83,6 +83,19 @@ class ReportsDashboardScreen extends StatelessWidget {
           Card(
             elevation: 2,
             child: ListTile(
+              leading: const Icon(Icons.bar_chart, color: Colors.deepPurple),
+              title: const Text('Site Performance'),
+              subtitle: const Text('Compare earnings, payments, advances and balances across sites.'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.sitePerformance);
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            elevation: 2,
+            child: ListTile(
               leading: const Icon(Icons.account_balance, color: Colors.indigo),
               title: const Text('Outstanding Balance'),
               subtitle: const Text('View outstanding balance for all workers.'),

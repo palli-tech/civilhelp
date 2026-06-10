@@ -3,6 +3,7 @@ import 'package:civilhelp/features/advances/models/advance_model.dart';
 import 'package:civilhelp/features/attendance/models/attendance_model.dart';
 import 'package:civilhelp/features/labour/data/models/labour_model.dart';
 import 'package:civilhelp/features/payments/models/payment_model.dart';
+import 'package:civilhelp/features/sites/models/site_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/report_filter.dart';
@@ -602,6 +603,172 @@ class ReportRepository {
     return OutstandingBalanceReportDTO(
       workerEntries: finalEntries,
       totalOutstandingBalance: totalOutstandingBalance,
+    );
+  }
+
+  Future<SitePerformanceReportDTO> getSitePerformanceReport(ReportFilter filter) async {
+    final companyId = filter.companyId;
+    final startDate = Timestamp.fromDate(filter.startDate);
+    final endDate = Timestamp.fromDate(filter.endDate);
+
+    Query siteQuery = _firestore.collection('sites')
+        .where('companyId', isEqualTo: companyId);
+
+    Query attQuery = _firestore.collection('attendance')
+        .where('companyId', isEqualTo: companyId)
+        .where('date', isGreaterThanOrEqualTo: startDate)
+        .where('date', isLessThanOrEqualTo: endDate);
+        
+    Query advQuery = _firestore.collection('advances')
+        .where('companyId', isEqualTo: companyId)
+        .where('date', isGreaterThanOrEqualTo: startDate)
+        .where('date', isLessThanOrEqualTo: endDate);
+        
+    Query payQuery = _firestore.collection('payments')
+        .where('companyId', isEqualTo: companyId)
+        .where('periodStart', isGreaterThanOrEqualTo: startDate)
+        .where('periodStart', isLessThanOrEqualTo: endDate);
+
+    final results = await Future.wait([
+      siteQuery.get(),
+      attQuery.get(),
+      advQuery.get(),
+      payQuery.get(),
+    ]);
+
+    final sites = results[0].docs.map((doc) => SiteModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+    final attendances = results[1].docs.map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+    final advances = results[2].docs.map((doc) => AdvanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+    final payments = results[3].docs.map((doc) => PaymentModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+
+    Map<String, SitePerformanceEntry> siteData = {};
+    Map<String, Set<String>> siteWorkers = {};
+
+    for (final site in sites) {
+      siteData[site.id] = SitePerformanceEntry(
+        siteId: site.id,
+        siteName: site.name,
+        workerCount: 0,
+        attendanceDays: 0,
+        totalEarned: 0,
+        totalAdvances: 0,
+        totalPayments: 0,
+        outstandingBalance: 0,
+      );
+      siteWorkers[site.id] = {};
+    }
+
+    SitePerformanceEntry getOrCreateSiteEntry(String siteId, {String fallbackName = 'Unknown Site'}) {
+      if (!siteData.containsKey(siteId)) {
+        siteData[siteId] = SitePerformanceEntry(
+          siteId: siteId,
+          siteName: '$fallbackName ($siteId)',
+          workerCount: 0,
+          attendanceDays: 0,
+          totalEarned: 0,
+          totalAdvances: 0,
+          totalPayments: 0,
+          outstandingBalance: 0,
+        );
+        siteWorkers[siteId] = {};
+      }
+      return siteData[siteId]!;
+    }
+
+    for (final att in attendances) {
+      if (att.siteId == null || att.siteId!.isEmpty) continue;
+      
+      final current = getOrCreateSiteEntry(att.siteId!);
+      siteWorkers[att.siteId!]!.add(att.labourId);
+      
+      final labour = await _getLabour(att.labourId);
+      final earned = att.calculateEarnings(labour.dailyWage);
+      
+      siteData[att.siteId!] = SitePerformanceEntry(
+        siteId: current.siteId,
+        siteName: current.siteName,
+        workerCount: current.workerCount,
+        attendanceDays: current.attendanceDays + 1,
+        totalEarned: current.totalEarned + earned,
+        totalAdvances: current.totalAdvances,
+        totalPayments: current.totalPayments,
+        outstandingBalance: 0,
+      );
+    }
+
+    for (final adv in advances) {
+      if (adv.siteId == null || adv.siteId!.isEmpty) continue;
+
+      final current = getOrCreateSiteEntry(adv.siteId!, fallbackName: adv.siteName.isNotEmpty ? adv.siteName : 'Unknown Site');
+      siteData[adv.siteId!] = SitePerformanceEntry(
+        siteId: current.siteId,
+        siteName: current.siteName,
+        workerCount: current.workerCount,
+        attendanceDays: current.attendanceDays,
+        totalEarned: current.totalEarned,
+        totalAdvances: current.totalAdvances + adv.amount,
+        totalPayments: current.totalPayments,
+        outstandingBalance: 0,
+      );
+    }
+
+    for (final pay in payments) {
+      if (pay.siteId == null || pay.siteId!.isEmpty) continue;
+
+      final current = getOrCreateSiteEntry(pay.siteId!, fallbackName: pay.siteName.isNotEmpty ? pay.siteName : 'Unknown Site');
+      siteData[pay.siteId!] = SitePerformanceEntry(
+        siteId: current.siteId,
+        siteName: current.siteName,
+        workerCount: current.workerCount,
+        attendanceDays: current.attendanceDays,
+        totalEarned: current.totalEarned,
+        totalAdvances: current.totalAdvances,
+        totalPayments: current.totalPayments + pay.netAmount,
+        outstandingBalance: 0,
+      );
+    }
+
+    List<SitePerformanceEntry> finalEntries = [];
+    double globalEarned = 0;
+    double globalAdvances = 0;
+    double globalPayments = 0;
+    double globalOutstanding = 0;
+    
+    Set<String> allWorkers = {};
+
+    for (var entry in siteData.values) {
+      final workers = siteWorkers[entry.siteId]!;
+      allWorkers.addAll(workers);
+      
+      final outBalance = entry.totalEarned - entry.totalAdvances - entry.totalPayments;
+      
+      globalEarned += entry.totalEarned;
+      globalAdvances += entry.totalAdvances;
+      globalPayments += entry.totalPayments;
+      globalOutstanding += outBalance;
+      
+      finalEntries.add(SitePerformanceEntry(
+        siteId: entry.siteId,
+        siteName: entry.siteName,
+        workerCount: workers.length,
+        attendanceDays: entry.attendanceDays,
+        totalEarned: entry.totalEarned,
+        totalAdvances: entry.totalAdvances,
+        totalPayments: entry.totalPayments,
+        outstandingBalance: outBalance,
+      ));
+    }
+
+    finalEntries.sort((a, b) => b.outstandingBalance.compareTo(a.outstandingBalance));
+
+    return SitePerformanceReportDTO(
+      totalSites: siteData.length,
+      totalWorkers: allWorkers.length,
+      totalEarned: globalEarned,
+      totalAdvances: globalAdvances,
+      totalPayments: globalPayments,
+      totalOutstanding: globalOutstanding,
+      entries: finalEntries,
     );
   }
 }

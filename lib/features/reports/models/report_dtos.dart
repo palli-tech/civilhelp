@@ -105,3 +105,45 @@ class OutstandingBalanceReportDTO {
     required this.totalOutstandingBalance,
   });
 }
+
+class SitePerformanceEntry {
+  final String siteId;
+  final String siteName;
+  final int workerCount;
+  final int attendanceDays;
+  final double totalEarned;
+  final double totalAdvances;
+  final double totalPayments;
+  final double outstandingBalance;
+
+  const SitePerformanceEntry({
+    required this.siteId,
+    required this.siteName,
+    required this.workerCount,
+    required this.attendanceDays,
+    required this.totalEarned,
+    required this.totalAdvances,
+    required this.totalPayments,
+    required this.outstandingBalance,
+  });
+}
+
+class SitePerformanceReportDTO {
+  final int totalSites;
+  final int totalWorkers;
+  final double totalEarned;
+  final double totalAdvances;
+  final double totalPayments;
+  final double totalOutstanding;
+  final List<SitePerformanceEntry> entries;
+
+  const SitePerformanceReportDTO({
+    required this.totalSites,
+    required this.totalWorkers,
+    required this.totalEarned,
+    required this.totalAdvances,
+    required this.totalPayments,
+    required this.totalOutstanding,
+    required this.entries,
+  });
+}

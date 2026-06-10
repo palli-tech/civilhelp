@@ -20,6 +20,7 @@ import 'package:civilhelp/features/reports/screens/advance_report_screen.dart';
 import 'package:civilhelp/features/reports/screens/payment_report_screen.dart';
 import 'package:civilhelp/features/reports/screens/monthly_payroll_screen.dart';
 import 'package:civilhelp/features/reports/screens/outstanding_balance_screen.dart';
+import 'package:civilhelp/features/reports/screens/site_performance_screen.dart';
 
 class AppRoutes {
   static const splash = '/';
@@ -43,6 +44,7 @@ class AppRoutes {
   static const paymentReport = '/payment-report';
   static const monthlyPayroll = '/monthly-payroll';
   static const outstandingBalance = '/outstanding-balance';
+  static const sitePerformance = '/site-performance';
 }
 
 class AppRouter {
@@ -160,6 +162,11 @@ class AppRouter {
       case AppRoutes.monthlyPayroll:
         return MaterialPageRoute(
           builder: (_) => const MonthlyPayrollScreen(),
+          settings: settings,
+        );
+      case AppRoutes.sitePerformance:
+        return MaterialPageRoute(
+          builder: (_) => const SitePerformanceScreen(),
           settings: settings,
         );
       case AppRoutes.outstandingBalance:

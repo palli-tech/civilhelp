@@ -40,3 +40,8 @@ final outstandingBalanceReportProvider = FutureProvider.autoDispose.family<Outst
   final repository = ref.watch(reportRepositoryProvider);
   return await repository.getOutstandingBalanceReport(filter);
 });
+
+final sitePerformanceReportProvider = FutureProvider.autoDispose.family<SitePerformanceReportDTO, ReportFilter>((ref, filter) async {
+  final repository = ref.watch(reportRepositoryProvider);
+  return await repository.getSitePerformanceReport(filter);
+});

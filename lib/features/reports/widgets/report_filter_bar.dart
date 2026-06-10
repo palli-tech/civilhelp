@@ -11,6 +11,7 @@ class ReportFilterBar extends ConsumerWidget {
   final DateTime startDate;
   final DateTime endDate;
   final bool showWorkerFilter;
+  final bool showSiteFilter;
   final ValueChanged<String?> onSiteChanged;
   final ValueChanged<String?> onWorkerChanged;
   final void Function(DateTime start, DateTime end) onDateRangeChanged;
@@ -22,6 +23,7 @@ class ReportFilterBar extends ConsumerWidget {
     required this.startDate,
     required this.endDate,
     this.showWorkerFilter = true,
+    this.showSiteFilter = true,
     required this.onSiteChanged,
     required this.onWorkerChanged,
     required this.onDateRangeChanged,
@@ -87,36 +89,38 @@ class ReportFilterBar extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          sitesAsync.when(
-            data: (sites) {
-              final validSiteId = selectedSiteId != null && sites.any((s) => s.id == selectedSiteId) 
-                  ? selectedSiteId 
-                  : null;
+          if (showSiteFilter) ...[
+            const SizedBox(height: 16),
+            sitesAsync.when(
+              data: (sites) {
+                final validSiteId = selectedSiteId != null && sites.any((s) => s.id == selectedSiteId) 
+                    ? selectedSiteId 
+                    : null;
 
-              return DropdownButtonFormField<String>(
-                initialValue: validSiteId,
-                decoration: const InputDecoration(
-                  labelText: 'Site',
-                  border: OutlineInputBorder(),
-                ),
-                isExpanded: true,
-                items: [
-                  const DropdownMenuItem<String>(
-                    value: null,
-                    child: Text('All Sites'),
+                return DropdownButtonFormField<String>(
+                  initialValue: validSiteId,
+                  decoration: const InputDecoration(
+                    labelText: 'Site',
+                    border: OutlineInputBorder(),
                   ),
-                  ...sites.map((site) => DropdownMenuItem<String>(
-                    value: site.id,
-                    child: Text(site.name),
-                  )),
-                ],
-                onChanged: onSiteChanged,
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Text('Error loading sites: $err'),
-          ),
+                  isExpanded: true,
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All Sites'),
+                    ),
+                    ...sites.map((site) => DropdownMenuItem<String>(
+                      value: site.id,
+                      child: Text(site.name),
+                    )),
+                  ],
+                  onChanged: onSiteChanged,
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Text('Error loading sites: $err'),
+            ),
+          ],
           if (showWorkerFilter) ...[
             const SizedBox(height: 16),
             laboursAsync.when(
