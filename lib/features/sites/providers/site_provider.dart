@@ -24,7 +24,8 @@ final sitesStreamProvider = StreamProvider<List<SiteModel>>((ref) {
 /// Get a single site by ID
 final siteByIdProvider = FutureProvider.family<SiteModel?, String>((ref, siteId) async {
   final repository = ref.watch(siteRepositoryProvider);
-  return repository.getSiteById(siteId);
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+  return repository.getSiteById(companyId: companyId, siteId: siteId);
 });
 
 /// Create a new site
@@ -66,6 +67,8 @@ final updateSiteProvider = FutureProvider.family<void, (
 )>((ref, params) async {
   final repository = ref.watch(siteRepositoryProvider);
 
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
   await repository.updateSite(
     siteId: params.$1,
     name: params.$2,
@@ -73,7 +76,9 @@ final updateSiteProvider = FutureProvider.family<void, (
     client: params.$4,
     startDate: params.$5,
     status: params.$6,
+    companyId: companyId,
   );
+
 
   // Refresh the sites list and single site
   ref.invalidate(sitesStreamProvider);
@@ -84,8 +89,14 @@ final updateSiteProvider = FutureProvider.family<void, (
 final deleteSiteProvider = FutureProvider.family<void, String>((ref, siteId) async {
   final repository = ref.watch(siteRepositoryProvider);
 
-  await repository.deleteSite(siteId);
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
+  await repository.deleteSite(
+    companyId: companyId,
+    siteId: siteId,
+  );
 
   // Refresh the sites list
   ref.invalidate(sitesStreamProvider);
 });
+

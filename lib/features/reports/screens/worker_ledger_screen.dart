@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:civilhelp/core/providers/company_provider.dart';
+
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
@@ -29,7 +30,7 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
   @override
   Widget build(BuildContext context) {
     debugPrint('WorkerLedgerScreen build called');
-    final companyIdAsync = ref.watch(userCompanyIdProvider);
+final companyIdAsync = ref.watch(userCompanyIdProvider);
     
     debugPrint('companyIdAsync: $companyIdAsync');
 
@@ -40,13 +41,27 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'Export PDF',
-            onPressed: () => _handleExportPdf(context, companyIdAsync.valueOrNull),
+onPressed: () {
+                // Only attempt export when companyId is resolved.
+                companyIdAsync.when(
+                  data: (companyId) {
+                    if (companyId.isEmpty) return;
+                    _handleExportPdf(context, companyId);
+                  },
+                  loading: () async {},
+                  error: (e, _) async {},
+                );
+              },
           ),
         ],
       ),
-      child: companyIdAsync.when(
+child: companyIdAsync.when(
         data: (companyId) {
-          debugPrint('companyIdAsync data: $companyId');
+                  debugPrint('companyIdAsync data: $companyId');
+          if (companyId.isEmpty) {
+            return const Center(child: Text('Company not associated with user.'));
+          }
+
           return Column(
             children: [
               ReportFilterBar(
@@ -96,7 +111,8 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
     );
 
     final reportAsync = ref.watch(workerLedgerReportProvider(filter));
-    debugPrint('workerLedgerReportProvider: ${reportAsync.when(data: (d) => "data", loading: () => "loading", error: (e, s) => "error=$e")}');
+    debugPrint('workerLedgerReportProvider state: $reportAsync');
+
 
     return reportAsync.when(
       data: (report) {

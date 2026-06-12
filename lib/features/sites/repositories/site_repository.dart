@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/services/firestore_path_service.dart';
 import '../models/site_model.dart';
+
 
 class SiteRepository {
   final FirebaseFirestore _firestore;
@@ -19,7 +21,7 @@ class SiteRepository {
     required String createdBy,
   }) async {
     try {
-      final docRef = await _firestore.collection('sites').add({
+      final docRef = await _firestore.collection(FirestorePathService.sites(companyId)).add({
         'name': name,
         'location': location,
         'client': client,
@@ -45,9 +47,10 @@ class SiteRepository {
     required String client,
     required DateTime startDate,
     required String status,
+    required String companyId,
   }) async {
     try {
-      await _firestore.collection('sites').doc(siteId).update({
+      await _firestore.collection(FirestorePathService.sites(companyId)).doc(siteId).update({
         'name': name,
         'location': location,
         'client': client,
@@ -63,8 +66,7 @@ class SiteRepository {
   Stream<List<SiteModel>> getSitesByCompanyStream(String companyId) {
     try {
       return _firestore
-          .collection('sites')
-          .where('companyId', isEqualTo: companyId)
+          .collection(FirestorePathService.sites(companyId))
           .orderBy('createdAt', descending: true)
           .snapshots()
           .map((snapshot) {
@@ -72,15 +74,23 @@ class SiteRepository {
             .map((doc) => SiteModel.fromFirestore(doc))
             .toList();
       });
+
     } catch (e) {
       return Stream.error(e);
     }
   }
 
-  /// Fetch a single site by ID
-  Future<SiteModel?> getSiteById(String siteId) async {
+  /// Fetch a single site by ID (tenant scoped)
+  Future<SiteModel?> getSiteById({
+    required String companyId,
+    required String siteId,
+  }) async {
     try {
-      final doc = await _firestore.collection('sites').doc(siteId).get();
+      final doc = await _firestore
+          .collection(FirestorePathService.sites(companyId))
+          .doc(siteId)
+          .get();
+
       if (doc.exists) {
         return SiteModel.fromFirestore(doc);
       }
@@ -90,10 +100,16 @@ class SiteRepository {
     }
   }
 
-  /// Delete a site
-  Future<void> deleteSite(String siteId) async {
+  /// Delete a site (tenant scoped)
+  Future<void> deleteSite({
+    required String companyId,
+    required String siteId,
+  }) async {
     try {
-      await _firestore.collection('sites').doc(siteId).delete();
+      await _firestore
+          .collection(FirestorePathService.sites(companyId))
+          .doc(siteId)
+          .delete();
     } catch (e) {
       rethrow;
     }
