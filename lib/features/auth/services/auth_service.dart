@@ -129,6 +129,7 @@ class AuthService {
             'role': freshData['role'] ?? 'pending',
             'assignedSiteIds': freshData['assignedSiteIds'] ?? [],
             'active': true,
+            'onboarded': false,
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           });
@@ -189,6 +190,7 @@ class AuthService {
         'role': UserRole.pending.name,
         'assignedSiteIds': [],
         'active': true,
+        'onboarded': false,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });

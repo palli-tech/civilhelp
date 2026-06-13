@@ -29,13 +29,16 @@ class TenantGuard extends ConsumerWidget {
           );
         }
 
-        final tenantState = ref.watch(tenantContextProvider);
+        final userDataAsync = ref.watch(userDataProvider);
 
-        return tenantState.when(
-          data: (tenant) {
-            if (tenant == null) {
+        return userDataAsync.when(
+          data: (userData) {
+            final bool onboarded = userData?['onboarded'] as bool? ?? 
+                ((userData?['companyId'] as String? ?? '').isNotEmpty);
+
+            if (!onboarded) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.of(context).pushReplacementNamed('/company-setup');
+                Navigator.of(context).pushReplacementNamed('/profile-setup');
               });
               return const Scaffold(
                 body: Center(
@@ -43,7 +46,34 @@ class TenantGuard extends ConsumerWidget {
                 ),
               );
             }
-            return child;
+
+            final tenantState = ref.watch(tenantContextProvider);
+
+            return tenantState.when(
+              data: (tenant) {
+                if (tenant == null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Navigator.of(context).pushReplacementNamed('/company-setup');
+                  });
+                  return const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                return child;
+              },
+              loading: () => const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (error, stack) => Scaffold(
+                body: Center(
+                  child: Text('Error loading tenant context: $error'),
+                ),
+              ),
+            );
           },
           loading: () => const Scaffold(
             body: Center(
@@ -52,7 +82,7 @@ class TenantGuard extends ConsumerWidget {
           ),
           error: (error, stack) => Scaffold(
             body: Center(
-              child: Text('Error loading tenant context: $error'),
+              child: Text('Error loading user profile: $error'),
             ),
           ),
         );
@@ -96,13 +126,16 @@ class CompanySetupGuard extends ConsumerWidget {
           );
         }
 
-        final tenantState = ref.watch(tenantContextProvider);
+        final userDataAsync = ref.watch(userDataProvider);
 
-        return tenantState.when(
-          data: (tenant) {
-            if (tenant != null) {
+        return userDataAsync.when(
+          data: (userData) {
+            final bool onboarded = userData?['onboarded'] as bool? ?? 
+                ((userData?['companyId'] as String? ?? '').isNotEmpty);
+
+            if (!onboarded) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.of(context).pushReplacementNamed('/dashboard');
+                Navigator.of(context).pushReplacementNamed('/profile-setup');
               });
               return const Scaffold(
                 body: Center(
@@ -110,14 +143,37 @@ class CompanySetupGuard extends ConsumerWidget {
                 ),
               );
             }
-            return child;
+
+            final tenantState = ref.watch(tenantContextProvider);
+
+            return tenantState.when(
+              data: (tenant) {
+                if (tenant != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Navigator.of(context).pushReplacementNamed('/dashboard');
+                  });
+                  return const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                return child;
+              },
+              loading: () => const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (error, stack) => child,
+            );
           },
           loading: () => const Scaffold(
             body: Center(
               child: CircularProgressIndicator(),
             ),
           ),
-          error: (error, stack) => child, // Allow setup if error fetching tenant
+          error: (error, stack) => child,
         );
       },
       loading: () => const Scaffold(

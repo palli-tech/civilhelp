@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:civilhelp/core/auth/permissions.dart';
 import 'package:civilhelp/features/auth/screens/login_screen.dart';
 import 'package:civilhelp/features/auth/screens/splash_screen.dart';
+import 'package:civilhelp/features/auth/screens/profile_setup_screen.dart';
 import 'package:civilhelp/features/dashboard/screens/dashboard_screen.dart';
 import 'package:civilhelp/features/labour/presentation/screens/add_edit_labour_screen.dart';
 import 'package:civilhelp/features/labour/presentation/screens/labour_details_screen.dart';
@@ -34,6 +35,7 @@ class AppRoutes {
   static const splash = '/';
   static const login = '/login';
   static const companySetup = '/company-setup';
+  static const profileSetup = '/profile-setup';
   static const dashboard = '/dashboard';
   static const sites = '/sites';
   static const addSite = '/add-site';
@@ -109,6 +111,11 @@ class AppRouter {
       case AppRoutes.companySetup:
         return MaterialPageRoute(
           builder: (_) => const CompanySetupGuard(child: CompanySetupScreen()),
+          settings: settings,
+        );
+      case AppRoutes.profileSetup:
+        return MaterialPageRoute(
+          builder: (_) => const ProfileSetupScreen(),
           settings: settings,
         );
 

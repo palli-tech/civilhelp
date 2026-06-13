@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import 'package:civilhelp/core/enums/user_role.dart';
 import 'package:civilhelp/core/providers/user_role_provider.dart';
+import 'package:civilhelp/core/auth/permissions.dart';
 import '../../../app/router.dart';
 import '../../../core/providers/tenant_provider.dart';
 import '../../../shared/layouts/app_scaffold.dart';
@@ -84,7 +84,7 @@ class SettingsScreen extends ConsumerWidget {
                             Navigator.of(context).pushNamed(AppRoutes.companyProfile);
                           },
                         ),
-                        if (role == UserRole.owner) ...[
+                        if (role.hasPermission(Permission.manageUsers)) ...[
                           const Divider(height: 1),
                           ListTile(
                             leading: const Icon(Icons.group, color: Colors.indigo),

@@ -115,10 +115,12 @@ class TeamManagementRepository {
   Future<void> assignSites({
     required String userId,
     required List<String> siteIds,
+    required String updatedBy,
   }) async {
     await _firestore.collection('users').doc(userId).update({
       'assignedSiteIds': siteIds,
       'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': updatedBy,
     });
   }
 
@@ -126,10 +128,12 @@ class TeamManagementRepository {
   Future<void> addSiteAssignment({
     required String userId,
     required String siteId,
+    required String updatedBy,
   }) async {
     await _firestore.collection('users').doc(userId).update({
       'assignedSiteIds': FieldValue.arrayUnion([siteId]),
       'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': updatedBy,
     });
   }
 
@@ -137,10 +141,12 @@ class TeamManagementRepository {
   Future<void> removeSiteAssignment({
     required String userId,
     required String siteId,
+    required String updatedBy,
   }) async {
     await _firestore.collection('users').doc(userId).update({
       'assignedSiteIds': FieldValue.arrayRemove([siteId]),
       'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': updatedBy,
     });
   }
 
@@ -148,30 +154,36 @@ class TeamManagementRepository {
   Future<void> updateRole({
     required String userId,
     required UserRole role,
+    required String updatedBy,
   }) async {
     await _firestore.collection('users').doc(userId).update({
       'role': role.name,
       'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': updatedBy,
     });
   }
 
   /// Disable a user (soft delete).
   Future<void> disableUser({
     required String userId,
+    required String updatedBy,
   }) async {
     await _firestore.collection('users').doc(userId).update({
       'active': false,
       'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': updatedBy,
     });
   }
 
   /// Re-enable a disabled user.
   Future<void> enableUser({
     required String userId,
+    required String updatedBy,
   }) async {
     await _firestore.collection('users').doc(userId).update({
       'active': true,
       'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': updatedBy,
     });
   }
 

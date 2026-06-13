@@ -11,6 +11,7 @@ class UserModel {
   final UserRole role;
   final List<String> assignedSiteIds;
   final bool active;
+  final bool onboarded;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -24,6 +25,7 @@ class UserModel {
     required this.role,
     required this.assignedSiteIds,
     required this.active,
+    required this.onboarded,
     this.createdAt,
     this.updatedAt,
   });
@@ -43,6 +45,7 @@ class UserModel {
               .toList() ??
           [],
       active: data['active'] ?? true,
+      onboarded: data['onboarded'] as bool? ?? (data['companyId'] as String? ?? '').isNotEmpty,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -58,6 +61,7 @@ class UserModel {
       'role': role.name,
       'assignedSiteIds': assignedSiteIds,
       'active': active,
+      'onboarded': onboarded,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
     };
@@ -73,6 +77,7 @@ class UserModel {
     UserRole? role,
     List<String>? assignedSiteIds,
     bool? active,
+    bool? onboarded,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -86,6 +91,7 @@ class UserModel {
       role: role ?? this.role,
       assignedSiteIds: assignedSiteIds ?? this.assignedSiteIds,
       active: active ?? this.active,
+      onboarded: onboarded ?? this.onboarded,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

@@ -71,6 +71,7 @@ class InvitationRepository {
   Future<void> resendInvitation({
     required String companyId,
     required String invitationId,
+    required String resentBy,
   }) async {
     final docRef = _firestore
         .collection('companies')
@@ -99,6 +100,7 @@ class InvitationRepository {
         'resendCount': FieldValue.increment(1),
         'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(days: 14))),
         'updatedAt': FieldValue.serverTimestamp(),
+        'updatedBy': resentBy,
       });
     });
   }

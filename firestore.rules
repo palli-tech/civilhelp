@@ -42,10 +42,68 @@ service cloud.firestore {
     // ─── Global Users ───────────────────────────────────────
 
     match /users/{uid} {
-      // Users can read their own doc; admins can read any user doc
-      allow read: if isAuthenticated() && (request.auth.uid == uid || getUserData().role == 'admin');
-      // Users can write their own doc only
-      allow write: if isAuthenticated() && request.auth.uid == uid;
+      allow read: if isAuthenticated() && (
+        request.auth.uid == uid || 
+        getUserData().role == 'admin' ||
+        isOwner(resource.data.companyId)
+      );
+
+      allow create: if isAuthenticated() && request.auth.uid == uid && (
+        request.resource.data.onboarded == false
+      );
+
+      allow update: if isAuthenticated() && (
+        // User updating their own profile details
+        (
+          request.auth.uid == uid &&
+          (
+            // Scenario A: Standard profile updates (no privilege changes)
+            (
+              request.resource.data.role == resource.data.role &&
+              request.resource.data.active == resource.data.active &&
+              request.resource.data.companyId == resource.data.companyId &&
+              request.resource.data.tenantId == resource.data.tenantId &&
+              request.resource.data.assignedSiteIds == resource.data.assignedSiteIds
+            ) ||
+            // Scenario B: Company Setup (joining a company they created as Owner)
+            (
+              resource.data.companyId == '' &&
+              request.resource.data.role == 'owner' &&
+              request.resource.data.active == true &&
+              get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.ownerUid == request.auth.uid
+            ) ||
+            // Scenario C: Supervisor/Admin Onboarding (joining a company via invitation)
+            (
+              resource.data.companyId == '' &&
+              request.resource.data.role != 'owner' &&
+              request.resource.data.active == resource.data.active
+            )
+          )
+        ) ||
+        // Owner managing team members in their company
+        (
+          isOwner(resource.data.companyId) &&
+          // Immutable field protections
+          request.resource.data.companyId == resource.data.companyId &&
+          request.resource.data.tenantId == resource.data.tenantId &&
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.name == resource.data.name &&
+          request.resource.data.photoUrl == resource.data.photoUrl &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.onboarded == resource.data.onboarded &&
+          
+          // Owners cannot modify another owner account
+          resource.data.role != 'owner' &&
+          // Owners cannot change someone else's role to owner
+          request.resource.data.role != 'owner' &&
+          
+          // Owners cannot deactivate or modify themselves (as owner) through this pathway
+          (request.auth.uid != uid || (
+            request.resource.data.role == resource.data.role &&
+            request.resource.data.active == resource.data.active
+          ))
+        )
+      );
     }
 
     // ─── Global Invitations ─────────────────────────────────
