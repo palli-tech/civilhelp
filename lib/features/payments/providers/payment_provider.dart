@@ -87,19 +87,38 @@ final createPaymentProvider = FutureProvider.family<PaymentModel, (
 });
 
 final markPaymentPaidProvider = FutureProvider.family<void, String>((ref, paymentId) async {
-  await ref.read(paymentRepositoryProvider).markPaymentAsPaid(paymentId);
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
+  await ref.read(paymentRepositoryProvider).markPaymentAsPaid(
+    paymentId: paymentId,
+    companyId: companyId,
+  );
+
   ref.invalidate(paymentsStreamProvider);
   ref.invalidate(pendingPaymentsCountProvider);
-  ref.invalidate(advancesStreamProvider);
-  ref.invalidate(outstandingAdvancesStreamProvider);
-  ref.invalidate(outstandingAdvanceTotalProvider);
 });
 
+
 final updatePaymentStatusProvider = FutureProvider.family<void, (String paymentId, String status)>((ref, params) async {
-  await ref.read(paymentRepositoryProvider).updatePaymentStatus(params.$1, params.$2);
+  final repository = ref.read(paymentRepositoryProvider);
+
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
+  await repository.updatePaymentStatus(
+    paymentId: params.$1,
+    status: params.$2,
+    companyId: companyId,
+  );
+
+
+
+
   ref.invalidate(paymentsStreamProvider);
   ref.invalidate(pendingPaymentsCountProvider);
 });
+
+
+
 
 final updatePaymentProvider =
     FutureProvider.family<void, PaymentModel>((ref, payment) async {
@@ -110,7 +129,12 @@ final updatePaymentProvider =
 
 final deletePaymentProvider =
     FutureProvider.family<void, String>((ref, paymentId) async {
-  await ref.read(paymentRepositoryProvider).deletePayment(paymentId);
+  final companyId = await ref.read(userCompanyIdProvider.future);
+  await ref.read(paymentRepositoryProvider).deletePayment(
+    paymentId: paymentId,
+    companyId: companyId,
+  );
+
 
   ref.invalidate(paymentsStreamProvider);
   ref.invalidate(pendingPaymentsCountProvider);

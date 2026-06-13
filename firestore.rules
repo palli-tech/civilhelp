@@ -3,8 +3,38 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // Helper: Verify if user is logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Retrieve the user profile from the global users collection
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Helper: Verify if the user belongs to the company, is active, and the company itself is active
+    function isTenantMember(companyId) {
+      return isAuthenticated() && 
+             getUserData().companyId == companyId &&
+             (getUserData().active == true || getUserData().isActive == true) &&
+             (get(/databases/$(database)/documents/companies/$(companyId)).data.active == true || 
+              get(/databases/$(database)/documents/companies/$(companyId)).data.isActive == true);
+    }
+
+    // Rules for global users collection
+    match /users/{uid} {
+      allow read: if isAuthenticated() && (request.auth.uid == uid || getUserData().role == 'admin');
+      allow write: if isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Rules for companies collection and all nested resources (recursive wildcard)
+    match /companies/{companyId} {
+      allow read, write: if isTenantMember(companyId);
+
+      match /{document=**} {
+        allow read, write: if isTenantMember(companyId);
+      }
     }
   }
 }

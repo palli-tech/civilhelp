@@ -4,7 +4,10 @@ import 'package:civilhelp/features/advances/repositories/advance_repository.dart
 import 'package:civilhelp/features/attendance/models/attendance_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/services/firestore_path_service.dart';
+
 import '../models/payment_model.dart';
+
 
 class PaymentSummary {
   final double grossAmount;
@@ -23,6 +26,31 @@ class PaymentRepository {
 
   PaymentRepository({FirebaseFirestore? firestore, required AdvanceRepository advanceRepository})
     : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  CollectionReference<Map<String, Object?>> _paymentsCollection(
+    String companyId,
+  ) {
+    return _firestore.collection(
+      FirestorePathService.payments(companyId),
+    );
+  }
+
+  CollectionReference<Map<String, Object?>> _advancesCollection(
+    String companyId,
+  ) {
+    return _firestore.collection(
+      FirestorePathService.advances(companyId),
+    );
+  }
+
+  CollectionReference<Map<String, Object?>> _attendanceCollection(
+    String companyId,
+  ) {
+    return _firestore.collection(
+      FirestorePathService.attendance(companyId),
+    );
+  }
+
 
   Future<PaymentModel> createPayment({
     required String labourId,
@@ -45,7 +73,7 @@ class PaymentRepository {
       throw Exception('No payable attendance found for the selected period.');
     }
 
-    final docRef = await _firestore.collection('payments').add({
+    final docRef = await _paymentsCollection(companyId).add({
       'labourId': labourId,
       'labourName': labourName,
       'siteId': siteId,
@@ -66,14 +94,17 @@ class PaymentRepository {
   }
 
   Future<void> updatePayment(PaymentModel payment) async {
-    await _firestore
-        .collection('payments')
+    await _paymentsCollection(payment.companyId)
         .doc(payment.id)
         .update(payment.toMap());
   }
 
-  Future<void> deletePayment(String paymentId) async {
-    final paymentDoc = await _firestore.collection('payments').doc(paymentId).get();
+
+  Future<void> deletePayment({
+    required String paymentId,
+    required String companyId,
+  }) async {
+    final paymentDoc = await _paymentsCollection(companyId).doc(paymentId).get();
     if (!paymentDoc.exists) return;
 
     final data = paymentDoc.data()!;
@@ -83,7 +114,7 @@ class PaymentRepository {
     await _firestore.runTransaction((tx) async {
       // Revert the recovered amounts on the associated advances
       for (final entry in appliedAmounts.entries) {
-        final advRef = _firestore.collection('advances').doc(entry.key);
+        final advRef = _advancesCollection(companyId).doc(entry.key);
         final advSnap = await tx.get(advRef);
         if (advSnap.exists) {
           final advData = advSnap.data()!;
@@ -100,8 +131,11 @@ class PaymentRepository {
     });
   }
 
-  Future<void> markPaymentAsPaid(String paymentId) async {
-    final paymentRef = _firestore.collection('payments').doc(paymentId);
+  Future<void> markPaymentAsPaid({
+    required String paymentId,
+    required String companyId,
+  }) async {
+    final paymentRef = _paymentsCollection(companyId).doc(paymentId);
     
     // 1. Fetch payment outside transaction to get companyId and labourId
     final initialSnap = await paymentRef.get();
@@ -114,13 +148,10 @@ class PaymentRepository {
       return; // Already paid
     }
 
-    final companyId = initialData['companyId'] as String;
     final labourId = initialData['labourId'] as String;
     
     // 2. Query candidate advances outside transaction
-    final advancesSnapshot = await _firestore
-        .collection('advances')
-        .where('companyId', isEqualTo: companyId)
+    final advancesSnapshot = await _advancesCollection(companyId)
         .where('labourId', isEqualTo: labourId)
         .where('paidBack', isEqualTo: false)
         .get();
@@ -188,15 +219,19 @@ class PaymentRepository {
     });
   }
 
-  Future<void> updatePaymentStatus(String paymentId, String status) async {
-    await _firestore.collection('payments').doc(paymentId).update({'status': status});
+  Future<void> updatePaymentStatus({
+    required String paymentId,
+    required String status,
+    required String companyId,
+  }) async {
+    await _paymentsCollection(companyId).doc(paymentId).update({'status': status});
   }
+
+
 
   Stream<List<PaymentModel>> getPaymentsByCompanyStream(String companyId) {
     try {
-      return _firestore
-          .collection('payments')
-          .where('companyId', isEqualTo: companyId)
+      return _paymentsCollection(companyId)
           .orderBy('createdAt', descending: true)
           .snapshots()
           .map(
@@ -214,9 +249,7 @@ class PaymentRepository {
     String status,
   ) {
     try {
-      return _firestore
-          .collection('payments')
-          .where('companyId', isEqualTo: companyId)
+      return _paymentsCollection(companyId)
           .where('status', isEqualTo: status)
           .orderBy('createdAt', descending: true)
           .snapshots()
@@ -231,9 +264,7 @@ class PaymentRepository {
   }
 
   Future<PaymentSummary> calculateFinalPaymentSummary(PaymentModel payment) async {
-    final advancesSnapshot = await _firestore
-        .collection('advances')
-        .where('companyId', isEqualTo: payment.companyId)
+    final advancesSnapshot = await _advancesCollection(payment.companyId)
         .where('labourId', isEqualTo: payment.labourId)
         .where('paidBack', isEqualTo: false)
         .get();
@@ -258,9 +289,7 @@ class PaymentRepository {
     required DateTime periodStart,
     required DateTime periodEnd,
   }) async {
-    final attendanceSnapshot = await _firestore
-        .collection('attendance')
-        .where('companyId', isEqualTo: companyId)
+    final attendanceSnapshot = await _attendanceCollection(companyId)
         .where('labourId', isEqualTo: labourId)
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(periodStart))
         .where('date', isLessThan: Timestamp.fromDate(periodEnd))
@@ -272,9 +301,7 @@ class PaymentRepository {
       gross += attendance.calculateEarnings(dailyWage);
     }
 
-    final advancesSnapshot = await _firestore
-        .collection('advances')
-        .where('companyId', isEqualTo: companyId)
+    final advancesSnapshot = await _advancesCollection(companyId)
         .where('labourId', isEqualTo: labourId)
         .where('paidBack', isEqualTo: false)
         .get();
@@ -298,9 +325,7 @@ class PaymentRepository {
     String labourId,
   ) {
     try {
-      return _firestore
-          .collection('payments')
-          .where('companyId', isEqualTo: companyId)
+      return _paymentsCollection(companyId)
           .where('labourId', isEqualTo: labourId)
           .orderBy('createdAt', descending: true)
           .snapshots()
@@ -323,9 +348,7 @@ class PaymentRepository {
     required DateTime periodStart,
     required DateTime periodEnd,
   }) async {
-    final snapshot = await _firestore
-        .collection('payments')
-        .where('companyId', isEqualTo: companyId)
+    final snapshot = await _paymentsCollection(companyId)
         .where('labourId', isEqualTo: labourId)
         .get();
 
@@ -382,9 +405,7 @@ class PaymentRepository {
 
     // Candidate unpaid advances (snapshot outside transaction). We'll re-check
     // inside the transaction to avoid races.
-    final advancesSnapshot = await _firestore
-        .collection('advances')
-        .where('companyId', isEqualTo: companyId)
+    final advancesSnapshot = await _advancesCollection(companyId)
         .where('labourId', isEqualTo: labourId)
         .where('paidBack', isEqualTo: false)
         .get();
@@ -393,9 +414,7 @@ class PaymentRepository {
     developer.log('DEBUG: Candidate advance refs count: ${candidateRefs.length}');
 
     final prefix = 'PAY-${periodStart.year}${periodStart.month.toString().padLeft(2, '0')}-';
-    final lastPaymentQuery = await _firestore
-        .collection('payments')
-        .where('companyId', isEqualTo: companyId)
+    final lastPaymentQuery = await _paymentsCollection(companyId)
         .where('paymentNumber', isGreaterThanOrEqualTo: prefix)
         .where('paymentNumber', isLessThan: '$prefix\uf8ff')
         .orderBy('paymentNumber', descending: true)
@@ -413,7 +432,7 @@ class PaymentRepository {
     final paymentNumber = '$prefix${sequence.toString().padLeft(4, '0')}';
     developer.log('DEBUG: Generated payment number: $paymentNumber');
 
-    final paymentsCol = _firestore.collection('payments');
+    final paymentsCol = _paymentsCollection(companyId);
     final newDocRef = paymentsCol.doc();
 
     await _firestore.runTransaction((tx) async {

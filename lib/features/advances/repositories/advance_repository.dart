@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/services/firestore_path_service.dart';
 import '../models/advance_model.dart';
 
 class AdvanceRepository {
@@ -7,6 +8,14 @@ class AdvanceRepository {
 
   AdvanceRepository({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  CollectionReference<Map<String, Object?>> _advancesCollection(
+    String companyId,
+  ) {
+    return _firestore.collection(
+      FirestorePathService.advances(companyId),
+    );
+  }
 
   Future<AdvanceModel> createAdvance({
     required String labourId,
@@ -20,7 +29,7 @@ class AdvanceRepository {
     required String companyId,
     required String createdBy,
   }) async {
-    final docRef = await _firestore.collection('advances').add({
+    final docRef = await _advancesCollection(companyId).add({
       'labourId': labourId,
       'labourName': labourName,
       'siteId': siteId,
@@ -39,21 +48,21 @@ class AdvanceRepository {
   }
 
   Future<void> updateAdvance(AdvanceModel advance) async {
-    await _firestore
-        .collection('advances')
+    await _advancesCollection(advance.companyId)
         .doc(advance.id)
         .update(advance.toMap());
   }
 
-  Future<void> deleteAdvance(String advanceId) async {
-    await _firestore.collection('advances').doc(advanceId).delete();
+  Future<void> deleteAdvance({
+    required String advanceId,
+    required String companyId,
+  }) async {
+    await _advancesCollection(companyId).doc(advanceId).delete();
   }
 
   Stream<List<AdvanceModel>> getAdvancesByCompanyStream(String companyId) {
     try {
-      return _firestore
-          .collection('advances')
-          .where('companyId', isEqualTo: companyId)
+      return _advancesCollection(companyId)
           .orderBy('date', descending: true)
           .snapshots()
           .map(
@@ -70,9 +79,7 @@ class AdvanceRepository {
     String companyId,
   ) {
     try {
-      return _firestore
-          .collection('advances')
-          .where('companyId', isEqualTo: companyId)
+      return _advancesCollection(companyId)
           .where('paidBack', isEqualTo: false)
           .orderBy('date', descending: true)
           .snapshots()
@@ -91,9 +98,7 @@ class AdvanceRepository {
     String labourId,
   ) {
     try {
-      return _firestore
-          .collection('advances')
-          .where('companyId', isEqualTo: companyId)
+      return _advancesCollection(companyId)
           .where('labourId', isEqualTo: labourId)
           .orderBy('date', descending: true)
           .snapshots()
@@ -107,3 +112,4 @@ class AdvanceRepository {
     }
   }
 }
+

@@ -2,12 +2,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/attendance_model.dart';
+import '../../../core/services/firestore_path_service.dart';
 
 class AttendanceRepository {
   final FirebaseFirestore _firestore;
 
   AttendanceRepository({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  CollectionReference<Map<String, Object?>> _attendanceCollection(
+    String companyId,
+  ) {
+    return _firestore.collection(
+      FirestorePathService.attendance(companyId),
+    );
+  }
 
   Future<AttendanceModel> createAttendance({
     required String labourId,
@@ -21,7 +30,7 @@ class AttendanceRepository {
     required String companyId,
     required String createdBy,
   }) async {
-    final docRef = await _firestore.collection('attendance').add({
+    final docRef = await _attendanceCollection(companyId).add({
       'labourId': labourId,
       'labourName': labourName,
       'siteId': siteId,
@@ -51,9 +60,7 @@ class AttendanceRepository {
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
     // 1. Fetch existing attendances for this site and date to prevent duplicates
-    final existingQuery = await _firestore
-        .collection('attendance')
-        .where('companyId', isEqualTo: companyId)
+    final existingQuery = await _attendanceCollection(companyId)
         .where('siteId', isEqualTo: siteId)
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
         .where('date', isLessThan: Timestamp.fromDate(endOfDay))
@@ -65,18 +72,20 @@ class AttendanceRepository {
 
     int skipped = 0;
     int created = 0;
-    
+
     // 2. Use a WriteBatch for efficient creation
     WriteBatch batch = _firestore.batch();
     int batchCount = 0;
-    
+
+    final attendanceCollection = _attendanceCollection(companyId);
+
     for (final record in labourRecords) {
       if (existingLabourIds.contains(record.labourId)) {
         skipped++;
         continue;
       }
 
-      final docRef = _firestore.collection('attendance').doc();
+      final docRef = attendanceCollection.doc();
       batch.set(docRef, {
         'labourId': record.labourId,
         'labourName': record.labourName,
@@ -90,10 +99,10 @@ class AttendanceRepository {
         'createdAt': Timestamp.now(),
         'createdBy': createdBy,
       });
-      
+
       created++;
       batchCount++;
-      
+
       // Firestore batch limit is 500
       if (batchCount == 499) {
         await batch.commit();
@@ -101,16 +110,18 @@ class AttendanceRepository {
         batchCount = 0;
       }
     }
-    
+
     if (batchCount > 0) {
       await batch.commit();
     }
-    
+
     return (created, skipped);
   }
 
   Future<void> updateAttendance(AttendanceModel attendance) async {
-    await _firestore.collection('attendance').doc(attendance.id).update({
+    await _attendanceCollection(attendance.companyId)
+        .doc(attendance.id)
+        .update({
       'labourId': attendance.labourId,
       'labourName': attendance.labourName,
       'siteId': attendance.siteId,
@@ -123,15 +134,18 @@ class AttendanceRepository {
     });
   }
 
-  Future<void> deleteAttendance(String attendanceId) async {
-    await _firestore.collection('attendance').doc(attendanceId).delete();
+  Future<void> deleteAttendance({
+    required String attendanceId,
+    required String companyId,
+  }) async {
+    await _attendanceCollection(companyId).doc(attendanceId).delete();
   }
 
-  Stream<List<AttendanceModel>> getAttendanceByCompanyStream(String companyId) {
+  Stream<List<AttendanceModel>> getAttendanceByCompanyStream(
+    String companyId,
+  ) {
     try {
-      return _firestore
-          .collection('attendance')
-          .where('companyId', isEqualTo: companyId)
+      return _attendanceCollection(companyId)
           .orderBy('date', descending: true)
           .snapshots()
           .map(
@@ -149,9 +163,7 @@ class AttendanceRepository {
     String siteId,
   ) {
     try {
-      return _firestore
-          .collection('attendance')
-          .where('companyId', isEqualTo: companyId)
+      return _attendanceCollection(companyId)
           .where('siteId', isEqualTo: siteId)
           .orderBy('date', descending: true)
           .snapshots()
@@ -170,9 +182,7 @@ class AttendanceRepository {
     String labourId,
   ) {
     try {
-      return _firestore
-          .collection('attendance')
-          .where('companyId', isEqualTo: companyId)
+      return _attendanceCollection(companyId)
           .where('labourId', isEqualTo: labourId)
           .orderBy('date', descending: true)
           .snapshots()
@@ -192,9 +202,7 @@ class AttendanceRepository {
     DateTime end,
   ) {
     try {
-      return _firestore
-          .collection('attendance')
-          .where('companyId', isEqualTo: companyId)
+      return _attendanceCollection(companyId)
           .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
           .where('date', isLessThan: Timestamp.fromDate(end))
           .orderBy('date', descending: true)
@@ -209,7 +217,9 @@ class AttendanceRepository {
     }
   }
 
-  Stream<List<AttendanceModel>> getAttendanceForTodayStream(String companyId) {
+  Stream<List<AttendanceModel>> getAttendanceForTodayStream(
+    String companyId,
+  ) {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
@@ -237,9 +247,7 @@ class AttendanceRepository {
         'start=$startOfDay end=$endOfDay',
       );
 
-      final query = await _firestore
-          .collection('attendance')
-          .where('companyId', isEqualTo: companyId)
+      final query = await _attendanceCollection(companyId)
           .where('labourId', isEqualTo: labourId)
           .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('date', isLessThan: Timestamp.fromDate(endOfDay))
@@ -255,5 +263,6 @@ class AttendanceRepository {
     }
   }
 }
+
 
 

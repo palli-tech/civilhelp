@@ -86,9 +86,15 @@ final updateAdvanceProvider =
 
 final deleteAdvanceProvider =
     FutureProvider.family<void, String>((ref, advanceId) async {
-  await ref.read(advanceRepositoryProvider).deleteAdvance(advanceId);
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
+  await ref.read(advanceRepositoryProvider).deleteAdvance(
+        advanceId: advanceId,
+        companyId: companyId,
+      );
 
   ref.invalidate(advancesStreamProvider);
   ref.invalidate(outstandingAdvancesStreamProvider);
   ref.invalidate(outstandingAdvanceTotalProvider);
 });
+

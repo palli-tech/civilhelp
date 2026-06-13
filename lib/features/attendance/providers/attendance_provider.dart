@@ -90,7 +90,14 @@ final deleteAttendanceProvider = FutureProvider.family<void, String>((
   ref,
   attendanceId,
 ) async {
-  await ref.read(attendanceRepositoryProvider).deleteAttendance(attendanceId);
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
+  await ref
+      .read(attendanceRepositoryProvider)
+      .deleteAttendance(
+        attendanceId: attendanceId,
+        companyId: companyId,
+      );
 
   // Invalidate all attendance streams after delete
   ref.invalidate(attendanceStreamProvider);
@@ -98,6 +105,7 @@ final deleteAttendanceProvider = FutureProvider.family<void, String>((
   ref.invalidate(attendanceByLabourStreamProvider);
   ref.invalidate(attendanceTodayStreamProvider);
 });
+
 final createAttendanceProvider =
     FutureProvider.family<
       AttendanceModel,

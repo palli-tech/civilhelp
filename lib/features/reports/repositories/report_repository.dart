@@ -6,6 +6,7 @@ import 'package:civilhelp/features/payments/models/payment_model.dart';
 import 'package:civilhelp/features/sites/models/site_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/services/firestore_path_service.dart';
 import '../models/report_filter.dart';
 import '../models/worker_ledger_entry.dart';
 import '../models/worker_ledger_report_dto.dart';
@@ -19,11 +20,31 @@ class ReportRepository {
   ReportRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  Future<LabourModel> _getLabour(String labourId) async {
+  CollectionReference<Map<String, Object?>> _labourCollection(String companyId) {
+    return _firestore.collection(FirestorePathService.labour(companyId));
+  }
+
+  CollectionReference<Map<String, Object?>> _attendanceCollection(String companyId) {
+    return _firestore.collection(FirestorePathService.attendance(companyId));
+  }
+
+  CollectionReference<Map<String, Object?>> _advancesCollection(String companyId) {
+    return _firestore.collection(FirestorePathService.advances(companyId));
+  }
+
+  CollectionReference<Map<String, Object?>> _paymentsCollection(String companyId) {
+    return _firestore.collection(FirestorePathService.payments(companyId));
+  }
+
+  CollectionReference<Map<String, Object?>> _sitesCollection(String companyId) {
+    return _firestore.collection(FirestorePathService.sites(companyId));
+  }
+
+  Future<LabourModel> _getLabour(String companyId, String labourId) async {
     if (_labourCache.containsKey(labourId)) {
       return _labourCache[labourId]!;
     }
-    final doc = await _firestore.collection('labour').doc(labourId).get();
+    final doc = await _labourCollection(companyId).doc(labourId).get();
     if (!doc.exists) {
       throw Exception('Labour not found: $labourId');
     }
@@ -45,15 +66,13 @@ class ReportRepository {
 
     // Fetch Labour to get daily wage
     debugPrint('[DEBUG] ReportRepository: Fetching labour: $labourId');
-    final labour = await _getLabour(labourId);
+    final labour = await _getLabour(companyId, labourId);
     final dailyWage = labour.dailyWage;
     debugPrint('[DEBUG] ReportRepository: Fetched labour successfully');
 
     // Fetch Attendances
     debugPrint('[DEBUG] ReportRepository: Executing attendance query');
-    Query attQuery = _firestore
-        .collection('attendance')
-        .where('companyId', isEqualTo: companyId)
+    Query attQuery = _attendanceCollection(companyId)
         .where('labourId', isEqualTo: labourId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
@@ -71,9 +90,7 @@ class ReportRepository {
 
     // Fetch Advances
     debugPrint('[DEBUG] ReportRepository: Executing advances query');
-    Query advQuery = _firestore
-        .collection('advances')
-        .where('companyId', isEqualTo: companyId)
+    Query advQuery = _advancesCollection(companyId)
         .where('labourId', isEqualTo: labourId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
@@ -91,9 +108,7 @@ class ReportRepository {
 
     // Fetch Payments
     debugPrint('[DEBUG] ReportRepository: Executing payments query');
-    Query payQuery = _firestore
-        .collection('payments')
-        .where('companyId', isEqualTo: companyId)
+    Query payQuery = _paymentsCollection(companyId)
         .where('labourId', isEqualTo: labourId)
         .where('periodStart', isGreaterThanOrEqualTo: startDate) // Note: Using periodStart to align with payment timeline
         .where('periodStart', isLessThanOrEqualTo: endDate);
@@ -197,8 +212,7 @@ class ReportRepository {
     final startDate = Timestamp.fromDate(filter.startDate);
     final endDate = Timestamp.fromDate(filter.endDate);
 
-    Query query = _firestore.collection('attendance')
-        .where('companyId', isEqualTo: filter.companyId)
+    Query query = _attendanceCollection(filter.companyId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
 
@@ -216,7 +230,7 @@ class ReportRepository {
 
     Future<void> initializeWorker(String labourId) async {
       if (!workerData.containsKey(labourId)) {
-        final labour = await _getLabour(labourId);
+        final labour = await _getLabour(filter.companyId, labourId);
         workerData[labourId] = AttendanceSummaryWorkerEntry(
           labourId: labourId,
           labourName: labour.fullName,
@@ -229,7 +243,7 @@ class ReportRepository {
 
     for (final att in attendances) {
       await initializeWorker(att.labourId);
-      final labour = await _getLabour(att.labourId);
+      final labour = await _getLabour(filter.companyId, att.labourId);
       final earned = att.calculateEarnings(labour.dailyWage);
       
       final current = workerData[att.labourId]!;
@@ -278,8 +292,7 @@ class ReportRepository {
     final startDate = Timestamp.fromDate(filter.startDate);
     final endDate = Timestamp.fromDate(filter.endDate);
 
-    Query query = _firestore.collection('advances')
-        .where('companyId', isEqualTo: filter.companyId)
+    Query query = _advancesCollection(filter.companyId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
 
@@ -312,8 +325,7 @@ class ReportRepository {
     final startDate = Timestamp.fromDate(filter.startDate);
     final endDate = Timestamp.fromDate(filter.endDate);
 
-    Query query = _firestore.collection('payments')
-        .where('companyId', isEqualTo: filter.companyId)
+    Query query = _paymentsCollection(filter.companyId)
         .where('periodStart', isGreaterThanOrEqualTo: startDate)
         .where('periodStart', isLessThanOrEqualTo: endDate);
 
@@ -347,18 +359,15 @@ class ReportRepository {
     final startDate = Timestamp.fromDate(filter.startDate);
     final endDate = Timestamp.fromDate(filter.endDate);
 
-    Query attQuery = _firestore.collection('attendance')
-        .where('companyId', isEqualTo: companyId)
+    Query attQuery = _attendanceCollection(companyId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
         
-    Query advQuery = _firestore.collection('advances')
-        .where('companyId', isEqualTo: companyId)
+    Query advQuery = _advancesCollection(companyId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
         
-    Query payQuery = _firestore.collection('payments')
-        .where('companyId', isEqualTo: companyId)
+    Query payQuery = _paymentsCollection(companyId)
         .where('periodStart', isGreaterThanOrEqualTo: startDate)
         .where('periodStart', isLessThanOrEqualTo: endDate);
 
@@ -411,7 +420,7 @@ class ReportRepository {
     for (final att in attendances) {
       initializeMonth(att.date);
       final key = getMonthKey(att.date);
-      final labour = await _getLabour(att.labourId);
+      final labour = await _getLabour(companyId, att.labourId);
       final earned = att.calculateEarnings(labour.dailyWage);
       
       final current = monthlyData[key]!;
@@ -486,18 +495,15 @@ class ReportRepository {
     final startDate = Timestamp.fromDate(filter.startDate);
     final endDate = Timestamp.fromDate(filter.endDate);
 
-    Query attQuery = _firestore.collection('attendance')
-        .where('companyId', isEqualTo: companyId)
+    Query attQuery = _attendanceCollection(companyId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
         
-    Query advQuery = _firestore.collection('advances')
-        .where('companyId', isEqualTo: companyId)
+    Query advQuery = _advancesCollection(companyId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
         
-    Query payQuery = _firestore.collection('payments')
-        .where('companyId', isEqualTo: companyId)
+    Query payQuery = _paymentsCollection(companyId)
         .where('periodStart', isGreaterThanOrEqualTo: startDate)
         .where('periodStart', isLessThanOrEqualTo: endDate);
 
@@ -527,7 +533,7 @@ class ReportRepository {
 
     Future<void> initializeWorker(String labourId) async {
       if (!workerData.containsKey(labourId)) {
-        final labour = await _getLabour(labourId);
+        final labour = await _getLabour(companyId, labourId);
         workerData[labourId] = OutstandingBalanceWorkerEntry(
           labourId: labourId,
           workerName: labour.fullName,
@@ -541,7 +547,7 @@ class ReportRepository {
 
     for (final att in attendances) {
       await initializeWorker(att.labourId);
-      final labour = await _getLabour(att.labourId);
+      final labour = await _getLabour(companyId, att.labourId);
       final earned = att.calculateEarnings(labour.dailyWage);
       
       final current = workerData[att.labourId]!;
@@ -611,21 +617,17 @@ class ReportRepository {
     final startDate = Timestamp.fromDate(filter.startDate);
     final endDate = Timestamp.fromDate(filter.endDate);
 
-    Query siteQuery = _firestore.collection('sites')
-        .where('companyId', isEqualTo: companyId);
+    Query siteQuery = _sitesCollection(companyId);
 
-    Query attQuery = _firestore.collection('attendance')
-        .where('companyId', isEqualTo: companyId)
+    Query attQuery = _attendanceCollection(companyId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
         
-    Query advQuery = _firestore.collection('advances')
-        .where('companyId', isEqualTo: companyId)
+    Query advQuery = _advancesCollection(companyId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
         
-    Query payQuery = _firestore.collection('payments')
-        .where('companyId', isEqualTo: companyId)
+    Query payQuery = _paymentsCollection(companyId)
         .where('periodStart', isGreaterThanOrEqualTo: startDate)
         .where('periodStart', isLessThanOrEqualTo: endDate);
 
@@ -681,7 +683,7 @@ class ReportRepository {
       final current = getOrCreateSiteEntry(att.siteId);
       siteWorkers[att.siteId]!.add(att.labourId);
       
-      final labour = await _getLabour(att.labourId);
+      final labour = await _getLabour(companyId, att.labourId);
       final earned = att.calculateEarnings(labour.dailyWage);
       
       siteData[att.siteId] = SitePerformanceEntry(

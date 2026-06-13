@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'package:civilhelp/features/auth/screens/login_screen.dart';
 import 'package:civilhelp/features/auth/screens/splash_screen.dart';
@@ -21,6 +21,9 @@ import 'package:civilhelp/features/reports/screens/payment_report_screen.dart';
 import 'package:civilhelp/features/reports/screens/monthly_payroll_screen.dart';
 import 'package:civilhelp/features/reports/screens/outstanding_balance_screen.dart';
 import 'package:civilhelp/features/reports/screens/site_performance_screen.dart';
+import 'package:civilhelp/features/settings/screens/settings_screen.dart';
+import 'package:civilhelp/features/settings/screens/company_profile_screen.dart';
+import 'package:civilhelp/features/settings/screens/about_screen.dart';
 
 class AppRoutes {
   static const splash = '/';
@@ -45,6 +48,9 @@ class AppRoutes {
   static const monthlyPayroll = '/monthly-payroll';
   static const outstandingBalance = '/outstanding-balance';
   static const sitePerformance = '/site-performance';
+  static const settings = '/settings';
+  static const companyProfile = '/settings/company-profile';
+  static const about = '/settings/about';
 }
 
 class AppRouter {
@@ -172,6 +178,21 @@ class AppRouter {
       case AppRoutes.outstandingBalance:
         return MaterialPageRoute(
           builder: (_) => const OutstandingBalanceScreen(),
+          settings: settings,
+        );
+      case AppRoutes.settings:
+        return MaterialPageRoute(
+          builder: (_) => const SettingsScreen(),
+          settings: settings,
+        );
+      case AppRoutes.companyProfile:
+        return MaterialPageRoute(
+          builder: (_) => const CompanyProfileScreen(),
+          settings: settings,
+        );
+      case AppRoutes.about:
+        return MaterialPageRoute(
+          builder: (_) => const AboutScreen(),
           settings: settings,
         );
       default:

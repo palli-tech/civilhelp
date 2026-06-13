@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:civilhelp/core/services/firestore_path_service.dart';
 import '../models/labour_model.dart';
 
 class LabourRepository {
@@ -22,7 +23,8 @@ class LabourRepository {
     required String createdBy,
   }) async {
     try {
-      final docRef = await _firestore.collection('labour').add({
+      final docRef = await _firestore.collection(FirestorePathService.labour(companyId)).add({
+
         'fullName': fullName,
         'phoneNumber': phoneNumber,
         'aadhaarNumber': aadhaarNumber,
@@ -45,6 +47,7 @@ class LabourRepository {
 
   /// Update an existing labour record
   Future<void> updateLabour({
+    required String companyId,
     required String labourId,
     required String fullName,
     required String phoneNumber,
@@ -56,7 +59,7 @@ class LabourRepository {
     required String status,
   }) async {
     try {
-      await _firestore.collection('labour').doc(labourId).update({
+      await _firestore.collection(FirestorePathService.labour(companyId)).doc(labourId).update({
         'fullName': fullName,
         'phoneNumber': phoneNumber,
         'aadhaarNumber': aadhaarNumber,
@@ -73,11 +76,12 @@ class LabourRepository {
 
   /// Update labour status
   Future<void> updateLabourStatus({
+    required String companyId,
     required String labourId,
     required String status,
   }) async {
     try {
-      await _firestore.collection('labour').doc(labourId).update({
+      await _firestore.collection(FirestorePathService.labour(companyId)).doc(labourId).update({
         'status': status,
       });
     } catch (e) {
@@ -89,8 +93,7 @@ class LabourRepository {
   Stream<List<LabourModel>> getLabourByCompanyStream(String companyId) {
     try {
       return _firestore
-          .collection('labour')
-          .where('companyId', isEqualTo: companyId)
+          .collection(FirestorePathService.labour(companyId))
           .orderBy('createdAt', descending: true)
           .snapshots()
           .map((snapshot) {
@@ -104,10 +107,11 @@ class LabourRepository {
   }
 
   /// Fetch labour records assigned to a specific site
-  Stream<List<LabourModel>> getLabourBySiteStream(String siteId) {
+  Stream<List<LabourModel>> getLabourBySiteStream(String companyId, String siteId) {
+
     try {
       return _firestore
-          .collection('labour')
+          .collection(FirestorePathService.labour(companyId))
           .where('assignedSiteId', isEqualTo: siteId)
           .orderBy('createdAt', descending: true)
           .snapshots()
@@ -128,8 +132,7 @@ class LabourRepository {
   ) {
     try {
       return _firestore
-          .collection('labour')
-          .where('companyId', isEqualTo: companyId)
+          .collection(FirestorePathService.labour(companyId))
           .where('status', isEqualTo: status)
           .orderBy('createdAt', descending: true)
           .snapshots()
@@ -150,8 +153,7 @@ class LabourRepository {
   ) async {
     try {
       final snapshot = await _firestore
-          .collection('labour')
-          .where('companyId', isEqualTo: companyId)
+          .collection(FirestorePathService.labour(companyId))
           .orderBy('fullName')
           .startAt([searchTerm])
           .endAt(['$searchTerm\uf8ff'])
@@ -165,10 +167,16 @@ class LabourRepository {
     }
   }
 
-  /// Fetch a single labour by ID
-  Future<LabourModel?> getLabourById(String labourId) async {
+  /// Fetch a single labour by ID (tenant scoped)
+  Future<LabourModel?> getLabourById({
+    required String companyId,
+    required String labourId,
+  }) async {
     try {
-      final doc = await _firestore.collection('labour').doc(labourId).get();
+      final doc = await _firestore
+          .collection(FirestorePathService.labour(companyId))
+          .doc(labourId)
+          .get();
       if (doc.exists) {
         return LabourModel.fromFirestore(doc);
       }
@@ -178,10 +186,16 @@ class LabourRepository {
     }
   }
 
-  /// Delete a labour record
-  Future<void> deleteLabour(String labourId) async {
+  /// Delete a labour record (tenant scoped)
+  Future<void> deleteLabour({
+    required String companyId,
+    required String labourId,
+  }) async {
     try {
-      await _firestore.collection('labour').doc(labourId).delete();
+      await _firestore
+          .collection(FirestorePathService.labour(companyId))
+          .doc(labourId)
+          .delete();
     } catch (e) {
       rethrow;
     }

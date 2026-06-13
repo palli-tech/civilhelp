@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: Verify if user is logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Retrieve the user profile from Firestore
+    function getUserData() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Helper: Verify if the user belongs to the company, is active, and the company is active
+    function isTenantMember(companyId) {
+      return isAuthenticated() && 
+             getUserData().companyId == companyId &&
+             (getUserData().active == true || getUserData().isActive == true) &&
+             (firestore.get(/databases/(default)/documents/companies/$(companyId)).data.active == true || 
+              firestore.get(/databases/(default)/documents/companies/$(companyId)).data.isActive == true);
+    }
+
+    // Protect company branding uploads (logo, etc.)
+    match /companies/{companyId}/branding/{allPaths=**} {
+      allow read, write: if isTenantMember(companyId);
+    }
+  }
+}

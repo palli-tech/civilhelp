@@ -15,6 +15,7 @@ abstract class AbstractLabourRepository {
   });
 
   Future<void> updateLabour({
+    required String companyId,
     required String labourId,
     required String fullName,
     required String phoneNumber,
@@ -27,19 +28,27 @@ abstract class AbstractLabourRepository {
   });
 
   Future<void> updateLabourStatus({
+    required String companyId,
     required String labourId,
     required String status,
   });
 
   Stream<List<LabourModel>> getLabourByCompanyStream(String companyId);
 
-  Stream<List<LabourModel>> getLabourBySiteStream(String siteId);
+  Stream<List<LabourModel>> getLabourBySiteStream(String companyId, String siteId);
+
 
   Stream<List<LabourModel>> getLabourByStatusStream(String companyId, String status);
 
   Future<List<LabourModel>> searchLabourByName(String companyId, String searchTerm);
 
-  Future<LabourModel?> getLabourById(String labourId);
+  Future<LabourModel?> getLabourById({
+    required String companyId,
+    required String labourId,
+  });
 
-  Future<void> deleteLabour(String labourId);
+  Future<void> deleteLabour({
+    required String companyId,
+    required String labourId,
+  });
 }

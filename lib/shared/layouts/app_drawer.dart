@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/app/router.dart';
+import 'package:civilhelp/core/providers/tenant_provider.dart';
+import 'package:civilhelp/shared/widgets/company_header.dart';
 import '../../features/auth/providers/auth_provider.dart';
 
 class AppDrawer extends ConsumerWidget {
@@ -10,6 +12,7 @@ class AppDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
+    final tenantCompanyAsync = ref.watch(tenantCompanyStreamProvider);
 
     return Drawer(
       child: ListView(
@@ -20,36 +23,39 @@ class AppDrawer extends ConsumerWidget {
               color: Theme.of(context).colorScheme.primary,
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: Text(
-                    currentUser?.displayName?.isNotEmpty == true
-                        ? currentUser!.displayName![0].toUpperCase()
-                        : 'U',
-                    style: const TextStyle(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.bold,
+                tenantCompanyAsync.maybeWhen(
+                  data: (company) => company != null
+                      ? CompanyHeader(
+                          companyName: company.name,
+                          logoUrl: company.logoUrl,
+                          size: 40.0,
+                          textColor: Colors.white,
+                        )
+                      : const SizedBox.shrink(),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currentUser?.displayName ?? 'User',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  currentUser?.displayName ?? 'User',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  currentUser?.email ?? '',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+                    Text(
+                      currentUser?.email ?? '',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -124,7 +130,7 @@ class AppDrawer extends ConsumerWidget {
             title: const Text('Settings'),
             onTap: () {
               Navigator.pop(context);
-              // Future route: /settings
+              Navigator.of(context).pushNamed(AppRoutes.settings);
             },
           ),
           ListTile(
