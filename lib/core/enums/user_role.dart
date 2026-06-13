@@ -8,26 +8,9 @@ enum UserRole {
   final String value;
   const UserRole(this.value);
 
-  /// Safely parses a string from Firestore.
-  /// Standardizes 'businessOwner' -> 'owner' for backward compatibility.
-  /// Defaults to 'pending' on null, empty, or unknown values.
+  /// Safely parses a role from Firestore, supporting legacy values, different cases, and null.
   static UserRole fromString(String? roleStr) {
-    if (roleStr == null || roleStr.trim().isEmpty) {
-      return UserRole.pending;
-    }
-    
-    final normalized = roleStr.trim().toLowerCase();
-    if (normalized == 'businessowner') {
-      return UserRole.owner;
-    }
-    
-    for (final role in UserRole.values) {
-      if (role.value == normalized) {
-        return role;
-      }
-    }
-    
-    return UserRole.pending;
+    return parseRole(roleStr);
   }
 
   /// Standardized display name
@@ -45,4 +28,29 @@ enum UserRole {
         return 'Pending Setup';
     }
   }
+}
+
+/// Migration-safe helper to parse a UserRole from any dynamic value.
+/// Supports legacy values (like 'businessOwner'), standard values, and case-insensitivity.
+UserRole parseRole(dynamic value) {
+  if (value == null) {
+    return UserRole.pending;
+  }
+  
+  final roleStr = value.toString().trim().toLowerCase();
+  if (roleStr.isEmpty) {
+    return UserRole.pending;
+  }
+  
+  if (roleStr == 'businessowner' || roleStr == 'owner') {
+    return UserRole.owner;
+  }
+  
+  for (final role in UserRole.values) {
+    if (role.name.toLowerCase() == roleStr || role.value.toLowerCase() == roleStr) {
+      return role;
+    }
+  }
+  
+  return UserRole.pending;
 }

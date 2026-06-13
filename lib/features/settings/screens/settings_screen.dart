@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:civilhelp/core/enums/user_role.dart';
+import 'package:civilhelp/core/providers/user_role_provider.dart';
 import '../../../app/router.dart';
 import '../../../core/providers/tenant_provider.dart';
 import '../../../shared/layouts/app_scaffold.dart';
@@ -16,6 +17,7 @@ class SettingsScreen extends ConsumerWidget {
     final tenantState = ref.watch(tenantContextProvider);
     final userDataState = ref.watch(userDataProvider);
     final currentUser = ref.watch(currentUserProvider);
+    final role = ref.watch(userRoleProvider);
 
     return AppScaffold(
       appBar: AppBar(
@@ -48,8 +50,6 @@ class SettingsScreen extends ConsumerWidget {
                         data: (userData) {
                           final userName = userData?['name'] as String? ?? currentUser?.displayName ?? 'User';
                           final userEmail = userData?['email'] as String? ?? currentUser?.email ?? '';
-                          final rawRole = userData?['role'] as String?;
-                          final role = UserRole.fromString(rawRole);
                           final userRole = role.displayName;
                           
                           return Column(
@@ -84,6 +84,18 @@ class SettingsScreen extends ConsumerWidget {
                             Navigator.of(context).pushNamed(AppRoutes.companyProfile);
                           },
                         ),
+                        if (role == UserRole.owner) ...[
+                          const Divider(height: 1),
+                          ListTile(
+                            leading: const Icon(Icons.group, color: Colors.indigo),
+                            title: const Text('Team Management'),
+                            subtitle: const Text('Manage supervisors, roles, and site assignments'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {
+                              Navigator.of(context).pushNamed(AppRoutes.teamManagement);
+                            },
+                          ),
+                        ],
                         const Divider(height: 1),
                         ListTile(
                           leading: const Icon(Icons.info_outline, color: Colors.green),

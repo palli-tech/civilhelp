@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/core/auth/permissions.dart';
+import 'package:civilhelp/core/enums/user_role.dart';
+import 'package:civilhelp/core/providers/user_role_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
@@ -17,9 +20,23 @@ class AttendanceScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final attendanceAsync = ref.watch(attendanceStreamProvider);
-    final sitesAsync = ref.watch(sitesStreamProvider);
-    final labourAsync = ref.watch(labourStreamProvider);
+    final role = ref.watch(userRoleProvider);
+    final canDelete = role.hasPermission(Permission.deleteAttendance);
+    final attendanceAsync = ref.watch(roleAwareAttendanceStreamProvider);
+
+    // For supervisors, filter sites/labour to assigned sites only
+    final assignedSiteIds = ref.watch(assignedSiteIdsProvider);
+    final allSitesAsync = ref.watch(sitesStreamProvider);
+    final allLabourAsync = ref.watch(labourStreamProvider);
+
+    final sitesAsync = role == UserRole.supervisor
+        ? allSitesAsync.whenData((sites) =>
+            sites.where((s) => assignedSiteIds.contains(s.id)).toList())
+        : allSitesAsync;
+    final labourAsync = role == UserRole.supervisor
+        ? allLabourAsync.whenData((labour) =>
+            labour.where((l) => assignedSiteIds.contains(l.assignedSiteId)).toList())
+        : allLabourAsync;
 
     final FloatingActionButton? fab = attendanceAsync.when(
       data: (attendance) => attendance.isEmpty
@@ -125,9 +142,11 @@ class AttendanceScreen extends ConsumerWidget {
                           _showEditAttendanceDialog(context, ref, entry,
                               sitesAsync, labourAsync);
                         },
-                        onDelete: () {
-                          _showDeleteAttendanceDialog(context, ref, entry);
-                        },
+                        onDelete: canDelete
+                            ? () {
+                                _showDeleteAttendanceDialog(context, ref, entry);
+                              }
+                            : null,
                       );
                     },
                   );

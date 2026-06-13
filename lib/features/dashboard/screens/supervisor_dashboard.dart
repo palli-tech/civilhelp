@@ -112,22 +112,6 @@ class SupervisorDashboard extends ConsumerWidget {
                       Navigator.of(context).pushNamed(AppRoutes.attendance);
                     },
                   ),
-                  const Divider(height: 0),
-                  QuickActionTile(
-                    label: 'Create Payment',
-                    icon: Icons.payment,
-                    onTap: () {
-                      Navigator.of(context).pushNamed(AppRoutes.payments);
-                    },
-                  ),
-                  const Divider(height: 0),
-                  QuickActionTile(
-                    label: 'View Advances',
-                    icon: Icons.account_balance_wallet,
-                    onTap: () {
-                      Navigator.of(context).pushNamed(AppRoutes.advances);
-                    },
-                  ),
                 ],
               ),
             ),

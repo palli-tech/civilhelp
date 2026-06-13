@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/enums/user_role.dart';
+import '../../../core/providers/user_role_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'admin_dashboard.dart';
 import 'owner_dashboard.dart';
@@ -14,11 +15,10 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userDataAsync = ref.watch(userDataProvider);
+    final role = ref.watch(userRoleProvider);
 
     return userDataAsync.when(
       data: (userData) {
-        final roleStr = userData?['role'] as String?;
-        final role = UserRole.fromString(roleStr);
         switch (role) {
           case UserRole.admin:
             return const AdminDashboard();

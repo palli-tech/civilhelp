@@ -59,6 +59,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
         address: _addressController.text.trim(),
         gstNumber: _gstController.text.trim(),
         logoUrl: '',
+        ownerUid: user.uid,
         isActive: true,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -71,7 +72,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
       // 4. Create/update users/{uid} (status -> active: true)
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'companyId': companyId,
-        'role': UserRole.owner.value,
+        'role': UserRole.owner.name,
         'active': true,
       }, SetOptions(merge: true));
 

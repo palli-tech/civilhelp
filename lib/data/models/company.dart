@@ -8,6 +8,7 @@ class Company {
   final String email;
   final String gstNumber;
   final String logoUrl;
+  final String ownerUid;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final bool isActive;
@@ -20,6 +21,7 @@ class Company {
     required this.email,
     required this.gstNumber,
     required this.logoUrl,
+    this.ownerUid = '',
     this.createdAt,
     this.updatedAt,
     required this.isActive,
@@ -35,6 +37,7 @@ class Company {
       email: data['email'] ?? '',
       gstNumber: data['gstNumber'] ?? '',
       logoUrl: data['logoUrl'] ?? '',
+      ownerUid: data['ownerUid'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
       isActive: data['isActive'] ?? true,
@@ -49,6 +52,7 @@ class Company {
       'email': email,
       'gstNumber': gstNumber,
       'logoUrl': logoUrl,
+      'ownerUid': ownerUid,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
       'isActive': isActive,
@@ -63,6 +67,7 @@ class Company {
     String? email,
     String? gstNumber,
     String? logoUrl,
+    String? ownerUid,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isActive,
@@ -75,6 +80,7 @@ class Company {
       email: email ?? this.email,
       gstNumber: gstNumber ?? this.gstNumber,
       logoUrl: logoUrl ?? this.logoUrl,
+      ownerUid: ownerUid ?? this.ownerUid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,

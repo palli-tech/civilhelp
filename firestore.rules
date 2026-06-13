@@ -3,17 +3,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: Verify if user is logged in
+    // ─── Helpers ────────────────────────────────────────────
+
+    // Verify if user is logged in
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Helper: Retrieve the user profile from the global users collection
+    // Retrieve the user profile from the global users collection
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Helper: Verify if the user belongs to the company, is active, and the company itself is active
+    // Verify if the user belongs to the company, is active, and the company itself is active
     function isTenantMember(companyId) {
       return isAuthenticated() && 
              getUserData().companyId == companyId &&
@@ -22,19 +24,114 @@ service cloud.firestore {
               get(/databases/$(database)/documents/companies/$(companyId)).data.isActive == true);
     }
 
-    // Rules for global users collection
+    // Check if the authenticated user is an owner of the given company
+    function isOwner(companyId) {
+      return isTenantMember(companyId) && getUserData().role == 'owner';
+    }
+
+    // Check if the authenticated user is a supervisor of the given company
+    function isSupervisor(companyId) {
+      return isTenantMember(companyId) && getUserData().role == 'supervisor';
+    }
+
+    // Check if the authenticated user is either an owner or supervisor
+    function isOwnerOrSupervisor(companyId) {
+      return isOwner(companyId) || isSupervisor(companyId);
+    }
+
+    // ─── Global Users ───────────────────────────────────────
+
     match /users/{uid} {
+      // Users can read their own doc; admins can read any user doc
       allow read: if isAuthenticated() && (request.auth.uid == uid || getUserData().role == 'admin');
+      // Users can write their own doc only
       allow write: if isAuthenticated() && request.auth.uid == uid;
     }
 
-    // Rules for companies collection and all nested resources (recursive wildcard)
-    match /companies/{companyId} {
-      allow read, write: if isTenantMember(companyId);
+    // ─── Global Invitations ─────────────────────────────────
+    match /{path=**}/invitations/{invitationId} {
+      allow read: if isAuthenticated() && (
+        isOwner(resource.data.companyId) ||
+        (request.auth.token.email != null && request.auth.token.email == resource.data.email)
+      );
 
-      match /{document=**} {
-        allow read, write: if isTenantMember(companyId);
-      }
+      allow create: if isAuthenticated() && isOwner(request.resource.data.companyId);
+
+      allow update: if isAuthenticated() && (
+        // Owners can update (revoke/resend) if not already accepted
+        (isOwner(resource.data.companyId) && resource.data.status != 'accepted' && request.resource.data.companyId == resource.data.companyId) ||
+        // Invitees can perform transition pending -> accepted
+        (
+          resource.data.status == 'pending' &&
+          request.resource.data.status == 'accepted' &&
+          request.resource.data.acceptedByUid == request.auth.uid &&
+          request.resource.data.acceptedAt == request.time &&
+          request.resource.data.updatedAt == request.time &&
+          request.auth.token.email != null &&
+          request.auth.token.email == resource.data.email &&
+          // Ensure all other fields are unmodified
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.companyId == resource.data.companyId &&
+          request.resource.data.tenantId == resource.data.tenantId &&
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.assignedSiteIds == resource.data.assignedSiteIds &&
+          request.resource.data.invitedBy == resource.data.invitedBy &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.expiresAt == resource.data.expiresAt
+        )
+      );
+
+      allow delete: if false;
     }
+
+    // ─── Companies ──────────────────────────────────────────
+
+ 
+     match /companies/{companyId} {
+       // All tenant members can read company data
+       allow read: if isTenantMember(companyId);
+       // Secure company setup: authenticated user setting themselves as ownerUid
+       allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+       // Only the owner can modify company details (name, logo, profile, etc.)
+       allow update, delete: if isOwner(companyId);
+ 
+       // ─── Sites ──────────────────────────────────────────
+       match /sites/{siteId} {
+         // All tenant members can read sites
+         allow read: if isTenantMember(companyId);
+         // Only owners can create, edit, or delete sites
+         allow write: if isOwner(companyId);
+       }
+ 
+       // ─── Labour ─────────────────────────────────────────
+       match /labour/{labourId} {
+         // All tenant members can read labour records
+         allow read: if isTenantMember(companyId);
+         // Only owners can create, edit, or delete labour
+         allow write: if isOwner(companyId);
+       }
+ 
+       // ─── Attendance ─────────────────────────────────────
+       match /attendance/{attendanceId} {
+         // All tenant members can read attendance
+         allow read: if isTenantMember(companyId);
+         // Owners and supervisors can create and update attendance
+         allow create, update: if isOwner(companyId) || isSupervisor(companyId);
+         // Only owners can delete attendance records
+         allow delete: if isOwner(companyId);
+       }
+ 
+       // ─── Payments ───────────────────────────────────────
+       match /payments/{paymentId} {
+         // Only owners can read, create, edit, or delete payments
+         allow read, write: if isOwner(companyId);
+       }
+ 
+       // ─── Advances ───────────────────────────────────────
+       match /advances/{advanceId} {
+         // Only owners can read, create, edit, or delete advances
+         allow read, write: if isOwner(companyId);
+       }
+     }
   }
 }

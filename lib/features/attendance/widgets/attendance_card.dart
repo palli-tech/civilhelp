@@ -78,8 +78,8 @@ class AttendanceCard extends StatelessWidget {
                         break;
                     }
                   },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem<String>(
+                  itemBuilder: (context) => [
+                    const PopupMenuItem<String>(
                       value: 'edit',
                       child: Row(
                         children: [
@@ -89,16 +89,17 @@ class AttendanceCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    PopupMenuItem<String>(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 18),
-                          SizedBox(width: 8),
-                          Text('Delete'),
-                        ],
+                    if (onDelete != null)
+                      const PopupMenuItem<String>(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 18),
+                            SizedBox(width: 8),
+                            Text('Delete'),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ],

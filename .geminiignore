@@ -1,0 +1,52 @@
+# Flutter & Dart build and dependency files
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+
+# Native platform directories (usually not needed for Dart code analysis)
+android/
+ios/
+linux/
+macos/
+windows/
+
+# Web build artifacts
+web/dist/
+web/build/
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+.history/
+.crashlytics/
+crash_reporter/
+
+# Output packages
+*.apk
+*.aar
+*.aab
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Very large auto-generated dependency lock files (optional, but recommended to speed up analysis)
+pubspec.lock

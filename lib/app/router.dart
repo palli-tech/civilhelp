@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:civilhelp/core/auth/permissions.dart';
 import 'package:civilhelp/features/auth/screens/login_screen.dart';
 import 'package:civilhelp/features/auth/screens/splash_screen.dart';
 import 'package:civilhelp/features/dashboard/screens/dashboard_screen.dart';
@@ -24,8 +25,10 @@ import 'package:civilhelp/features/reports/screens/site_performance_screen.dart'
 import 'package:civilhelp/features/settings/screens/settings_screen.dart';
 import 'package:civilhelp/features/settings/screens/company_profile_screen.dart';
 import 'package:civilhelp/features/settings/screens/about_screen.dart';
+import 'package:civilhelp/features/settings/screens/team_management_screen.dart';
 import 'package:civilhelp/features/company/screens/company_setup_screen.dart';
 import 'package:civilhelp/shared/layouts/tenant_guard.dart';
+import 'package:civilhelp/shared/guards/permission_guard.dart';
 
 class AppRoutes {
   static const splash = '/';
@@ -54,9 +57,11 @@ class AppRoutes {
   static const settings = '/settings';
   static const companyProfile = '/settings/company-profile';
   static const about = '/settings/about';
+  static const teamManagement = '/settings/team-management';
 }
 
 class AppRouter {
+  /// Standard guarded route: TenantGuard only (all authenticated tenant members).
   static Route<dynamic> _guardedRoute(Widget screen, RouteSettings settings) {
     return MaterialPageRoute(
       builder: (_) => TenantGuard(child: screen),
@@ -64,10 +69,33 @@ class AppRouter {
     );
   }
 
+  /// Permission-guarded route: TenantGuard + PermissionGuard.
+  ///
+  /// Only users with the specified [permission] can access the screen.
+  /// Others see the "Access Denied" screen.
+  static Route<dynamic> _permissionGuardedRoute(
+    Widget screen,
+    RouteSettings settings,
+    Permission permission,
+  ) {
+    return MaterialPageRoute(
+      builder: (_) => TenantGuard(
+        child: PermissionGuard(
+          permission: permission,
+          child: screen,
+        ),
+      ),
+      settings: settings,
+    );
+  }
+
+
+
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final args = settings.arguments;
 
     switch (settings.name) {
+      // --- Public / Auth routes (no guard) ---
       case AppRoutes.splash:
         return MaterialPageRoute(
           builder: (_) => const SplashScreen(),
@@ -83,64 +111,83 @@ class AppRouter {
           builder: (_) => const CompanySetupGuard(child: CompanySetupScreen()),
           settings: settings,
         );
+
+      // --- All tenant members ---
       case AppRoutes.dashboard:
         return _guardedRoute(const DashboardScreen(), settings);
+      case AppRoutes.about:
+        return _guardedRoute(const AboutScreen(), settings);
+
+      // --- Attendance (Owner + Supervisor) ---
+      case AppRoutes.attendance:
+        return _permissionGuardedRoute(const AttendanceScreen(), settings, Permission.viewAttendance);
+
+      // --- Sites ---
       case AppRoutes.sites:
-        return _guardedRoute(const SitesScreen(), settings);
+        return _permissionGuardedRoute(const SitesScreen(), settings, Permission.viewSites);
       case AppRoutes.addSite:
-        return _guardedRoute(const AddSiteScreen(), settings);
+        return _permissionGuardedRoute(const AddSiteScreen(), settings, Permission.manageSites);
       case AppRoutes.siteDetails:
         if (args is String) {
-          return _guardedRoute(SiteDetailsScreen(siteId: args), settings);
+          return _permissionGuardedRoute(SiteDetailsScreen(siteId: args), settings, Permission.viewSites);
         }
         return _errorRoute('Site ID is missing.');
       case AppRoutes.editSite:
         if (args is String) {
-          return _guardedRoute(EditSiteScreen(siteId: args), settings);
+          return _permissionGuardedRoute(EditSiteScreen(siteId: args), settings, Permission.manageSites);
         }
         return _errorRoute('Site ID is missing.');
+
+      // --- Labour ---
       case AppRoutes.labour:
-        return _guardedRoute(const LabourListScreen(), settings);
+        return _permissionGuardedRoute(const LabourListScreen(), settings, Permission.viewLabour);
       case AppRoutes.addLabour:
-        return _guardedRoute(const AddEditLabourScreen(), settings);
+        return _permissionGuardedRoute(const AddEditLabourScreen(), settings, Permission.manageLabour);
       case AppRoutes.labourDetails:
         if (args is String) {
-          return _guardedRoute(LabourDetailsScreen(labourId: args), settings);
+          return _permissionGuardedRoute(LabourDetailsScreen(labourId: args), settings, Permission.viewLabour);
         }
         return _errorRoute('Labour ID is missing.');
       case AppRoutes.editLabour:
         if (args is String) {
-          return _guardedRoute(AddEditLabourScreen(labourId: args), settings);
+          return _permissionGuardedRoute(AddEditLabourScreen(labourId: args), settings, Permission.manageLabour);
         }
         return _errorRoute('Labour ID is missing.');
-      case AppRoutes.attendance:
-        return _guardedRoute(const AttendanceScreen(), settings);
+
+      // --- Payments ---
       case AppRoutes.payments:
-        return _guardedRoute(const PaymentsScreen(), settings);
+        return _permissionGuardedRoute(const PaymentsScreen(), settings, Permission.viewPayments);
+
+      // --- Advances ---
       case AppRoutes.advances:
-        return _guardedRoute(const AdvancesScreen(), settings);
+        return _permissionGuardedRoute(const AdvancesScreen(), settings, Permission.viewAdvances);
+
+      // --- Reports ---
       case AppRoutes.reports:
-        return _guardedRoute(const ReportsDashboardScreen(), settings);
+        return _permissionGuardedRoute(const ReportsDashboardScreen(), settings, Permission.viewReports);
       case AppRoutes.workerLedger:
-        return _guardedRoute(const WorkerLedgerScreen(), settings);
+        return _permissionGuardedRoute(const WorkerLedgerScreen(), settings, Permission.viewReports);
       case AppRoutes.attendanceSummary:
-        return _guardedRoute(const AttendanceSummaryScreen(), settings);
+        return _permissionGuardedRoute(const AttendanceSummaryScreen(), settings, Permission.viewReports);
       case AppRoutes.advanceReport:
-        return _guardedRoute(const AdvanceReportScreen(), settings);
+        return _permissionGuardedRoute(const AdvanceReportScreen(), settings, Permission.viewReports);
       case AppRoutes.paymentReport:
-        return _guardedRoute(const PaymentReportScreen(), settings);
+        return _permissionGuardedRoute(const PaymentReportScreen(), settings, Permission.viewReports);
       case AppRoutes.monthlyPayroll:
-        return _guardedRoute(const MonthlyPayrollScreen(), settings);
+        return _permissionGuardedRoute(const MonthlyPayrollScreen(), settings, Permission.viewReports);
       case AppRoutes.sitePerformance:
-        return _guardedRoute(const SitePerformanceScreen(), settings);
+        return _permissionGuardedRoute(const SitePerformanceScreen(), settings, Permission.viewReports);
       case AppRoutes.outstandingBalance:
-        return _guardedRoute(const OutstandingBalanceScreen(), settings);
+        return _permissionGuardedRoute(const OutstandingBalanceScreen(), settings, Permission.viewReports);
+
+      // --- Settings & Profile ---
       case AppRoutes.settings:
-        return _guardedRoute(const SettingsScreen(), settings);
+        return _permissionGuardedRoute(const SettingsScreen(), settings, Permission.viewSettings);
       case AppRoutes.companyProfile:
-        return _guardedRoute(const CompanyProfileScreen(), settings);
-      case AppRoutes.about:
-        return _guardedRoute(const AboutScreen(), settings);
+        return _permissionGuardedRoute(const CompanyProfileScreen(), settings, Permission.manageCompany);
+      case AppRoutes.teamManagement:
+        return _permissionGuardedRoute(const TeamManagementScreen(), settings, Permission.manageUsers);
+
       default:
         return _errorRoute('Route not found: ${settings.name}');
     }
@@ -155,5 +202,3 @@ class AppRouter {
     );
   }
 }
-
-

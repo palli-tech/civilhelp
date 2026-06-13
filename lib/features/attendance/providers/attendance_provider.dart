@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/core/providers/company_provider.dart';
+import 'package:civilhelp/core/providers/user_role_provider.dart';
+import 'package:civilhelp/core/enums/user_role.dart';
 import 'package:civilhelp/features/auth/providers/auth_provider.dart';
 import '../models/attendance_model.dart';
 import '../repositories/attendance_repository.dart';
@@ -199,3 +201,42 @@ final createBulkAttendanceProvider =
       return result;
     });
 
+/// Supervisor-filtered attendance: only attendance at assigned sites.
+final supervisorAttendanceStreamProvider = StreamProvider<List<AttendanceModel>>((ref) {
+  final repository = ref.watch(attendanceRepositoryProvider);
+  final companyId = ref.watch(userCompanyIdProvider).value ?? '';
+  final assignedSiteIds = ref.watch(assignedSiteIdsProvider);
+
+  if (companyId.isEmpty) {
+    return Stream.value([]);
+  }
+
+  return repository.getAttendanceByCompanyStream(companyId).map((attendance) {
+    return attendance.where((a) => assignedSiteIds.contains(a.siteId)).toList();
+  });
+});
+
+/// Role-aware attendance provider.
+///
+/// Automatically returns the correct stream based on the user's role:
+/// - Owner: company-wide attendance
+/// - Supervisor: filtered to assigned sites only
+final roleAwareAttendanceStreamProvider = StreamProvider<List<AttendanceModel>>((ref) {
+  final role = ref.watch(userRoleProvider);
+  final repository = ref.watch(attendanceRepositoryProvider);
+  final companyId = ref.watch(userCompanyIdProvider).value ?? '';
+
+  if (companyId.isEmpty) {
+    return Stream.value([]);
+  }
+
+  if (role == UserRole.supervisor) {
+    final assignedSiteIds = ref.watch(assignedSiteIdsProvider);
+    return repository.getAttendanceByCompanyStream(companyId).map((attendance) {
+      return attendance.where((a) => assignedSiteIds.contains(a.siteId)).toList();
+    });
+  }
+
+  // Owner and other roles: full company-wide stream
+  return repository.getAttendanceByCompanyStream(companyId);
+});

@@ -5,9 +5,9 @@ import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/core/services/firestore_path_service.dart';
 import 'package:civilhelp/core/enums/labour_status.dart';
 import 'package:civilhelp/core/enums/site_status.dart';
-import 'package:civilhelp/features/auth/providers/auth_provider.dart';
 import 'package:civilhelp/features/attendance/models/attendance_model.dart';
 import 'package:civilhelp/features/labour/data/models/labour_model.dart';
+import 'package:civilhelp/core/providers/user_role_provider.dart';
 
 import 'package:civilhelp/features/advances/providers/advance_provider.dart' as advance_providers;
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart' as labour_providers;
@@ -157,11 +157,9 @@ final currentMonthPayrollProvider = Provider<AsyncValue<double>>((ref) {
 
 // --- Supervisor-specific assigned metrics ---
 
-// Supervisor assigned site IDs from user document
+// Supervisor assigned site IDs from user document (watches centralized provider)
 final supervisorAssignedSiteIdsProvider = Provider<List<String>>((ref) {
-  final userData = ref.watch(userDataProvider).value;
-  final ids = userData?['assignedSiteIds'] as List<dynamic>?;
-  return ids?.map((e) => e.toString()).toList() ?? [];
+  return ref.watch(assignedSiteIdsProvider);
 });
 
 // 8. Supervisor Assigned active sites count
