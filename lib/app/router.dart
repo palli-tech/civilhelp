@@ -24,10 +24,13 @@ import 'package:civilhelp/features/reports/screens/site_performance_screen.dart'
 import 'package:civilhelp/features/settings/screens/settings_screen.dart';
 import 'package:civilhelp/features/settings/screens/company_profile_screen.dart';
 import 'package:civilhelp/features/settings/screens/about_screen.dart';
+import 'package:civilhelp/features/company/screens/company_setup_screen.dart';
+import 'package:civilhelp/shared/layouts/tenant_guard.dart';
 
 class AppRoutes {
   static const splash = '/';
   static const login = '/login';
+  static const companySetup = '/company-setup';
   static const dashboard = '/dashboard';
   static const sites = '/sites';
   static const addSite = '/add-site';
@@ -54,6 +57,13 @@ class AppRoutes {
 }
 
 class AppRouter {
+  static Route<dynamic> _guardedRoute(Widget screen, RouteSettings settings) {
+    return MaterialPageRoute(
+      builder: (_) => TenantGuard(child: screen),
+      settings: settings,
+    );
+  }
+
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final args = settings.arguments;
 
@@ -68,133 +78,69 @@ class AppRouter {
           builder: (_) => const LoginScreen(),
           settings: settings,
         );
+      case AppRoutes.companySetup:
+        return MaterialPageRoute(
+          builder: (_) => const CompanySetupGuard(child: CompanySetupScreen()),
+          settings: settings,
+        );
       case AppRoutes.dashboard:
-        return MaterialPageRoute(
-          builder: (_) => const DashboardScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const DashboardScreen(), settings);
       case AppRoutes.sites:
-        return MaterialPageRoute(
-          builder: (_) => const SitesScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const SitesScreen(), settings);
       case AppRoutes.addSite:
-        return MaterialPageRoute(
-          builder: (_) => const AddSiteScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const AddSiteScreen(), settings);
       case AppRoutes.siteDetails:
         if (args is String) {
-          return MaterialPageRoute(
-            builder: (_) => SiteDetailsScreen(siteId: args),
-            settings: settings,
-          );
+          return _guardedRoute(SiteDetailsScreen(siteId: args), settings);
         }
         return _errorRoute('Site ID is missing.');
       case AppRoutes.editSite:
         if (args is String) {
-          return MaterialPageRoute(
-            builder: (_) => EditSiteScreen(siteId: args),
-            settings: settings,
-          );
+          return _guardedRoute(EditSiteScreen(siteId: args), settings);
         }
         return _errorRoute('Site ID is missing.');
       case AppRoutes.labour:
-        return MaterialPageRoute(
-          builder: (_) => const LabourListScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const LabourListScreen(), settings);
       case AppRoutes.addLabour:
-        return MaterialPageRoute(
-          builder: (_) => const AddEditLabourScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const AddEditLabourScreen(), settings);
       case AppRoutes.labourDetails:
         if (args is String) {
-          return MaterialPageRoute(
-            builder: (_) => LabourDetailsScreen(labourId: args),
-            settings: settings,
-          );
+          return _guardedRoute(LabourDetailsScreen(labourId: args), settings);
         }
         return _errorRoute('Labour ID is missing.');
       case AppRoutes.editLabour:
         if (args is String) {
-          return MaterialPageRoute(
-            builder: (_) => AddEditLabourScreen(labourId: args),
-            settings: settings,
-          );
+          return _guardedRoute(AddEditLabourScreen(labourId: args), settings);
         }
         return _errorRoute('Labour ID is missing.');
       case AppRoutes.attendance:
-        return MaterialPageRoute(
-          builder: (_) => const AttendanceScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const AttendanceScreen(), settings);
       case AppRoutes.payments:
-        return MaterialPageRoute(
-          builder: (_) => const PaymentsScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const PaymentsScreen(), settings);
       case AppRoutes.advances:
-        return MaterialPageRoute(
-          builder: (_) => const AdvancesScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const AdvancesScreen(), settings);
       case AppRoutes.reports:
-        return MaterialPageRoute(
-          builder: (_) => const ReportsDashboardScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const ReportsDashboardScreen(), settings);
       case AppRoutes.workerLedger:
-        return MaterialPageRoute(
-          builder: (_) => const WorkerLedgerScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const WorkerLedgerScreen(), settings);
       case AppRoutes.attendanceSummary:
-        return MaterialPageRoute(
-          builder: (_) => const AttendanceSummaryScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const AttendanceSummaryScreen(), settings);
       case AppRoutes.advanceReport:
-        return MaterialPageRoute(
-          builder: (_) => const AdvanceReportScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const AdvanceReportScreen(), settings);
       case AppRoutes.paymentReport:
-        return MaterialPageRoute(
-          builder: (_) => const PaymentReportScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const PaymentReportScreen(), settings);
       case AppRoutes.monthlyPayroll:
-        return MaterialPageRoute(
-          builder: (_) => const MonthlyPayrollScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const MonthlyPayrollScreen(), settings);
       case AppRoutes.sitePerformance:
-        return MaterialPageRoute(
-          builder: (_) => const SitePerformanceScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const SitePerformanceScreen(), settings);
       case AppRoutes.outstandingBalance:
-        return MaterialPageRoute(
-          builder: (_) => const OutstandingBalanceScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const OutstandingBalanceScreen(), settings);
       case AppRoutes.settings:
-        return MaterialPageRoute(
-          builder: (_) => const SettingsScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const SettingsScreen(), settings);
       case AppRoutes.companyProfile:
-        return MaterialPageRoute(
-          builder: (_) => const CompanyProfileScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const CompanyProfileScreen(), settings);
       case AppRoutes.about:
-        return MaterialPageRoute(
-          builder: (_) => const AboutScreen(),
-          settings: settings,
-        );
+        return _guardedRoute(const AboutScreen(), settings);
       default:
         return _errorRoute('Route not found: ${settings.name}');
     }

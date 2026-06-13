@@ -40,6 +40,7 @@ final pendingPaymentsCountProvider = StreamProvider<int>((ref) {
 
 final calculatePaymentProvider = FutureProvider.autoDispose.family<PaymentSummary, (
   String labourId,
+  String siteId,
   double dailyWage,
   DateTime periodStart,
   DateTime periodEnd,
@@ -50,9 +51,10 @@ final calculatePaymentProvider = FutureProvider.autoDispose.family<PaymentSummar
   return repository.calculatePaymentSummaryForPeriod(
     companyId: companyId,
     labourId: params.$1,
-    dailyWage: params.$2,
-    periodStart: params.$3,
-    periodEnd: params.$4,
+    siteId: params.$2,
+    dailyWage: params.$3,
+    periodStart: params.$4,
+    periodEnd: params.$5,
   );
 });
 

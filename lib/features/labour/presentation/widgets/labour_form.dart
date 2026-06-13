@@ -15,6 +15,7 @@ class LabourForm extends StatefulWidget {
   final List<Map<String, String>>? sites;
   final Future<void> Function()? onSubmit;
   final bool isLoading;
+  final bool showStatusSelector;
 
   const LabourForm({
     super.key,
@@ -29,6 +30,7 @@ class LabourForm extends StatefulWidget {
     this.sites,
     required this.onSubmit,
     this.isLoading = false,
+    this.showStatusSelector = true,
   });
 
   @override
@@ -236,29 +238,31 @@ class LabourFormState extends State<LabourForm> {
               child: Text(dateFormat.format(_selectedJoinedDate)),
             ),
           ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<LabourStatus>(
-            initialValue: _selectedStatus,
-            decoration: InputDecoration(
-              labelText: 'Status',
-              prefixIcon: const Icon(Icons.info),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+          if (widget.showStatusSelector) ...[
+            const SizedBox(height: 16),
+            DropdownButtonFormField<LabourStatus>(
+              initialValue: _selectedStatus,
+              decoration: InputDecoration(
+                labelText: 'Status',
+                prefixIcon: const Icon(Icons.info),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
+              items: LabourStatus.values.map((status) {
+                final rawName = status.toString().split('.').last;
+                final name = rawName[0].toUpperCase() + rawName.substring(1);
+                return DropdownMenuItem(value: status, child: Text(name));
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedStatus = value;
+                  });
+                }
+              },
             ),
-            items: LabourStatus.values.map((status) {
-              final rawName = status.toString().split('.').last;
-              final name = rawName[0].toUpperCase() + rawName.substring(1);
-              return DropdownMenuItem(value: status, child: Text(name));
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _selectedStatus = value;
-                });
-              }
-            },
-          ),
+          ],
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,

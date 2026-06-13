@@ -93,6 +93,9 @@ class AdvancesScreen extends ConsumerWidget {
                           vertical: 6,
                         ),
                         child: ListTile(
+                          onTap: () {
+                            _showAdvanceDetailsDialog(context, advance);
+                          },
                           title: Text(
                             advance.labourName,
                             style: const TextStyle(fontWeight: FontWeight.w600),
@@ -102,6 +105,10 @@ class AdvancesScreen extends ConsumerWidget {
                             children: [
                               const SizedBox(height: 4),
                               Text(advance.siteName),
+                              Text(
+                                'Date: ${advance.date.toLocal().toShortDateString()}',
+                                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                              ),
                               if (advance.recoveredAmount > 0 && !advance.paidBack)
                                 Text(
                                   '₹${advance.amount.toStringAsFixed(0)} • Recovered: ₹${advance.recoveredAmount.toStringAsFixed(0)} • Outstanding: ₹${(advance.amount - advance.recoveredAmount).toStringAsFixed(0)}',
@@ -213,6 +220,13 @@ class AdvancesScreen extends ConsumerWidget {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                TextFormField(
+                  initialValue: advance.date.toLocal().toShortDateString(),
+                  decoration: const InputDecoration(labelText: 'Advance Date'),
+                  readOnly: true,
+                  enabled: false,
+                ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: amountController,
                   decoration: const InputDecoration(labelText: 'Amount'),
@@ -450,6 +464,63 @@ class AdvancesScreen extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+
+  void _showAdvanceDetailsDialog(
+    BuildContext context,
+    AdvanceModel advance,
+  ) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Advance Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _detailField('Labour', advance.labourName),
+            _detailField('Site', advance.siteName),
+            _detailField('Amount', '₹${advance.amount.toStringAsFixed(2)}'),
+            _detailField('Reason', advance.reason),
+            _detailField('Advance Date', advance.date.toLocal().toShortDateString()),
+            _detailField('Status', advance.paidBack ? 'Fully Recovered' : 'Outstanding (₹${(advance.amount - advance.recoveredAmount).toStringAsFixed(2)} outstanding)'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

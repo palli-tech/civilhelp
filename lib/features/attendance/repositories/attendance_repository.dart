@@ -30,6 +30,11 @@ class AttendanceRepository {
     required String companyId,
     required String createdBy,
   }) async {
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
+    if (date.isAfter(normalizedToday)) {
+      throw Exception('Attendance date cannot be in the future.');
+    }
     final docRef = await _attendanceCollection(companyId).add({
       'labourId': labourId,
       'labourName': labourName,
@@ -56,6 +61,11 @@ class AttendanceRepository {
     required String createdBy,
     required List<({String labourId, String labourName, String status, double hoursWorked, double musterQuantity})> labourRecords,
   }) async {
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
+    if (date.isAfter(normalizedToday)) {
+      throw Exception('Attendance date cannot be in the future.');
+    }
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 

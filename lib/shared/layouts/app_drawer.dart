@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/core/enums/user_role.dart';
 import 'package:civilhelp/app/router.dart';
 import 'package:civilhelp/core/providers/tenant_provider.dart';
 import 'package:civilhelp/shared/widgets/company_header.dart';
@@ -12,6 +13,7 @@ class AppDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
+    final userDataAsync = ref.watch(userDataProvider);
     final tenantCompanyAsync = ref.watch(tenantCompanyStreamProvider);
 
     return Drawer(
@@ -26,36 +28,61 @@ class AppDrawer extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // User Area (Top)
+                userDataAsync.maybeWhen(
+                  data: (userData) {
+                    final name = userData?['name'] as String? ?? currentUser?.displayName ?? 'User';
+                    final roleStr = userData?['role'] as String?;
+                    final role = UserRole.fromString(roleStr);
+                    final formattedRole = role.displayName;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          formattedRole,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  orElse: () => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        currentUser?.displayName ?? 'User',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Company Area (Bottom)
                 tenantCompanyAsync.maybeWhen(
                   data: (company) => company != null
                       ? CompanyHeader(
                           companyName: company.name,
                           logoUrl: company.logoUrl,
-                          size: 40.0,
+                          size: 36.0,
                           textColor: Colors.white,
                         )
                       : const SizedBox.shrink(),
                   orElse: () => const SizedBox.shrink(),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      currentUser?.displayName ?? 'User',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      currentUser?.email ?? '',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),

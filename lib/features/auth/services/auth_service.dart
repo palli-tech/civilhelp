@@ -60,10 +60,9 @@ class AuthService {
         'name': user.displayName ?? '',
         'email': user.email ?? '',
         'photoUrl': user.photoURL ?? '',
-        'role': 'supervisor',
         'companyId': '',
         'assignedSiteIds': [],
-        'isActive': true,
+        'active': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
     }

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/core/enums/user_role.dart';
 import '../../../app/router.dart';
 import '../../../core/providers/tenant_provider.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -12,6 +14,8 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tenantState = ref.watch(tenantContextProvider);
+    final userDataState = ref.watch(userDataProvider);
+    final currentUser = ref.watch(currentUserProvider);
 
     return AppScaffold(
       appBar: AppBar(
@@ -26,6 +30,46 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // User Profile Section
+                  const Text(
+                    'User Profile',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    elevation: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: userDataState.when(
+                        data: (userData) {
+                          final userName = userData?['name'] as String? ?? currentUser?.displayName ?? 'User';
+                          final userEmail = userData?['email'] as String? ?? currentUser?.email ?? '';
+                          final rawRole = userData?['role'] as String?;
+                          final role = UserRole.fromString(rawRole);
+                          final userRole = role.displayName;
+                          
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildInfoRow('Name', userName),
+                              const Divider(),
+                              _buildInfoRow('Email', userEmail),
+                              const Divider(),
+                              _buildInfoRow('Role', userRole),
+                            ],
+                          );
+                        },
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (err, stack) => Text('Error loading user profile: $err'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
                   // App Portal Card
                   Card(
                     elevation: 2,

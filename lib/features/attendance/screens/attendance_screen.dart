@@ -198,7 +198,8 @@ class AttendanceScreen extends ConsumerWidget {
                         // Map duplicate/business errors to inline validation
                         final msg = e.toString();
                         if (msg.contains('Attendance already exists')) {
-                          inlineError = 'Attendance already exists for this labour on the selected date';
+                          final dateStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+                          inlineError = 'Attendance already exists for $labourName on $dateStr';
                         } else {
                           inlineError = 'Error: $e';
                         }
@@ -315,7 +316,8 @@ class AttendanceScreen extends ConsumerWidget {
                       if (context.mounted) {
                         final msg = e.toString();
                         if (msg.contains('Attendance already exists')) {
-                          inlineError = 'Attendance already exists for this labour on the selected date';
+                          final dateStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+                          inlineError = 'Attendance already exists for $labourName on $dateStr';
                         } else {
                           inlineError = 'Error: $e';
                         }

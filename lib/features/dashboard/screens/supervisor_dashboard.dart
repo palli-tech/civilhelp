@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/app/router.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../providers/dashboard_metrics_provider.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/quick_action_tile.dart';
@@ -12,22 +13,17 @@ class SupervisorDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeSites = ref.watch(activeSitesCountProvider);
-    final labourPresent = ref.watch(labourPresentTodayCountProvider);
-    final pendingPayments = ref.watch(pendingPaymentsCountProvider);
-    final outstandingAdvanceTotal = ref.watch(outstandingAdvanceTotalProvider);
+    final assignedSitesCount = ref.watch(supervisorAssignedSitesCountProvider);
+    final todayAttendanceCount = ref.watch(supervisorTodayAttendanceCountProvider);
+    final presentWorkersCount = ref.watch(supervisorPresentWorkersCountProvider);
+    final absentWorkersCount = ref.watch(supervisorAbsentWorkersCountProvider);
+    final pendingAttendanceCount = ref.watch(supervisorPendingAttendanceCountProvider);
+    final userData = ref.watch(userDataProvider).value;
+    final userName = userData?['name'] as String? ?? 'Supervisor';
 
     String formatCount(AsyncValue<int> value) {
       return value.when(
         data: (count) => count.toString(),
-        loading: () => '--',
-        error: (_, _) => 'N/A',
-      );
-    }
-
-    String formatAmount(AsyncValue<double> value) {
-      return value.when(
-        data: (amount) => '₹${amount.toStringAsFixed(0)}',
         loading: () => '--',
         error: (_, _) => 'N/A',
       );
@@ -44,7 +40,7 @@ class SupervisorDashboard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome Back',
+              'Welcome Back, $userName',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -68,24 +64,29 @@ class SupervisorDashboard extends ConsumerWidget {
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 DashboardCard(
-                  title: 'Active Sites',
-                  value: formatCount(activeSites),
+                  title: 'Assigned Sites',
+                  value: formatCount(assignedSitesCount),
                   icon: Icons.location_on,
                 ),
                 DashboardCard(
-                  title: 'Today Labour Attendance',
-                  value: formatCount(labourPresent),
-                  icon: Icons.people,
+                  title: "Today's Attendance",
+                  value: formatCount(todayAttendanceCount),
+                  icon: Icons.today,
                 ),
                 DashboardCard(
-                  title: 'Pending Payments',
-                  value: formatCount(pendingPayments),
-                  icon: Icons.money,
+                  title: 'Present Workers',
+                  value: formatCount(presentWorkersCount),
+                  icon: Icons.check_circle,
                 ),
                 DashboardCard(
-                  title: 'Advance Outstanding',
-                  value: formatAmount(outstandingAdvanceTotal),
-                  icon: Icons.account_balance_wallet,
+                  title: 'Absent Workers',
+                  value: formatCount(absentWorkersCount),
+                  icon: Icons.cancel,
+                ),
+                DashboardCard(
+                  title: 'Pending Attendance',
+                  value: formatCount(pendingAttendanceCount),
+                  icon: Icons.pending_actions,
                 ),
               ],
             ),

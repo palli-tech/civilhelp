@@ -78,6 +78,7 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
             SiteForm(
               key: _formKey,
               onSubmit: _isLoading ? () async {} : _handleSubmit,
+              showStatusSelector: false,
             ),
             if (_isLoading)
               Padding(

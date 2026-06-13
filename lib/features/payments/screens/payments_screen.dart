@@ -266,7 +266,12 @@ class PaymentsScreen extends ConsumerWidget {
             Future<void> recalculatePayment() async {
               clearValidation();
 
-              if (periodStart.isAfter(periodEnd)) {
+              final now = DateTime.now();
+              final today = DateTime(now.year, now.month, now.day);
+              final normStart = DateTime(periodStart.year, periodStart.month, periodStart.day);
+              final normEnd = DateTime(periodEnd.year, periodEnd.month, periodEnd.day);
+
+              if (normStart.isAfter(normEnd)) {
                 setState(() {
                   inlineValidationMessage =
                       'Period start date must be before or equal to period end date.';
@@ -275,7 +280,25 @@ class PaymentsScreen extends ConsumerWidget {
                 return;
               }
 
-              if (selectedLabourId == null) {
+              if (normStart.isAfter(today)) {
+                setState(() {
+                  inlineValidationMessage =
+                      'Period start date cannot be in the future.';
+                  paymentSummary = null;
+                });
+                return;
+              }
+
+              if (normEnd.isAfter(today)) {
+                setState(() {
+                  inlineValidationMessage =
+                      'Period end date cannot be in the future.';
+                  paymentSummary = null;
+                });
+                return;
+              }
+
+              if (selectedLabourId == null || selectedSiteId == null) {
                 setState(() {
                   paymentSummary = null;
                 });
@@ -283,6 +306,7 @@ class PaymentsScreen extends ConsumerWidget {
               }
 
               setState(() {
+                paymentSummary = null;
                 isCalculating = true;
               });
 
@@ -296,6 +320,7 @@ class PaymentsScreen extends ConsumerWidget {
                   final summary = await ref.read(
                     calculatePaymentProvider((
                       labour.id,
+                      selectedSiteId!,
                       labour.dailyWage,
                       periodStart,
                       periodEnd,
@@ -350,6 +375,7 @@ class PaymentsScreen extends ConsumerWidget {
                           setState(() {
                             selectedSiteId = value;
                           });
+                          recalculatePayment();
                         },
                         validator: (value) =>
                             value == null ? 'Select a site' : null,
@@ -379,16 +405,16 @@ class PaymentsScreen extends ConsumerWidget {
                         validator: (value) =>
                             value == null ? 'Select a labour' : null,
                       ),
-                      const SizedBox(height: 12),
                       TextButton(
                         onPressed: () async {
+                          final today = DateTime.now();
                           final picked = await showDatePicker(
                             context: context,
-                            initialDate: periodStart,
-                            firstDate: DateTime.now().subtract(
+                            initialDate: periodStart.isAfter(today) ? today : periodStart,
+                            firstDate: today.subtract(
                               const Duration(days: 365),
                             ),
-                            lastDate: periodEnd,
+                            lastDate: periodEnd.isBefore(today) ? periodEnd : today,
                           );
                           if (picked != null) {
                             setState(() {
@@ -404,13 +430,12 @@ class PaymentsScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: () async {
+                          final today = DateTime.now();
                           final picked = await showDatePicker(
                             context: context,
-                            initialDate: periodEnd,
+                            initialDate: periodEnd.isAfter(today) ? today : periodEnd,
                             firstDate: periodStart,
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
+                            lastDate: today,
                           );
                           if (picked != null) {
                             setState(() {

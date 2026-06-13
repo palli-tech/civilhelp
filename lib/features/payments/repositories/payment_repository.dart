@@ -66,8 +66,16 @@ class PaymentRepository {
     required String companyId,
     required String createdBy,
   }) async {
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
     if (periodStart.isAfter(periodEnd)) {
       throw Exception('Period start date must be before or equal to period end date.');
+    }
+    if (periodStart.isAfter(normalizedToday)) {
+      throw Exception('Period start date cannot be in the future.');
+    }
+    if (periodEnd.isAfter(normalizedToday)) {
+      throw Exception('Period end date cannot be in the future.');
     }
     if (grossAmount <= 0) {
       throw Exception('No payable attendance found for the selected period.');
@@ -285,14 +293,19 @@ class PaymentRepository {
   Future<PaymentSummary> calculatePaymentSummaryForPeriod({
     required String companyId,
     required String labourId,
+    required String siteId,
     required double dailyWage,
     required DateTime periodStart,
     required DateTime periodEnd,
   }) async {
+    final start = DateTime(periodStart.year, periodStart.month, periodStart.day);
+    final end = DateTime(periodEnd.year, periodEnd.month, periodEnd.day, 23, 59, 59, 999);
+
     final attendanceSnapshot = await _attendanceCollection(companyId)
         .where('labourId', isEqualTo: labourId)
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(periodStart))
-        .where('date', isLessThan: Timestamp.fromDate(periodEnd))
+        .where('siteId', isEqualTo: siteId)
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(end))
         .get();
 
     var gross = 0.0;
@@ -384,8 +397,16 @@ class PaymentRepository {
     required String createdBy,
   }) async {
     developer.log('DEBUG: Starting createPaymentWithAdvancesApplied for labourId: $labourId, grossAmount: $grossAmount');
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
     if (periodStart.isAfter(periodEnd)) {
       throw Exception('Period start date must be before or equal to period end date.');
+    }
+    if (periodStart.isAfter(normalizedToday)) {
+      throw Exception('Period start date cannot be in the future.');
+    }
+    if (periodEnd.isAfter(normalizedToday)) {
+      throw Exception('Period end date cannot be in the future.');
     }
     if (grossAmount <= 0) {
       throw Exception('No payable attendance found for the selected period.');

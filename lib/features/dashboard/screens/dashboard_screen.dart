@@ -1,79 +1,66 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/enums/user_role.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'admin_dashboard.dart';
 import 'owner_dashboard.dart';
 import 'partner_dashboard.dart';
 import 'supervisor_dashboard.dart';
 
-final userRoleProvider = FutureProvider<String?>((ref) async {
-  final user = ref.watch(currentUserProvider);
-  
-  if (user == null) {
-    return null;
-  }
-
-  try {
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
-
-    return doc.data()?['role'] as String?;
-  } catch (e) {
-    return null;
-  }
-});
-
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userRole = ref.watch(userRoleProvider);
+    final userDataAsync = ref.watch(userDataProvider);
 
-    return userRole.when(
-      data: (role) {
+    return userDataAsync.when(
+      data: (userData) {
+        final roleStr = userData?['role'] as String?;
+        final role = UserRole.fromString(roleStr);
         switch (role) {
-          case 'admin':
+          case UserRole.admin:
             return const AdminDashboard();
-          case 'businessOwner':
+          case UserRole.owner:
             return const OwnerDashboard();
-          case 'partner':
+          case UserRole.partner:
             return const PartnerDashboard();
-          case 'supervisor':
-          default:
+          case UserRole.supervisor:
             return const SupervisorDashboard();
+          case UserRole.pending:
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.of(context).pushReplacementNamed('/company-setup');
+            });
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
         }
       },
-      loading: () {
-        return const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
+      loading: () => const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (error, stackTrace) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Error loading dashboard'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  ref.invalidate(userDataProvider);
+                },
+                child: const Text('Retry'),
+              ),
+            ],
           ),
-        );
-      },
-      error: (error, stackTrace) {
-        return Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Error loading dashboard'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    ref.invalidate(userRoleProvider);
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

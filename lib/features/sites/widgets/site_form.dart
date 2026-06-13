@@ -8,6 +8,7 @@ class SiteForm extends StatefulWidget {
   final DateTime? startDate;
   final SiteStatus? status;
   final Future<void> Function()? onSubmit;
+  final bool showStatusSelector;
 
   const SiteForm({
     super.key,
@@ -17,6 +18,7 @@ class SiteForm extends StatefulWidget {
     this.startDate,
     this.status,
     required this.onSubmit,
+    this.showStatusSelector = true,
   });
 
   @override
@@ -138,27 +140,29 @@ class SiteFormState extends State<SiteForm> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<SiteStatus>(
-            initialValue: _selectedStatus,
-            decoration: InputDecoration(
-              labelText: 'Status',
-              prefixIcon: const Icon(Icons.info),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+          if (widget.showStatusSelector) ...[
+            const SizedBox(height: 16),
+            DropdownButtonFormField<SiteStatus>(
+              initialValue: _selectedStatus,
+              decoration: InputDecoration(
+                labelText: 'Status',
+                prefixIcon: const Icon(Icons.info),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
+              items: SiteStatus.values.map((status) {
+                return DropdownMenuItem(value: status, child: Text(status.name));
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedStatus = value;
+                  });
+                }
+              },
             ),
-            items: SiteStatus.values.map((status) {
-              return DropdownMenuItem(value: status, child: Text(status.name));
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _selectedStatus = value;
-                });
-              }
-            },
-          ),
+          ],
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,

@@ -91,11 +91,11 @@ This document summarizes Firestore queries found in repositories and services an
      - `companyId ASC`, `status ASC`, `createdAt DESC`
 
 3. `calculatePaymentSummaryForPeriod` attendance query
-   - collection: `attendance`
-   - where: `companyId == companyId`, `labourId == labourId`, `date >= periodStart`, `date < periodEnd`
+   - collection: `attendance` (subcollection path: `companies/{companyId}/attendance`)
+   - where: `labourId == labourId`, `siteId == siteId`, `date >= periodStart`, `date <= periodEnd`
    - orderBy: implicit on `date`
    - required composite index:
-     - `companyId ASC`, `labourId ASC`, `date ASC`
+     - `labourId ASC`, `siteId ASC`, `date ASC`
 
 4. `calculatePaymentSummaryForPeriod` advances query
    - collection: `advances`

@@ -105,6 +105,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                       setState(() {
                         selectedSiteId = value;
                       });
+                      widget.onChanged?.call();
                     },
               disabledHint: widget.initialAttendance != null
                   ? const Text('Site (locked)')
@@ -144,6 +145,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                       setState(() {
                         selectedLabourId = value;
                       });
+                      widget.onChanged?.call();
                     },
               disabledHint: widget.initialAttendance != null
                   ? const Text('Labour (locked)')
@@ -246,9 +248,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                   firstDate: DateTime.now().subtract(
                     const Duration(days: 365),
                   ),
-                  lastDate: DateTime.now().add(
-                    const Duration(days: 365),
-                  ),
+                  lastDate: DateTime.now(),
                 );
                 if (picked != null) {
                   setState(() {

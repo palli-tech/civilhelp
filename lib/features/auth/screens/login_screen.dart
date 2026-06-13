@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/auth_provider.dart';
 import '../widgets/google_signin_button.dart';
+import '../../../core/providers/tenant_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -26,7 +27,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await authService.signInWithGoogle();
 
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/dashboard');
+        ref.invalidate(tenantContextProvider);
+        final tenantContext = await ref.read(tenantContextProvider.future);
+        
+        if (mounted) {
+          if (tenantContext != null) {
+            Navigator.of(context).pushReplacementNamed('/dashboard');
+          } else {
+            Navigator.of(context).pushReplacementNamed('/company-setup');
+          }
+        }
       }
     } catch (e) {
       setState(() {

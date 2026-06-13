@@ -160,7 +160,7 @@ class _BulkAttendanceFormState extends State<BulkAttendanceForm> {
                     context: context,
                     initialDate: _selectedDate,
                     firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                    lastDate: DateTime.now(),
                   );
                   if (picked != null) {
                     setState(() => _selectedDate = picked);

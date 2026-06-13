@@ -120,6 +120,7 @@ class _AddEditLabourScreenState extends ConsumerState<AddEditLabourScreen> {
                     sites: sitesList,
                     onSubmit: _handleSubmit,
                     isLoading: _isLoading,
+                    showStatusSelector: false,
                   ),
                 );
               },
@@ -155,6 +156,7 @@ class _AddEditLabourScreenState extends ConsumerState<AddEditLabourScreen> {
                         sites: sitesList,
                         onSubmit: _handleSubmit,
                         isLoading: _isLoading,
+                        showStatusSelector: true,
                       ),
                     );
                   },
