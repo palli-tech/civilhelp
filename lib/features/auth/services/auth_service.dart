@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../core/enums/user_role.dart';
 import '../../../core/enums/invitation_status.dart';
@@ -18,10 +19,12 @@ class AuthService {
   })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance,
         _googleSignIn = googleSignIn ??
-            GoogleSignIn(
-              serverClientId:
-                  '390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com',
-            );
+            (kIsWeb
+                ? GoogleSignIn()
+                : GoogleSignIn(
+                    serverClientId:
+                        '390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com',
+                  ));
 
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 

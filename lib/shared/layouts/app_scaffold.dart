@@ -15,7 +15,7 @@ class AppScaffold extends StatelessWidget {
     required this.child,
     this.appBar,
     this.fab,
-    this.usePremiumBackground = false,
+    this.usePremiumBackground = true,
   });
 
   @override

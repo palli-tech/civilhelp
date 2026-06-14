@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/shared/widgets/module_header.dart';
 import '../models/report_filter.dart';
 import '../providers/report_provider.dart';
 import '../widgets/report_filter_bar.dart';
@@ -25,11 +26,16 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
     final companyIdAsync = ref.watch(userCompanyIdProvider);
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Site Performance'),
-      ),
-      child: companyIdAsync.when(
-        data: (companyId) {
+      child: Column(
+        children: [
+          const ModuleHeader(
+            title: 'Site Performance',
+            subtitle: 'Overview of work location payouts and outstanding balances',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: companyIdAsync.when(
+              data: (companyId) {
           return Column(
             children: [
               ReportFilterBar(
@@ -50,9 +56,12 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
               ),
             ],
           );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text('Error: $err')),
+            ),
+          ),
+        ],
       ),
     );
   }

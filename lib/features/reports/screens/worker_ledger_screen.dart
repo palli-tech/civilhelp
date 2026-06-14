@@ -6,6 +6,7 @@ import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/shared/widgets/module_header.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import '../models/report_filter.dart';
@@ -36,62 +37,70 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
     debugPrint('companyIdAsync: $companyIdAsync');
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Worker Ledger'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'Export PDF',
-            onPressed: () {
-                // Only attempt export when companyId is resolved.
-                companyIdAsync.when(
-                  data: (companyId) {
-                    if (companyId.isEmpty) return;
-                    _handleExportPdf(context, companyId);
-                  },
-                  loading: () async {},
-                  error: (e, _) async {},
-                );
-              },
-          ),
-        ],
-      ),
-      child: companyIdAsync.when(
-        data: (companyId) {
-                  debugPrint('companyIdAsync data: $companyId');
-          if (companyId.isEmpty) {
-            return const Center(child: Text('Company not associated with user.'));
-          }
-
-          return Column(
-            children: [
-              ReportFilterBar(
-                selectedSiteId: _selectedSiteId,
-                selectedWorkerId: _selectedLabourId,
-                startDate: _startDate,
-                endDate: _endDate,
-                onSiteChanged: (val) => setState(() => _selectedSiteId = val),
-                onWorkerChanged: (val) => setState(() => _selectedLabourId = val),
-                onDateRangeChanged: (start, end) => setState(() {
-                  _startDate = start;
-                  _endDate = end;
-                }),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: _buildReportContent(companyId),
+      child: Column(
+        children: [
+          ModuleHeader(
+            title: 'Worker Ledger',
+            subtitle: 'Chronological list of earnings, advances, and payments',
+            showBackButton: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf),
+                tooltip: 'Export PDF',
+                onPressed: () {
+                  // Only attempt export when companyId is resolved.
+                  companyIdAsync.when(
+                    data: (companyId) {
+                      if (companyId.isEmpty) return;
+                      _handleExportPdf(context, companyId);
+                    },
+                    loading: () async {},
+                    error: (e, _) async {},
+                  );
+                },
               ),
             ],
-          );
-        },
-        loading: () {
-          debugPrint('companyIdAsync is loading');
-          return const Center(child: CircularProgressIndicator());
-        },
-        error: (err, stack) {
-          debugPrint('companyIdAsync error: $err');
-          return Center(child: Text('Error: $err'));
-        },
+          ),
+          Expanded(
+            child: companyIdAsync.when(
+              data: (companyId) {
+                debugPrint('companyIdAsync data: $companyId');
+                if (companyId.isEmpty) {
+                  return const Center(child: Text('Company not associated with user.'));
+                }
+
+                return Column(
+                  children: [
+                    ReportFilterBar(
+                      selectedSiteId: _selectedSiteId,
+                      selectedWorkerId: _selectedLabourId,
+                      startDate: _startDate,
+                      endDate: _endDate,
+                      onSiteChanged: (val) => setState(() => _selectedSiteId = val),
+                      onWorkerChanged: (val) => setState(() => _selectedLabourId = val),
+                      onDateRangeChanged: (start, end) => setState(() {
+                        _startDate = start;
+                        _endDate = end;
+                      }),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: _buildReportContent(companyId),
+                    ),
+                  ],
+                );
+              },
+              loading: () {
+                debugPrint('companyIdAsync is loading');
+                return const Center(child: CircularProgressIndicator());
+              },
+              error: (err, stack) {
+                debugPrint('companyIdAsync error: $err');
+                return Center(child: Text('Error: $err'));
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

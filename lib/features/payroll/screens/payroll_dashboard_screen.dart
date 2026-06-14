@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:civilhelp/app/theme.dart';
+import 'package:civilhelp/app/router.dart';
+import 'package:civilhelp/core/providers/company_provider.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../../../shared/widgets/module_header.dart';
+import '../../../shared/widgets/premium_module_card.dart';
 import '../../../shared/widgets/app_design_system.dart';
-import '../../../shared/widgets/civil_empty_state.dart';
+import '../../../shared/widgets/module_empty_state.dart';
+import '../../../shared/widgets/operational_metrics_strip.dart';
 import '../../../shared/widgets/status_chip.dart';
 import '../../../shared/widgets/metric_card.dart';
 import '../providers/payroll_providers.dart';
 import '../models/payroll_period_model.dart';
 import 'payroll_processing_screen.dart';
 
+final firestoreProvider = Provider<FirebaseFirestore>((ref) => FirebaseFirestore.instance);
 
 class PayrollDashboardScreen extends ConsumerWidget {
   const PayrollDashboardScreen({super.key});
@@ -18,78 +25,228 @@ class PayrollDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final periodsAsync = ref.watch(payrollPeriodsStreamProvider);
+    final companyId = ref.watch(userCompanyIdProvider).value ?? '';
+    final firestore = ref.watch(firestoreProvider);
 
-    return AppScaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Payroll Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [context.colors.primary, context.colors.secondary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-      ),
-      fab: FloatingActionButton.extended(
-        onPressed: () => _showCreatePeriodDialog(context, ref),
-        label: const Text('New Period', style: TextStyle(fontWeight: FontWeight.bold)),
-        icon: const Icon(Icons.add),
-        backgroundColor: context.colors.primary,
-        foregroundColor: context.colors.onPrimary,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.colors.background,
-        ),
-        child: periodsAsync.when(
-          data: (periods) {
-            if (periods.isEmpty) {
-              return _buildEmptyState(context, ref);
-            }
-            return _buildPeriodsList(context, ref, periods);
-          },
-          loading: () => Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(context.colors.primary),
-            ),
-          ),
-          error: (err, _) => Center(
-            child: Text(
-              'Error loading payroll: $err',
-              style: TextStyle(color: context.colors.error, fontSize: 16),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: companyId.isNotEmpty
+          ? firestore
+              .collection('companies/$companyId/payrollSummaries')
+              .snapshots()
+          : const Stream.empty(),
+      builder: (context, snapshot) {
+        double totalPayout = 0.0;
+        if (snapshot.hasData) {
+          for (final doc in snapshot.data!.docs) {
+            totalPayout += (doc.data()['totalNetPaid'] as num?)?.toDouble() ?? 0.0;
+          }
+        }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
-    return CivilEmptyState(
-      icon: Icons.receipt_long_outlined,
-      title: 'No Payroll Periods',
-      description: 'Create a new payroll period to calculate, freeze, and settle worker salaries.',
-      iconColor: AppDesignSystem.payrollColor,
-      ctaLabel: 'Create Payroll Period',
-      onCta: () => _showCreatePeriodDialog(context, ref),
+        return AppScaffold(
+          fab: FloatingActionButton.extended(
+            onPressed: () => _showCreatePeriodDialog(context, ref),
+            label: const Text('New Period', style: TextStyle(fontWeight: FontWeight.bold)),
+            icon: const Icon(Icons.add),
+            backgroundColor: context.colors.primary,
+            foregroundColor: context.colors.onPrimary,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const ModuleHeader(
+                title: 'Payroll Dashboard',
+                subtitle: 'Manage and settle worker payroll periods',
+                showBackButton: false,
+              ),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: context.colors.background,
+                  ),
+                  child: periodsAsync.when(
+                    data: (periods) {
+                      if (periods.isEmpty) {
+                        return ModuleEmptyState(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'No Payroll Periods',
+                          description: 'Create a new payroll period to calculate, freeze, and settle worker salaries.',
+                          ctaLabel: 'Create Payroll Period',
+                          onCta: () => _showCreatePeriodDialog(context, ref),
+                          iconColor: AppDesignSystem.payrollColor,
+                        );
+                      }
+
+                      // Metrics calculations
+                      final openPeriods = periods.where((p) => p.status == 'open').length;
+                      final pendingPayroll = periods.where((p) => p.status == 'open' || p.status == 'frozen').length;
+                      final processedPayroll = periods.where((p) => p.status == 'paid').length;
+
+                      return SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Hero Metrics Strip
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24.0,
+                                vertical: 12.0,
+                              ),
+                              child: OperationalMetricsStrip(
+                                metrics: [
+                                  OperationalMetricData(
+                                    label: 'Open Periods',
+                                    value: '$openPeriods',
+                                    icon: Icons.lock_open_outlined,
+                                    color: context.customColors.warning,
+                                  ),
+                                  OperationalMetricData(
+                                    label: 'Pending Payroll',
+                                    value: '$pendingPayroll',
+                                    icon: Icons.pending_actions_outlined,
+                                    color: context.customColors.attendance,
+                                  ),
+                                  OperationalMetricData(
+                                    label: 'Processed Payroll',
+                                    value: '$processedPayroll',
+                                    icon: Icons.check_circle_outline,
+                                    color: context.customColors.success,
+                                  ),
+                                  OperationalMetricData(
+                                    label: 'Total Payout',
+                                    value: '₹${totalPayout.toStringAsFixed(0)}',
+                                    icon: Icons.currency_rupee_outlined,
+                                    color: context.customColors.payroll,
+                                  ),
+                                ],
+                              ),
+                            ),
+  
+                            // Quick Actions Row
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24.0,
+                                vertical: 8.0,
+                              ),
+                              child: Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () => _showCreatePeriodDialog(context, ref),
+                                    icon: const Icon(Icons.add, size: 18),
+                                    label: const Text('Create Payroll', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: context.colors.primary,
+                                      foregroundColor: context.colors.onPrimary,
+                                      elevation: 0,
+                                    ),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      final processable = periods.cast<PayrollPeriodModel?>().firstWhere(
+                                        (p) => p?.status != 'paid',
+                                        orElse: () => null,
+                                      );
+                                      if (processable != null) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => PayrollProcessingScreen(periodId: processable.id),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('No open or frozen payroll period to process.')),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.payment_outlined, size: 18),
+                                    label: const Text('Process Payroll'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: context.colors.primary,
+                                      side: BorderSide(color: context.colors.primary),
+                                    ),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () => Navigator.of(context).pushNamed(AppRoutes.payments),
+                                    icon: const Icon(Icons.history_outlined, size: 18),
+                                    label: const Text('Payment Records'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: context.colors.primary,
+                                      side: BorderSide(color: context.colors.primary),
+                                    ),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () => Navigator.of(context).pushNamed(AppRoutes.paymentReport),
+                                    icon: const Icon(Icons.assessment_outlined, size: 18),
+                                    label: const Text('Payment Reports'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: context.colors.primary,
+                                      side: BorderSide(color: context.colors.primary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+  
+                            const SizedBox(height: 12),
+  
+                            // Dynamic Grid
+                            _buildPeriodsList(context, ref, periods),
+                          ],
+                        ),
+                      );
+                    },
+                    loading: () => Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(context.colors.primary),
+                      ),
+                    ),
+                    error: (err, _) => ModuleEmptyState(
+                      icon: Icons.error_outline,
+                      title: 'Failed to Load Payroll',
+                      description: err.toString(),
+                      iconColor: context.colors.error,
+                      ctaLabel: 'Retry',
+                      onCta: () => ref.invalidate(payrollPeriodsStreamProvider),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildPeriodsList(
       BuildContext context, WidgetRef ref, List<PayrollPeriodModel> periods) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: periods.length,
-      itemBuilder: (context, index) {
-        final period = periods[index];
-        return _buildPeriodCard(context, ref, period);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double availableWidth = constraints.maxWidth;
+        final isMobile = availableWidth < 650;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24.0,
+            vertical: 16.0,
+          ),
+          child: Wrap(
+            spacing: 20,
+            runSpacing: 20,
+            children: periods.map((period) {
+              final double cardWidth = isMobile
+                  ? (availableWidth - 48.0)
+                  : (availableWidth - 48.0 - 20.0) / 2.0;
+
+              return SizedBox(
+                width: cardWidth.clamp(0.0, double.infinity),
+                child: _buildPeriodCard(context, ref, period),
+              );
+            }).toList(),
+          ),
+        );
       },
     );
   }
@@ -100,160 +257,137 @@ class PayrollDashboardScreen extends ConsumerWidget {
     final startStr = fmt.format(period.startDate);
     final endStr = fmt.format(period.endDate);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        gradient: context.surfaceGradient,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: context.colors.outline.withValues(alpha: context.isDarkMode ? 0.15 : 0.08),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.25 : 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+    return PremiumModuleCard(
+      glowColor: context.customColors.payroll,
+      onTap: () {
+        if (period.status != 'paid') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PayrollProcessingScreen(periodId: period.id),
+            ),
+          );
+        } else {
+          _showSummaryDialog(context, ref, period);
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  period.name,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.primary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 12),
+              StatusChip(status: period.status),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            if (period.status != 'paid') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PayrollProcessingScreen(periodId: period.id),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.date_range, size: 16, color: context.colors.outline),
+              const SizedBox(width: 8),
+              Text(
+                '$startStr – $endStr',
+                style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 14),
+              ),
+            ],
+          ),
+          if (period.status == 'paid') ...[
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            _buildSummaryPreviewRow(context, ref, period),
+          ],
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              if (period.status == 'open') ...[
+                OutlinedButton.icon(
+                  onPressed: () => _freezePeriod(context, ref, period.id),
+                  icon: const Icon(Icons.lock, size: 16),
+                  label: const Text('Freeze'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: context.customColors.warning,
+                    side: BorderSide(color: context.customColors.warning),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
-              );
-            } else {
-              _showSummaryDialog(context, ref, period);
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        period.name,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: context.colors.primary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PayrollProcessingScreen(periodId: period.id),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    StatusChip(status: period.status),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.date_range, size: 16, color: context.colors.outline),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$startStr – $endStr',
-                      style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 14),
-                    ),
-                  ],
-                ),
-                if (period.status == 'paid') ...[
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  _buildSummaryPreviewRow(context, ref, period),
-                ],
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (period.status == 'open') ...[
-                      OutlinedButton.icon(
-                        onPressed: () => _freezePeriod(context, ref, period.id),
-                        icon: const Icon(Icons.lock, size: 16),
-                        label: const Text('Freeze'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: context.customColors.warning,
-                          side: BorderSide(color: context.customColors.warning),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PayrollProcessingScreen(periodId: period.id),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.payment, size: 16),
-                        label: const Text('Process'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: context.colors.primary,
-                          foregroundColor: context.colors.onPrimary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ],
-                    if (period.status == 'frozen') ...[
-                      OutlinedButton.icon(
-                        onPressed: () => _reopenPeriod(context, ref, period.id),
-                        icon: const Icon(Icons.lock_open, size: 16),
-                        label: const Text('Reopen'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: context.colors.primary,
-                          side: BorderSide(color: context.colors.primary),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PayrollProcessingScreen(periodId: period.id),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.payment, size: 16),
-                        label: const Text('Settle'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: context.customColors.success,
-                          foregroundColor: context.colors.onPrimary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ],
-                    if (period.status == 'paid')
-                      OutlinedButton.icon(
-                        onPressed: () => _showSummaryDialog(context, ref, period),
-                        icon: const Icon(Icons.analytics, size: 16),
-                        label: const Text('View Summary'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: context.colors.primary,
-                          side: BorderSide(color: context.colors.primary),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                  ],
+                    );
+                  },
+                  icon: const Icon(Icons.payment, size: 16),
+                  label: const Text('Process'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.colors.primary,
+                    foregroundColor: context.colors.onPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ],
-            ),
+              if (period.status == 'frozen') ...[
+                OutlinedButton.icon(
+                  onPressed: () => _reopenPeriod(context, ref, period.id),
+                  icon: const Icon(Icons.lock_open, size: 16),
+                  label: const Text('Reopen'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: context.colors.primary,
+                    side: BorderSide(color: context.colors.primary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PayrollProcessingScreen(periodId: period.id),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.payment, size: 16),
+                  label: const Text('Settle'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.customColors.success,
+                    foregroundColor: context.colors.onPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+              if (period.status == 'paid')
+                OutlinedButton.icon(
+                  onPressed: () => _showSummaryDialog(context, ref, period),
+                  icon: const Icon(Icons.analytics, size: 16),
+                  label: const Text('View Summary'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: context.colors.primary,
+                    side: BorderSide(color: context.colors.primary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+            ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -263,36 +397,74 @@ class PayrollDashboardScreen extends ConsumerWidget {
     return summaryAsync.when(
       data: (summary) {
         if (summary == null) return const SizedBox.shrink();
-        return Row(
-          children: [
-            MetricCard(
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final double width = constraints.maxWidth;
+            final useTwoRows = width < 450;
+
+            final workersCard = MetricCard(
               label: 'Workers',
               value: '${summary.totalWorkers}',
               icon: Icons.people,
               color: context.colors.primary,
-            ),
-            const SizedBox(width: 8),
-            MetricCard(
+            );
+
+            final grossCard = MetricCard(
               label: 'Gross',
               value: '₹${summary.totalGross.toStringAsFixed(0)}',
               icon: Icons.account_balance_wallet,
               color: context.colors.primary,
-            ),
-            const SizedBox(width: 8),
-            MetricCard(
+            );
+
+            final deductionsCard = MetricCard(
               label: 'Deductions',
               value: '₹${summary.totalDeductions.toStringAsFixed(0)}',
               icon: Icons.remove_circle_outline,
               color: context.customColors.warning,
-            ),
-            const SizedBox(width: 8),
-            MetricCard(
+            );
+
+            final netCard = MetricCard(
               label: 'Net Settled',
               value: '₹${summary.totalNetPaid.toStringAsFixed(0)}',
               icon: Icons.check_circle_outline,
               color: context.customColors.success,
-            ),
-          ],
+            );
+
+            if (useTwoRows) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      workersCard,
+                      const SizedBox(width: 8),
+                      grossCard,
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      deductionsCard,
+                      const SizedBox(width: 8),
+                      netCard,
+                    ],
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                workersCard,
+                const SizedBox(width: 8),
+                grossCard,
+                const SizedBox(width: 8),
+                deductionsCard,
+                const SizedBox(width: 8),
+                netCard,
+              ],
+            );
+          },
         );
       },
       loading: () => const LinearProgressIndicator(),
@@ -412,13 +584,18 @@ class PayrollDashboardScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: context.colors.onSurface,
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                color: context.colors.onSurface,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(width: 12),
           Text(
             value,
             style: TextStyle(
@@ -426,6 +603,8 @@ class PayrollDashboardScreen extends ConsumerWidget {
               color: color ?? context.colors.onSurface,
               fontSize: isBold ? 16 : 14,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

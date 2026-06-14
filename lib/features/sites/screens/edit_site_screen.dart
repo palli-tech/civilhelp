@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/app/theme.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../../../shared/widgets/module_header.dart';
 import '../providers/site_provider.dart';
 import '../widgets/site_form.dart';
 
@@ -86,88 +87,95 @@ class _EditSiteScreenState extends ConsumerState<EditSiteScreen> {
     final siteAsync = ref.watch(siteByIdProvider(widget.siteId));
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Edit Site'),
-        elevation: 0,
-      ),
-      child: siteAsync.when(
-        data: (site) {
-          if (site == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 64,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Site not found'),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Go Back'),
-                  ),
-                ],
-              ),
-            );
-          }
+      child: Column(
+        children: [
+          const ModuleHeader(
+            title: 'Edit Site',
+            subtitle: 'Update project work location details',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: siteAsync.when(
+              data: (site) {
+                if (site == null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('Site not found'),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: const Text('Go Back'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.screenPadding),
-            child: Column(
-              children: [
-                SiteForm(
-                  key: _formKey,
-                  siteName: site.name,
-                  location: site.location,
-                  client: site.client,
-                  startDate: site.startDate,
-                  status: site.status,
-                  onSubmit: _isLoading ? null : _handleSubmit,
-                ),
-                if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.only(top: AppSpacing.screenPadding),
-                    child: CircularProgressIndicator(),
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSpacing.screenPadding),
+                  child: Column(
+                    children: [
+                      SiteForm(
+                        key: _formKey,
+                        siteName: site.name,
+                        location: site.location,
+                        client: site.client,
+                        startDate: site.startDate,
+                        status: site.status,
+                        onSubmit: _isLoading ? null : _handleSubmit,
+                      ),
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: AppSpacing.screenPadding),
+                          child: CircularProgressIndicator(),
+                        ),
+                    ],
                   ),
-              ],
+                );
+              },
+              loading: () {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              },
+              error: (error, stackTrace) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: context.colors.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error loading site:\n$error',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Go Back'),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
-        loading: () {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        },
-        error: (error, stackTrace) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: context.colors.error,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Error loading site:\n$error',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Go Back'),
-                ),
-              ],
-            ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

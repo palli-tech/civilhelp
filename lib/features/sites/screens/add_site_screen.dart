@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/app/theme.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../../../shared/widgets/module_header.dart';
 import '../providers/site_provider.dart';
 import '../widgets/site_form.dart';
 
@@ -71,9 +72,16 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Add Site'), elevation: 0),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.screenPadding),
+      child: Column(
+        children: [
+          const ModuleHeader(
+            title: 'Add Site',
+            subtitle: 'Register a new project work location',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.screenPadding),
         child: Column(
           children: [
             SiteForm(
@@ -98,6 +106,9 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  ],
+),
+);
+}
 }

@@ -37,8 +37,9 @@ class _DashboardCardState extends State<DashboardCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
 
-    // Default card colors if not explicitly overridden
     final defaultDarkGradient = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -51,9 +52,18 @@ class _DashboardCardState extends State<DashboardCard> {
     final finalGradient = widget.gradient ?? (isDark ? defaultDarkGradient : null);
     final finalBgColor = widget.gradient != null
         ? null
-        : (widget.backgroundColor ?? (isDark ? null : Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5)));
+        : (widget.backgroundColor ?? (isDark ? null : Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.5)));
 
     final glow = widget.glowColor ?? const Color(0xFF7B4DFF);
+
+    // Dynamic text colors for contrast in Light Theme
+    final textPrimary = isDark
+        ? Colors.white
+        : (widget.iconColor ?? Theme.of(context).colorScheme.onSurface);
+    
+    final textSecondary = isDark
+        ? const Color(0xFFB4B8D0)
+        : (widget.iconColor?.withValues(alpha: 0.7) ?? Theme.of(context).colorScheme.onSurfaceVariant);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -65,33 +75,33 @@ class _DashboardCardState extends State<DashboardCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(isMobile ? 16 : 24),
             color: finalBgColor,
             gradient: finalGradient,
             border: Border.all(
               color: isDark
-                  ? (_isHovered ? glow.withOpacity(0.4) : Colors.white.withOpacity(0.08))
-                  : Colors.black.withOpacity(0.08),
+                  ? (_isHovered ? glow.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.08))
+                  : (_isHovered ? glow.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.08)),
               width: 1.0,
             ),
             boxShadow: [
               if (_isHovered)
                 BoxShadow(
-                  color: isDark ? glow.withOpacity(0.2) : Colors.black.withOpacity(0.08),
+                  color: isDark ? glow.withValues(alpha: 0.2) : glow.withValues(alpha: 0.06),
                   blurRadius: 24,
                   spreadRadius: 2,
                   offset: const Offset(0, 8),
                 )
               else
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(isMobile ? 16 : 24),
             child: Stack(
               children: [
                 // Decorative bottom-right large icon overlay
@@ -103,7 +113,7 @@ class _DashboardCardState extends State<DashboardCard> {
                       opacity: isDark ? 0.07 : 0.04,
                       child: Icon(
                         widget.overlayIcon,
-                        size: 110,
+                        size: isMobile ? 70.0 : 110.0,
                         color: widget.glowColor ?? widget.iconColor ?? Colors.white,
                       ),
                     ),
@@ -115,7 +125,7 @@ class _DashboardCardState extends State<DashboardCard> {
                   child: InkWell(
                     onTap: widget.onTap,
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: EdgeInsets.all(isMobile ? 14.0 : 20.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -124,16 +134,16 @@ class _DashboardCardState extends State<DashboardCard> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: EdgeInsets.all(isMobile ? 8.0 : 12.0),
                                 decoration: BoxDecoration(
                                   color: widget.iconBackgroundColor ??
-                                      Theme.of(context).colorScheme.primary.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(16),
+                                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(isMobile ? 12.0 : 16.0),
                                 ),
                                 child: Icon(
                                   widget.icon,
                                   color: widget.iconColor ?? Theme.of(context).colorScheme.primary,
-                                  size: 24,
+                                  size: isMobile ? 18.0 : 24.0,
                                 ),
                               ),
                               if (isDark && _isHovered)
@@ -154,7 +164,7 @@ class _DashboardCardState extends State<DashboardCard> {
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: isMobile ? 10.0 : 16.0),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -162,20 +172,20 @@ class _DashboardCardState extends State<DashboardCard> {
                                 widget.value,
                                 style: TextStyle(
                                   fontFamily: 'NotoSans',
-                                  fontSize: 36,
+                                  fontSize: isMobile ? 24.0 : 36.0,
                                   fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : Colors.black87,
+                                  color: textPrimary,
                                   height: 1.0,
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              SizedBox(height: isMobile ? 4.0 : 6.0),
                               Text(
                                 widget.title,
                                 style: TextStyle(
                                   fontFamily: 'NotoSans',
-                                  fontSize: 14,
+                                  fontSize: isMobile ? 12.0 : 14.0,
                                   fontWeight: FontWeight.w500,
-                                  color: isDark ? const Color(0xFFB4B8D0) : Colors.black54,
+                                  color: textSecondary,
                                 ),
                               ),
                             ],

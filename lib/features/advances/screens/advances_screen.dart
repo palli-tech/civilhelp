@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
-import 'package:civilhelp/shared/widgets/civil_empty_state.dart';
-import 'package:civilhelp/shared/widgets/metric_card.dart';
+import 'package:civilhelp/shared/widgets/module_header.dart';
+import 'package:civilhelp/shared/widgets/module_empty_state.dart';
+import 'package:civilhelp/shared/widgets/operational_metrics_strip.dart';
 import 'package:civilhelp/shared/widgets/status_chip.dart';
+import 'package:civilhelp/shared/widgets/premium_module_card.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import '../models/advance_model.dart';
 import '../providers/advances_providers.dart';
@@ -40,54 +42,158 @@ class _AdvancesScreenState extends ConsumerState<AdvancesScreen>
     final advancesAsync = ref.watch(advancesListStreamProvider);
     final labourAsync = ref.watch(labourStreamProvider);
 
+    final FloatingActionButton? fab = advancesAsync.when(
+      data: (advances) => advances.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _showNewAdvanceDialog(context, ref, labourAsync),
+              label: const Text('Issue Advance', style: TextStyle(fontWeight: FontWeight.bold)),
+              icon: const Icon(Icons.add),
+              backgroundColor: context.customColors.advance,
+              foregroundColor: Colors.white,
+            ),
+      loading: () => null,
+      error: (_, _) => null,
+    );
+
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Advances Ledger',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                context.customColors.advance,
-                context.customColors.advance.withValues(alpha: 0.85),
+      fab: fab,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ModuleHeader(
+            title: 'Advances Ledger',
+            subtitle: 'Track worker advances and recoveries',
+            showBackButton: false,
+          ),
+          advancesAsync.when(
+            data: (advances) {
+              // Calculate screen-level metrics
+              final outstanding = advances.where((a) => a.status != 'recovered').toList();
+              final totalOutstanding = outstanding.fold<double>(0.0, (acc, a) => acc + a.remainingAmount);
+              final totalRecovered = advances.fold<double>(0.0, (acc, a) => acc + a.recoveredAmount);
+              final totalIssued = totalOutstanding + totalRecovered;
+              final recoveryPct = totalIssued > 0 ? (totalRecovered / totalIssued * 100) : 0.0;
+              final workersWithAdvances = outstanding.map((a) => a.labourId).toSet().length;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Hero Metrics Strip
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0,
+                      vertical: 12.0,
+                    ),
+                    child: OperationalMetricsStrip(
+                      metrics: [
+                        OperationalMetricData(
+                          label: 'Outstanding Advances',
+                          value: '₹${totalOutstanding.toStringAsFixed(0)}',
+                          icon: Icons.account_balance_wallet_outlined,
+                          color: context.customColors.warning,
+                        ),
+                        OperationalMetricData(
+                          label: 'Recovered Amount',
+                          value: '₹${totalRecovered.toStringAsFixed(0)}',
+                          icon: Icons.task_alt_outlined,
+                          color: context.customColors.success,
+                        ),
+                        OperationalMetricData(
+                          label: 'Recovery %',
+                          value: '${recoveryPct.toStringAsFixed(0)}%',
+                          icon: Icons.percent_outlined,
+                          color: context.customColors.advance,
+                        ),
+                        OperationalMetricData(
+                          label: 'Workers with Advances',
+                          value: '$workersWithAdvances',
+                          icon: Icons.people_outline,
+                          color: context.customColors.info,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Quick Actions Row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0,
+                      vertical: 8.0,
+                    ),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => _showNewAdvanceDialog(context, ref, labourAsync),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Issue Advance', style: TextStyle(fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: context.customColors.advance,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            _tabController.animateTo(2); // Switch to Ledger
+                          },
+                          icon: const Icon(Icons.history_outlined, size: 18),
+                          label: const Text('Worker Ledger'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: context.customColors.advance,
+                            side: BorderSide(color: context.customColors.advance),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+
+          const SizedBox(height: 8),
+
+          // TabBar selector
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              indicatorColor: context.colors.primary,
+              indicatorWeight: 3,
+              labelColor: context.colors.primary,
+              unselectedLabelColor: context.colors.onSurfaceVariant,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              tabs: const [
+                Tab(text: 'Outstanding'),
+                Tab(text: 'Recovered'),
+                Tab(text: 'Worker Ledger'),
               ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
             ),
           ),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          tabs: const [
-            Tab(text: 'Outstanding'),
-            Tab(text: 'Recovered'),
-            Tab(text: 'Worker Ledger'),
-          ],
-        ),
-      ),
-      fab: FloatingActionButton.extended(
-        onPressed: () => _showNewAdvanceDialog(context, ref, labourAsync),
-        label: const Text('Issue Advance', style: TextStyle(fontWeight: FontWeight.bold)),
-        icon: const Icon(Icons.add),
-        backgroundColor: context.customColors.advance,
-        foregroundColor: Colors.white,
-      ),
-      child: TabBarView(
-        controller: _tabController,
-        children: [
-          _OutstandingTab(advancesAsync: advancesAsync, onIssue: () => _showNewAdvanceDialog(context, ref, labourAsync)),
-          _RecoveredTab(advancesAsync: advancesAsync),
-          _WorkerLedgerTab(advancesAsync: advancesAsync, labourAsync: labourAsync),
+
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _OutstandingTab(
+                  advancesAsync: advancesAsync,
+                  onIssue: () => _showNewAdvanceDialog(context, ref, labourAsync),
+                ),
+                _RecoveredTab(advancesAsync: advancesAsync),
+                _WorkerLedgerTab(
+                  advancesAsync: advancesAsync,
+                  labourAsync: labourAsync,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -276,75 +382,29 @@ class _OutstandingTab extends StatelessWidget {
     return advancesAsync.when(
       data: (advances) {
         final outstanding = advances.where((a) => a.status != 'recovered').toList();
-        final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
 
-        final totalOutstanding = outstanding.fold<double>(
-          0.0, (acc, a) => acc + a.remainingAmount);
-        final workersWithAdvances = outstanding.map((a) => a.labourId).toSet().length;
-        final pendingCount = outstanding.where((a) => a.status == 'pending').length;
+        if (outstanding.isEmpty) {
+          return ModuleEmptyState(
+            icon: Icons.check_circle_outline,
+            title: 'No Outstanding Advances',
+            description: 'All advances have been fully recovered. Great work!',
+            iconColor: context.customColors.success,
+            ctaLabel: 'Issue Advance',
+            onCta: onIssue,
+          );
+        }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Summary Metric Bar ─────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.screenPadding,
-                AppSpacing.screenPadding,
-                AppSpacing.screenPadding,
-                0,
-              ),
-              child: Row(
-                children: [
-                  MetricCard(
-                    label: 'Total Outstanding',
-                    value: currencyFmt.format(totalOutstanding),
-                    icon: Icons.account_balance_wallet_outlined,
-                    color: context.customColors.warning,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  MetricCard(
-                    label: 'Workers',
-                    value: '$workersWithAdvances',
-                    icon: Icons.people_outline,
-                    color: context.customColors.info,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  MetricCard(
-                    label: 'Pending',
-                    value: '$pendingCount',
-                    icon: Icons.pending_outlined,
-                    color: context.colors.outline,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.listGap),
-            // ── List ──────────────────────────────────────────────────────
-            Expanded(
-              child: outstanding.isEmpty
-                  ? CivilEmptyState(
-                      icon: Icons.check_circle_outline,
-                      title: 'No Outstanding Advances',
-                      description: 'All advances have been fully recovered. Great work!',
-                      iconColor: context.customColors.success,
-                      ctaLabel: 'Issue Advance',
-                      onCta: onIssue,
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.screenPadding,
-                        AppSpacing.xs,
-                        AppSpacing.screenPadding,
-                        100,
-                      ),
-                      itemCount: outstanding.length,
-                      itemBuilder: (context, index) {
-                        return _OutstandingCard(advance: outstanding[index]);
-                      },
-                    ),
-            ),
-          ],
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(
+            24.0,
+            AppSpacing.xs,
+            24.0,
+            100,
+          ),
+          itemCount: outstanding.length,
+          itemBuilder: (context, index) {
+            return _OutstandingCard(advance: outstanding[index]);
+          },
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -364,106 +424,98 @@ class _OutstandingCard extends StatelessWidget {
         ? (advance.recoveredAmount / advance.amount).clamp(0.0, 1.0)
         : 0.0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        gradient: context.surfaceGradient,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: context.colors.outline.withValues(alpha: context.isDarkMode ? 0.15 : 0.08),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.2 : 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.cardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Name + Status
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    advance.labourName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                StatusChip(status: advance.status),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              advance.description,
-              style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 13),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 14),
-            // Outstanding amount — DOMINANT
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  currencyFmt.format(advance.remainingAmount),
-                  style: TextStyle(
-                    fontSize: 26,
+    return PremiumModuleCard(
+      glowColor: context.customColors.advance,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Name + Status
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  advance.labourName,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: context.customColors.warning,
+                    fontSize: 16,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  'outstanding',
-                  style: TextStyle(fontSize: 13, color: context.colors.onSurfaceVariant),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Recovery progress bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: recoveryPct,
-                backgroundColor: context.colors.surfaceVariant,
-                color: context.customColors.success,
-                minHeight: 6,
               ),
+              StatusChip(status: advance.status),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            advance.description,
+            style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 13),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 14),
+          // Outstanding amount — DOMINANT
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                currencyFmt.format(advance.remainingAmount),
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: context.customColors.warning,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'outstanding',
+                style: TextStyle(fontSize: 13, color: context.colors.onSurfaceVariant),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Recovery progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: recoveryPct,
+              backgroundColor: context.colors.surfaceVariant,
+              color: context.customColors.success,
+              minHeight: 6,
             ),
-            const SizedBox(height: 6),
-            // Secondary info row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
+          ),
+          const SizedBox(height: 6),
+          // Secondary info row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
                   'Issued: ${currencyFmt.format(advance.amount)}',
                   style: TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Text(
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
                   'Recovered: ${currencyFmt.format(advance.recoveredAmount)} (${(recoveryPct * 100).toStringAsFixed(0)}%)',
                   style: TextStyle(fontSize: 12, color: context.customColors.success),
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Issued on ${DateFormat('dd MMM yyyy').format(advance.date)}',
-              style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Issued on ${DateFormat('dd MMM yyyy').format(advance.date)}',
+            style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
+          ),
+        ],
       ),
     );
   }
@@ -480,49 +532,21 @@ class _RecoveredTab extends StatelessWidget {
     return advancesAsync.when(
       data: (advances) {
         final recovered = advances.where((a) => a.status == 'recovered').toList();
-        final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
-        final totalRecovered = recovered.fold<double>(0.0, (acc, a) => acc + a.recoveredAmount);
 
-        return Column(
-          children: [
-            if (recovered.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Row(
-                  children: [
-                    MetricCard(
-                      label: 'Total Recovered',
-                      value: currencyFmt.format(totalRecovered),
-                      icon: Icons.task_alt_outlined,
-                      color: context.customColors.success,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    MetricCard(
-                      label: 'Workers',
-                      value: '${recovered.map((a) => a.labourId).toSet().length}',
-                      icon: Icons.people_outline,
-                      color: context.customColors.success,
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: recovered.isEmpty
-                  ? const CivilEmptyState(
-                      icon: Icons.offline_pin_outlined,
-                      title: 'No Recovered Advances',
-                      description: 'Advances fully repaid during payroll settlement appear here.',
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                      itemCount: recovered.length,
-                      itemBuilder: (context, index) {
-                        return _RecoveredCard(advance: recovered[index]);
-                      },
-                    ),
-            ),
-          ],
+        if (recovered.isEmpty) {
+          return const ModuleEmptyState(
+            icon: Icons.offline_pin_outlined,
+            title: 'No Recovered Advances',
+            description: 'Advances fully repaid during payroll settlement appear here.',
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(24.0, 4.0, 24.0, 24.0),
+          itemCount: recovered.length,
+          itemBuilder: (context, index) {
+            return _RecoveredCard(advance: recovered[index]);
+          },
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -539,78 +563,62 @@ class _RecoveredCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        gradient: context.surfaceGradient,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: context.colors.outline.withValues(alpha: context.isDarkMode ? 0.15 : 0.08),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.2 : 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+    return PremiumModuleCard(
+      glowColor: context.customColors.success,
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: context.customColors.successContainer,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Icon(Icons.check_circle_outline,
+                color: context.customColors.success, size: 24),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.cardPadding),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: context.customColors.successContainer,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Icon(Icons.check_circle_outline,
-                  color: context.customColors.success, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    advance.labourName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    advance.description,
-                    style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Issued: ${DateFormat('dd MMM yyyy').format(advance.date)}',
-                    style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  currencyFmt.format(advance.amount),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: context.customColors.success,
-                  ),
+                  advance.labourName,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  advance.description,
+                  style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                const StatusChip(status: 'recovered', fontSize: 10),
+                Text(
+                  'Issued: ${DateFormat('dd MMM yyyy').format(advance.date)}',
+                  style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                currencyFmt.format(advance.amount),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: context.customColors.success,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const StatusChip(status: 'recovered', fontSize: 10),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -639,7 +647,7 @@ class _WorkerLedgerTab extends StatelessWidget {
               .toList();
 
           if (workers.isEmpty) {
-            return const CivilEmptyState(
+            return const ModuleEmptyState(
               icon: Icons.people_outline,
               title: 'No Worker Data',
               description: 'Active workers with advance history will appear here.',
@@ -656,7 +664,10 @@ class _WorkerLedgerTab extends StatelessWidget {
           });
 
           return ListView.builder(
-            padding: const EdgeInsets.all(AppSpacing.screenPadding),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
             itemCount: workers.length,
             itemBuilder: (context, index) {
               final labour = workers[index];
@@ -791,110 +802,86 @@ class _WorkerLedgerCard extends StatelessWidget {
     final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
     final hasOutstanding = outstanding > 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        gradient: context.surfaceGradient,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: hasOutstanding
-              ? context.customColors.warning.withValues(alpha: context.isDarkMode ? 0.35 : 0.2)
-              : context.colors.outline.withValues(alpha: context.isDarkMode ? 0.15 : 0.08),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.2 : 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+    return PremiumModuleCard(
+      onTap: onTap,
+      glowColor: hasOutstanding ? context.customColors.warning : context.customColors.success,
+      child: Row(
+        children: [
+          // Avatar
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: hasOutstanding
+                ? context.customColors.warningContainer
+                : context.customColors.successContainer,
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: hasOutstanding
+                    ? context.customColors.warning
+                    : context.customColors.success,
+              ),
+            ),
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.cardPadding),
-            child: Row(
+          const SizedBox(width: 14),
+          // Worker info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: hasOutstanding
-                      ? context.customColors.warningContainer
-                      : context.customColors.successContainer,
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: hasOutstanding
-                          ? context.customColors.warning
-                          : context.customColors.success,
-                    ),
-                  ),
+                Text(
+                  name,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 14),
-                // Worker info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            '$advanceCount advance${advanceCount != 1 ? 's' : ''}',
-                            style:
-                                TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('·', style: TextStyle(color: context.colors.onSurfaceVariant.withValues(alpha: 0.6))),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Issued: ${currencyFmt.format(totalIssued)}',
-                            style:
-                                TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // Outstanding balance — dominant
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                const SizedBox(height: 4),
+                Row(
                   children: [
                     Text(
-                      currencyFmt.format(outstanding),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: hasOutstanding
-                            ? context.customColors.warning
-                            : context.customColors.success,
-                      ),
+                      '$advanceCount advance${advanceCount != 1 ? 's' : ''}',
+                      style:
+                          TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(width: 8),
+                    Text('·', style: TextStyle(color: context.colors.onSurfaceVariant.withValues(alpha: 0.6))),
+                    const SizedBox(width: 8),
                     Text(
-                      'outstanding',
-                      style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
+                      'Issued: ${currencyFmt.format(totalIssued)}',
+                      style:
+                          TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant),
                     ),
-                    const SizedBox(height: 4),
-                    Icon(Icons.chevron_right, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
                   ],
                 ),
               ],
             ),
           ),
-        ),
+          // Outstanding balance — dominant
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                currencyFmt.format(outstanding),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: hasOutstanding
+                      ? context.customColors.warning
+                      : context.customColors.success,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'outstanding',
+                style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
+              ),
+              const SizedBox(height: 4),
+              Icon(Icons.chevron_right, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -71,14 +71,17 @@ class BottomNav extends ConsumerWidget {
       actions.add(() => _showMoreMenu(context, ref));
     }
 
-    return BottomNavigationBar(
-      items: items,
-      currentIndex: 0, // Since it's a push-based router, we don't strictly bind currentIndex
-      onTap: (index) {
-        if (index < actions.length) {
-          actions[index]();
-        }
-      },
+    return SafeArea(
+      top: false,
+      child: BottomNavigationBar(
+        items: items,
+        currentIndex: 0, // Since it's a push-based router, we don't strictly bind currentIndex
+        onTap: (index) {
+          if (index < actions.length) {
+            actions[index]();
+          }
+        },
+      ),
     );
   }
 
@@ -99,17 +102,6 @@ class BottomNav extends ConsumerWidget {
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).pushNamed(AppRoutes.labour);
-                },
-              ),
-
-            // Payments — owner only
-            if (role.canAccessPayments)
-              ListTile(
-                leading: const Icon(Icons.money),
-                title: const Text('Payments'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.of(context).pushNamed(AppRoutes.payments);
                 },
               ),
 

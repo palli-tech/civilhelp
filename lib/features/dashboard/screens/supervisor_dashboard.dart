@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/app/router.dart';
 import '../../../shared/layouts/app_scaffold.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../providers/dashboard_metrics_provider.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/quick_action_tile.dart';
@@ -32,19 +31,7 @@ class SupervisorDashboard extends ConsumerWidget {
       );
     }
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final int crossAxisCount;
-    final double childAspectRatio;
-    if (screenWidth >= 1200) {
-      crossAxisCount = 3;
-      childAspectRatio = 1.35;
-    } else if (screenWidth >= 600) {
-      crossAxisCount = 2;
-      childAspectRatio = 1.35;
-    } else {
-      crossAxisCount = 1;
-      childAspectRatio = 1.6;
-    }
+    // Grid sizes computed dynamically below in LayoutBuilder
 
     Widget buildCard(int index) {
       switch (index) {
@@ -160,31 +147,51 @@ class SupervisorDashboard extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // Responsive grid layout of cards
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
-              childAspectRatio: childAspectRatio,
-            ),
-            itemCount: 5,
-            itemBuilder: (context, index) {
-              return TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.0, end: 1.0),
-                duration: Duration(milliseconds: 300 + (index * 100)),
-                curve: Curves.easeOutCubic,
-                builder: (context, val, child) {
-                  return Opacity(
-                    opacity: val,
-                    child: Transform.translate(
-                      offset: Offset(0, 15 * (1.0 - val)),
-                      child: child,
-                    ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final availableWidth = constraints.maxWidth;
+              final textScale = MediaQuery.maybeTextScalerOf(context)?.scale(1.0) ?? 1.0;
+              final int crossAxisCount;
+              final double childAspectRatio;
+              
+              if (availableWidth >= 900) {
+                crossAxisCount = 3;
+                childAspectRatio = 1.35 / textScale;
+              } else if (availableWidth >= 550) {
+                crossAxisCount = 2;
+                childAspectRatio = 1.35 / textScale;
+              } else {
+                crossAxisCount = 1;
+                childAspectRatio = 1.6 / textScale;
+              }
+              
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 20,
+                  mainAxisSpacing: 20,
+                  childAspectRatio: childAspectRatio,
+                ),
+                itemCount: 5,
+                itemBuilder: (context, index) {
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    duration: Duration(milliseconds: 300 + (index * 100)),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, val, child) {
+                      return Opacity(
+                        opacity: val,
+                        child: Transform.translate(
+                          offset: Offset(0, 15 * (1.0 - val)),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: buildCard(index),
                   );
                 },
-                child: buildCard(index),
               );
             },
           ),

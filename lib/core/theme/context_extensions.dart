@@ -9,7 +9,7 @@ extension ThemeContextExtension on BuildContext {
   TextTheme get text => Theme.of(this).textTheme;
 
   /// Access domain-specific semantic colors via [ThemeExtension]
-  CivilHelpColors get customColors => Theme.of(this).extension<CivilHelpColors>()!;
+  CivilHelpColors get customColors => Theme.of(this).extension<CivilHelpColors>() ?? (isDarkMode ? CivilHelpColors.dark : CivilHelpColors.light);
 
   /// Easily check if the theme is in dark mode
   bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;

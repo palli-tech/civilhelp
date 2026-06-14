@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/shared/widgets/module_header.dart';
 import '../models/report_filter.dart';
 import '../providers/report_provider.dart';
 import '../widgets/report_filter_bar.dart';
@@ -27,11 +28,16 @@ class _MonthlyPayrollScreenState extends ConsumerState<MonthlyPayrollScreen> {
     final companyIdAsync = ref.watch(userCompanyIdProvider);
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Monthly Payroll Summary'),
-      ),
-      child: companyIdAsync.when(
-        data: (companyId) {
+      child: Column(
+        children: [
+          const ModuleHeader(
+            title: 'Monthly Payroll Summary',
+            subtitle: 'Overview of monthly earnings, advances, and payments',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: companyIdAsync.when(
+              data: (companyId) {
           return Column(
             children: [
               ReportFilterBar(
@@ -52,9 +58,12 @@ class _MonthlyPayrollScreenState extends ConsumerState<MonthlyPayrollScreen> {
               ),
             ],
           );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text('Error: $err')),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/shared/widgets/module_header.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import 'package:civilhelp/features/labour/presentation/widgets/labour_form.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
@@ -103,11 +104,15 @@ class _AddEditLabourScreenState extends ConsumerState<AddEditLabourScreen> {
     final isEditMode = widget.labourId!= null;
 
     return AppScaffold(
-      appBar: AppBar(
-        title: Text(isEditMode? 'Edit Labour' : 'Add Labour'),
-        elevation: 0,
-      ),
-      child: labourAsync == null
+      child: Column(
+        children: [
+          ModuleHeader(
+            title: isEditMode ? 'Edit Labour' : 'Add Labour',
+            subtitle: isEditMode ? 'Modify worker details' : 'Register a new worker',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: labourAsync == null
           ? sitesAsync.when(
               data: (sites) {
                 final sitesList = sites
@@ -174,7 +179,9 @@ class _AddEditLabourScreenState extends ConsumerState<AddEditLabourScreen> {
                 child: Text('Error loading labour: $error'),
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 }
-

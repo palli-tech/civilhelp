@@ -14,6 +14,7 @@ import '../../../data/repositories/invitation_repository.dart';
 import '../../../features/sites/providers/site_provider.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../../../shared/widgets/module_header.dart';
 import '../providers/team_management_providers.dart';
 
 class TeamManagementScreen extends ConsumerStatefulWidget {
@@ -63,18 +64,6 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
     return DefaultTabController(
       length: 2,
       child: AppScaffold(
-        appBar: AppBar(
-          title: const Text('Team Management'),
-          bottom: TabBar(
-            indicatorColor: theme.colorScheme.primary,
-            labelColor: theme.colorScheme.primary,
-            unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-            tabs: const [
-              Tab(icon: Icon(Icons.people), text: 'Members'),
-              Tab(icon: Icon(Icons.mail_outline), text: 'Invitations'),
-            ],
-          ),
-        ),
         fab: FloatingActionButton.extended(
           onPressed: () => _showInviteDialog(
             context,
@@ -87,10 +76,30 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
           icon: const Icon(Icons.person_add),
           label: const Text('Invite Member'),
         ),
-        child: TabBarView(
+        child: Column(
           children: [
-            _buildMembersTab(context, teamMembersAsync, sitesAsync),
-            _buildInvitationsTab(context, companyId, invitationsAsync, sitesAsync),
+            ModuleHeader(
+              title: 'Team Management',
+              subtitle: 'Manage company members, roles, and assignments',
+              showBackButton: true,
+              bottom: TabBar(
+                indicatorColor: theme.colorScheme.primary,
+                labelColor: theme.colorScheme.primary,
+                unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                tabs: const [
+                  Tab(icon: Icon(Icons.people), text: 'Members'),
+                  Tab(icon: Icon(Icons.mail_outline), text: 'Invitations'),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildMembersTab(context, teamMembersAsync, sitesAsync),
+                  _buildInvitationsTab(context, companyId, invitationsAsync, sitesAsync),
+                ],
+              ),
+            ),
           ],
         ),
       ),

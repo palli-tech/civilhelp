@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/shared/widgets/module_header.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import '../models/payment_model.dart';
@@ -35,10 +36,17 @@ class PaymentsScreen extends ConsumerWidget {
     );
 
     return AppScaffold(
-      appBar: AppBar(title: const Text('Payments'), elevation: 0),
       fab: fab,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          const ModuleHeader(
+            title: 'Payments',
+            subtitle: 'Disburse and track labour wage payouts',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Expanded(
@@ -156,6 +164,9 @@ class PaymentsScreen extends ConsumerWidget {
             ),
           ],
         ),
+            ),
+          ),
+        ],
       ),
     );
   }

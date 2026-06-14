@@ -8,6 +8,7 @@ import 'package:civilhelp/core/auth/permissions.dart';
 import '../../../app/router.dart';
 import '../../../core/providers/tenant_provider.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../../../shared/widgets/module_header.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -22,11 +23,16 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
+      child: Column(
+        children: [
+          const ModuleHeader(
+            title: 'Settings',
+            subtitle: 'Configure application preferences and profile',
+            showBackButton: false,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
           child: Center(
             child: Container(
@@ -255,8 +261,11 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ],
+),
+);
+}
 
   Widget _buildInfoRow(BuildContext context, String label, String value, {Color? color}) {
     return Padding(
@@ -264,12 +273,24 @@ class SettingsScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontWeight: FontWeight.w500, color: context.colors.onSurfaceVariant)),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: context.colors.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
         ],

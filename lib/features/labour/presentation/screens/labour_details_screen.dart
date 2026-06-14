@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/enums/labour_status.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/shared/widgets/module_header.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/features/labour/presentation/widgets/labour_status_chip.dart';
 
@@ -21,11 +22,15 @@ class LabourDetailsScreen extends ConsumerWidget {
     final labourAsync = ref.watch(labourByIdProvider(labourId));
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Labour Details'),
-        elevation: 0,
-      ),
-      child: labourAsync.when(
+      child: Column(
+        children: [
+          const ModuleHeader(
+            title: 'Labour Details',
+            subtitle: 'View worker information and status',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: labourAsync.when(
         data: (labour) {
           if (labour == null) {
             return const Center(child: Text('Labour not found'));
@@ -165,8 +170,11 @@ class LabourDetailsScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ],
+),
+);
+}
 
   Widget _buildActionButtons(
     BuildContext context,

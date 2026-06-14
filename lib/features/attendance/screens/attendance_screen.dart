@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/auth/permissions.dart';
 import 'package:civilhelp/core/enums/user_role.dart';
 import 'package:civilhelp/core/providers/user_role_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
-import 'package:civilhelp/shared/widgets/civil_empty_state.dart';
+import 'package:civilhelp/shared/widgets/module_header.dart';
+import 'package:civilhelp/shared/widgets/module_empty_state.dart';
+import 'package:civilhelp/shared/widgets/operational_metrics_strip.dart';
+import 'package:civilhelp/shared/widgets/premium_module_card.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import '../models/attendance_model.dart';
@@ -48,6 +52,8 @@ class AttendanceScreen extends ConsumerWidget {
                 _showNewAttendanceDialog(context, ref, sitesAsync, labourAsync);
               },
               tooltip: 'Mark Attendance',
+              backgroundColor: context.customColors.attendance,
+              foregroundColor: Colors.white,
               child: const Icon(Icons.add),
             ),
       loading: () => null,
@@ -55,64 +61,317 @@ class AttendanceScreen extends ConsumerWidget {
     );
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Attendance'),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.group_add),
-            tooltip: 'Bulk Attendance',
-            onPressed: () => _showBulkAttendanceDialog(context, ref, sitesAsync, labourAsync),
+      fab: fab,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ModuleHeader(
+            title: 'Attendance',
+            subtitle: 'Track worker daily presence & hours',
+            showBackButton: false,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.group_add_outlined, color: context.colors.primary),
+                tooltip: 'Bulk Attendance',
+                onPressed: () => _showBulkAttendanceDialog(context, ref, sitesAsync, labourAsync),
+              ),
+            ],
+          ),
+          Expanded(
+            child: attendanceAsync.when(
+              data: (attendance) {
+                if (attendance.isEmpty) {
+                  return ModuleEmptyState(
+                    icon: Icons.calendar_today_outlined,
+                    title: 'No Attendance Records',
+                    description: 'Mark attendance to track labour presence, hours, and earnings.',
+                    ctaLabel: 'Mark Attendance',
+                    onCta: () => _showNewAttendanceDialog(context, ref, sitesAsync, labourAsync),
+                    iconColor: context.customColors.attendance,
+                  );
+                }
+
+                // Determine active date context for KPIs (default to today or fall back to latest date in logs)
+                DateTime targetDate = DateTime.now();
+                List<AttendanceModel> dayLogs = attendance.where((a) =>
+                    a.date.year == targetDate.year &&
+                    a.date.month == targetDate.month &&
+                    a.date.day == targetDate.day
+                ).toList();
+
+                if (dayLogs.isEmpty && attendance.isNotEmpty) {
+                  final latestDate = attendance.map((a) => a.date).reduce((a, b) => a.isAfter(b) ? a : b);
+                  targetDate = latestDate;
+                  dayLogs = attendance.where((a) =>
+                      a.date.year == targetDate.year &&
+                      a.date.month == targetDate.month &&
+                      a.date.day == targetDate.day
+                  ).toList();
+                }
+
+                // Metrics calculations for the day
+                final present = dayLogs.where((a) => a.status.toLowerCase() == 'present').length;
+                final absent = dayLogs.where((a) => a.status.toLowerCase() == 'absent').length;
+                final halfDay = dayLogs.where((a) => 
+                    a.status.toLowerCase() == 'half day' || 
+                    a.status.toLowerCase() == 'half-day'
+                ).length;
+                final attendancePct = dayLogs.isNotEmpty
+                    ? ((present + halfDay * 0.5) / dayLogs.length * 100)
+                    : 0.0;
+
+                final textScale = MediaQuery.maybeTextScalerOf(context)?.scale(1.0) ?? 1.0;
+                final screenWidth = MediaQuery.of(context).size.width;
+                final isMobile = screenWidth < 700;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Hero Metrics Strip
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 12.0,
+                      ),
+                      child: OperationalMetricsStrip(
+                        metrics: [
+                          OperationalMetricData(
+                            label: 'Present Today',
+                            value: '$present',
+                            icon: Icons.check_circle_outline,
+                            color: context.customColors.success,
+                          ),
+                          OperationalMetricData(
+                            label: 'Absent Today',
+                            value: '$absent',
+                            icon: Icons.cancel_outlined,
+                            color: context.colors.error,
+                          ),
+                          OperationalMetricData(
+                            label: 'Half Day Today',
+                            value: '$halfDay',
+                            icon: Icons.star_half_rounded,
+                            color: context.customColors.warning,
+                          ),
+                          OperationalMetricData(
+                            label: 'Attendance %',
+                            value: '${attendancePct.toStringAsFixed(0)}%',
+                            icon: Icons.percent_outlined,
+                            color: context.customColors.attendance,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Quick Actions
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 8.0,
+                      ),
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => _showNewAttendanceDialog(context, ref, sitesAsync, labourAsync),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Mark Attendance', style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: context.customColors.attendance,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => _showBulkAttendanceDialog(context, ref, sitesAsync, labourAsync),
+                            icon: const Icon(Icons.group_add_outlined, size: 18),
+                            label: const Text('Bulk Attendance'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: context.customColors.attendance,
+                              side: BorderSide(color: context.customColors.attendance),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Insights Panel
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 12.0,
+                      ),
+                      child: _buildInsightsPanel(context, dayLogs, targetDate),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Primary Content Grid
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          ref.invalidate(roleAwareAttendanceStreamProvider);
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final double availableWidth = constraints.maxWidth;
+                              final isMobileLayout = availableWidth < 700;
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24.0,
+                                  vertical: 16.0,
+                                ),
+                                child: Wrap(
+                                  spacing: 20,
+                                  runSpacing: 20,
+                                  children: attendance.map((entry) {
+                                    final double cardWidth = isMobileLayout
+                                        ? (availableWidth - 48.0)
+                                        : (availableWidth - 48.0 - 20.0) / 2.0;
+
+                                    return SizedBox(
+                                      width: cardWidth.clamp(0.0, double.infinity),
+                                      child: AttendanceCard(
+                                        attendance: entry,
+                                        onEdit: () {
+                                          _showEditAttendanceDialog(context, ref, entry,
+                                              sitesAsync, labourAsync);
+                                        },
+                                        onDelete: canDelete
+                                            ? () {
+                                                _showDeleteAttendanceDialog(context, ref, entry);
+                                              }
+                                            : null,
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => ModuleEmptyState(
+                icon: Icons.error_outline,
+                title: 'Failed to Load Attendance',
+                description: error.toString(),
+                iconColor: context.colors.error,
+                ctaLabel: 'Retry',
+                onCta: () => ref.invalidate(roleAwareAttendanceStreamProvider),
+              ),
+            ),
           ),
         ],
       ),
-      fab: fab,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.screenPadding),
-        child: Column(
-          children: [
-            Expanded(
-              child: attendanceAsync.when(
-                data: (attendance) {
-                  if (attendance.isEmpty) {
-                    return CivilEmptyState(
-                      icon: Icons.calendar_today_outlined,
-                      title: 'No Attendance Records',
-                      description: 'Mark attendance to track labour presence, hours, and earnings.',
-                      ctaLabel: 'Mark Attendance',
-                      onCta: () => _showNewAttendanceDialog(
-                        context, ref, sitesAsync, labourAsync),
-                    );
-                  }
+    );
+  }
 
-                  return ListView.separated(
-                    itemCount: attendance.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: AppSpacing.listGap),
-                    itemBuilder: (context, index) {
-                      final entry = attendance[index];
-                      return AttendanceCard(
-                        attendance: entry,
-                        onEdit: () {
-                          _showEditAttendanceDialog(context, ref, entry,
-                              sitesAsync, labourAsync);
-                        },
-                        onDelete: canDelete
-                            ? () {
-                                _showDeleteAttendanceDialog(context, ref, entry);
-                              }
-                            : null,
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) =>
-                    Center(child: Text('Failed to load attendance: $error')),
+  Widget _buildInsightsPanel(BuildContext context, List<AttendanceModel> dayLogs, DateTime date) {
+
+    // Top performing site today
+    final Map<String, int> siteCounts = {};
+    for (final a in dayLogs) {
+      if (a.status.toLowerCase() == 'present' || 
+          a.status.toLowerCase() == 'half day' || 
+          a.status.toLowerCase() == 'half-day') {
+        siteCounts[a.siteName] = (siteCounts[a.siteName] ?? 0) + 1;
+      }
+    }
+    String topSite = 'None';
+    int maxCount = -1;
+    siteCounts.forEach((site, count) {
+      if (count > maxCount) {
+        maxCount = count;
+        topSite = site;
+      }
+    });
+
+    final absentWorkers = dayLogs.where((a) => a.status.toLowerCase() == 'absent').map((a) => a.labourName).toList();
+    final absentNames = absentWorkers.isNotEmpty ? absentWorkers.join(', ') : 'None';
+    final formattedDate = DateFormat('dd MMM yyyy').format(date);
+
+    return PremiumModuleCard(
+      glowColor: context.customColors.attendance,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Attendance Insights ($formattedDate)',
+                  style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Icon(Icons.analytics_outlined, size: 18, color: context.customColors.attendance),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Top Performing Site', style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant)),
+                    const SizedBox(height: 4),
+                    Text(
+                      topSite,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Absent Workers Count', style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${absentWorkers.length}',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
+            child: Divider(height: 1),
+          ),
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 14, color: context.colors.error),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Absent Workers: $absentNames',
+                  style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -151,7 +410,6 @@ class AttendanceScreen extends ConsumerWidget {
                       status, hoursWorked, musterQuantity) async {
                     setState(() => isLoading = true);
                     try {
-                      // Preserve original labour and site; only update date/status/hours/muster
                       final updated = attendance.copyWith(
                         date: date,
                         status: status,
@@ -169,7 +427,6 @@ class AttendanceScreen extends ConsumerWidget {
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        // Map duplicate/business errors to inline validation
                         final msg = e.toString();
                         if (msg.contains('Attendance already exists')) {
                           final dateStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
@@ -418,4 +675,3 @@ class AttendanceScreen extends ConsumerWidget {
     });
   }
 }
-

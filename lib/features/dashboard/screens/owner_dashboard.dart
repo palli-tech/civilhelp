@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/app/router.dart';
 import '../../../shared/layouts/app_scaffold.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../providers/dashboard_metrics_provider.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/quick_action_tile.dart';
@@ -42,20 +41,7 @@ class OwnerDashboard extends ConsumerWidget {
       );
     }
 
-    // Determine grid cross axis count and aspect ratio based on width
-    final screenWidth = MediaQuery.of(context).size.width;
-    final int crossAxisCount;
-    final double childAspectRatio;
-    if (screenWidth >= 1200) {
-      crossAxisCount = 3;
-      childAspectRatio = 1.35;
-    } else if (screenWidth >= 600) {
-      crossAxisCount = 2;
-      childAspectRatio = 1.35;
-    } else {
-      crossAxisCount = 1;
-      childAspectRatio = 1.6;
-    }
+    // Grid sizes computed dynamically below in LayoutBuilder
 
     Widget buildDashboardCard(int index) {
       switch (index) {
@@ -64,14 +50,20 @@ class OwnerDashboard extends ConsumerWidget {
             title: 'Total Sites',
             value: formatCount(totalSites),
             icon: Icons.location_on,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF251A55), Color(0xFF1A123D)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF251A55), Color(0xFF1A123D)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFFF4F0FF), Color(0xFFE8DDFF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             overlayIcon: Icons.business_outlined,
             iconColor: const Color(0xFF7B4DFF),
-            iconBackgroundColor: const Color(0xFF7B4DFF).withOpacity(0.15),
+            iconBackgroundColor: const Color(0xFF7B4DFF).withValues(alpha: 0.15),
             glowColor: const Color(0xFF7B4DFF),
             onTap: () {
               Navigator.of(context).pushNamed(AppRoutes.sites);
@@ -82,14 +74,20 @@ class OwnerDashboard extends ConsumerWidget {
             title: 'Active Labour',
             value: formatCount(activeLabour),
             icon: Icons.people,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF103B2C), Color(0xFF132E27)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF103B2C), Color(0xFF132E27)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFFE8FDF5), Color(0xFFD0FBEB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             overlayIcon: Icons.groups_rounded,
             iconColor: const Color(0xFF00D68F),
-            iconBackgroundColor: const Color(0xFF00D68F).withOpacity(0.15),
+            iconBackgroundColor: const Color(0xFF00D68F).withValues(alpha: 0.15),
             glowColor: const Color(0xFF00D68F),
             onTap: () {
               Navigator.of(context).pushNamed(AppRoutes.labour);
@@ -100,14 +98,20 @@ class OwnerDashboard extends ConsumerWidget {
             title: "Today's Attendance",
             value: formatCount(todayAttendance),
             icon: Icons.today,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF102F55), Color(0xFF152A4B)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF102F55), Color(0xFF152A4B)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFFEBF3FF), Color(0xFFD6E7FF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             overlayIcon: Icons.calendar_today_rounded,
             iconColor: const Color(0xFF3D8BFF),
-            iconBackgroundColor: const Color(0xFF3D8BFF).withOpacity(0.15),
+            iconBackgroundColor: const Color(0xFF3D8BFF).withValues(alpha: 0.15),
             glowColor: const Color(0xFF3D8BFF),
             onTap: () {
               Navigator.of(context).pushNamed(AppRoutes.attendance);
@@ -118,14 +122,20 @@ class OwnerDashboard extends ConsumerWidget {
             title: 'Outstanding Advances',
             value: formatAmount(outstandingAdvances),
             icon: Icons.account_balance_wallet,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4A1630), Color(0xFF321022)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF4A1630), Color(0xFF321022)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFFFFECEF), Color(0xFFFFD6DD)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             overlayIcon: Icons.account_balance_wallet_rounded,
             iconColor: const Color(0xFFFF5A7A),
-            iconBackgroundColor: const Color(0xFFFF5A7A).withOpacity(0.15),
+            iconBackgroundColor: const Color(0xFFFF5A7A).withValues(alpha: 0.15),
             glowColor: const Color(0xFFFF5A7A),
             onTap: () {
               Navigator.of(context).pushNamed(AppRoutes.advances);
@@ -136,14 +146,20 @@ class OwnerDashboard extends ConsumerWidget {
             title: 'Pending Payments',
             value: formatCount(pendingPayments),
             icon: Icons.payment,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF3E1B57), Color(0xFF2A143D)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF3E1B57), Color(0xFF2A143D)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFFFFF7E6), Color(0xFFFFEBD0)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             overlayIcon: Icons.analytics_rounded,
             iconColor: const Color(0xFFFFAA00),
-            iconBackgroundColor: const Color(0xFFFFAA00).withOpacity(0.15),
+            iconBackgroundColor: const Color(0xFFFFAA00).withValues(alpha: 0.15),
             glowColor: const Color(0xFFFFAA00),
             onTap: () {
               Navigator.of(context).pushNamed(AppRoutes.payments);
@@ -154,14 +170,20 @@ class OwnerDashboard extends ConsumerWidget {
             title: 'Current Month Payroll',
             value: formatAmount(currentMonthPayroll),
             icon: Icons.money,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4D3110), Color(0xFF35200C)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF4D3110), Color(0xFF35200C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             overlayIcon: Icons.receipt_long_rounded,
             iconColor: const Color(0xFFFFAA00),
-            iconBackgroundColor: const Color(0xFFFFAA00).withOpacity(0.15),
+            iconBackgroundColor: const Color(0xFFFFAA00).withValues(alpha: 0.15),
             glowColor: const Color(0xFFFFAA00),
             onTap: () {
               Navigator.of(context).pushNamed(AppRoutes.payroll);
@@ -203,31 +225,51 @@ class OwnerDashboard extends ConsumerWidget {
           ),
 
           // Responsive layout grid of KPI cards
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
-              childAspectRatio: childAspectRatio,
-            ),
-            itemCount: 6,
-            itemBuilder: (context, index) {
-              return TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.0, end: 1.0),
-                duration: Duration(milliseconds: 300 + (index * 100)),
-                curve: Curves.easeOutCubic,
-                builder: (context, val, child) {
-                  return Opacity(
-                    opacity: val,
-                    child: Transform.translate(
-                      offset: Offset(0, 15 * (1.0 - val)),
-                      child: child,
-                    ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final availableWidth = constraints.maxWidth;
+              final textScale = MediaQuery.maybeTextScalerOf(context)?.scale(1.0) ?? 1.0;
+              final int crossAxisCount;
+              final double childAspectRatio;
+              
+              if (availableWidth >= 900) {
+                crossAxisCount = 3;
+                childAspectRatio = 1.35 / textScale;
+              } else if (availableWidth >= 550) {
+                crossAxisCount = 2;
+                childAspectRatio = 1.35 / textScale;
+              } else {
+                crossAxisCount = 1;
+                childAspectRatio = 1.6 / textScale;
+              }
+              
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 20,
+                  mainAxisSpacing: 20,
+                  childAspectRatio: childAspectRatio,
+                ),
+                itemCount: 6,
+                itemBuilder: (context, index) {
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    duration: Duration(milliseconds: 300 + (index * 100)),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, val, child) {
+                      return Opacity(
+                        opacity: val,
+                        child: Transform.translate(
+                          offset: Offset(0, 15 * (1.0 - val)),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: buildDashboardCard(index),
                   );
                 },
-                child: buildDashboardCard(index),
               );
             },
           ),
@@ -249,9 +291,9 @@ class OwnerDashboard extends ConsumerWidget {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+              color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
               ),
             ),
             child: ClipRRect(
@@ -269,7 +311,7 @@ class OwnerDashboard extends ConsumerWidget {
                     ),
                     Divider(
                       height: 1,
-                      color: isDark ? Colors.white.withOpacity(0.08) : Colors.black12,
+                      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black12,
                     ),
                     QuickActionTile(
                       label: 'Payroll Dashboard',
@@ -280,7 +322,7 @@ class OwnerDashboard extends ConsumerWidget {
                     ),
                     Divider(
                       height: 1,
-                      color: isDark ? Colors.white.withOpacity(0.08) : Colors.black12,
+                      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black12,
                     ),
                     QuickActionTile(
                       label: 'Manage Sites',
@@ -291,7 +333,7 @@ class OwnerDashboard extends ConsumerWidget {
                     ),
                     Divider(
                       height: 1,
-                      color: isDark ? Colors.white.withOpacity(0.08) : Colors.black12,
+                      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black12,
                     ),
                     QuickActionTile(
                       label: 'Partner Management',

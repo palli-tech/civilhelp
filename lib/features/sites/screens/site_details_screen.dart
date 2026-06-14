@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/enums/site_status.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/shared/widgets/module_header.dart';
 import '../providers/site_provider.dart';
 import 'package:civilhelp/features/attendance/providers/attendance_provider.dart';
 
@@ -22,11 +23,15 @@ class SiteDetailsScreen extends ConsumerWidget {
     final dateFormat = DateFormat('MMM dd, yyyy');
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Site Details'),
-        elevation: 0,
-      ),
-      child: siteAsync.when(
+      child: Column(
+        children: [
+          const ModuleHeader(
+            title: 'Site Details',
+            subtitle: 'View work location details and recent logs',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: siteAsync.when(
         data: (site) {
           if (site == null) {
             return Center(
@@ -344,8 +349,11 @@ class SiteDetailsScreen extends ConsumerWidget {
           );
         },
       ),
-    );
-  }
+    ),
+  ],
+),
+);
+}
 
 Color _getStatusColor(BuildContext context, SiteStatus status) {
   switch (status) {

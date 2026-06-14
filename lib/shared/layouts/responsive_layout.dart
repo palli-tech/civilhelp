@@ -13,6 +13,14 @@ class ResponsiveLayout extends ConsumerWidget {
   final FloatingActionButton? fab;
   final bool usePremiumBackground;
 
+  static const double drawerWidth = 280.0;
+  static const EdgeInsets drawerPadding = EdgeInsets.only(
+    left: 16.0,
+    top: 16.0,
+    bottom: 16.0,
+    right: 8.0,
+  );
+
   const ResponsiveLayout({
     super.key,
     required this.mobileBody,
@@ -22,7 +30,7 @@ class ResponsiveLayout extends ConsumerWidget {
     this.drawer,
     this.bottomNav,
     this.fab,
-    this.usePremiumBackground = false,
+    this.usePremiumBackground = true,
   });
 
   @override
@@ -45,23 +53,25 @@ class ResponsiveLayout extends ConsumerWidget {
       backgroundColor: usePremiumBackground && isDark ? Colors.transparent : null,
       appBar: appBar,
       drawer: isTablet ? null : drawer,
-      body: isTablet
-          ? Row(
-              children: [
-                if (drawer != null && isTablet)
-                  Padding(
-                    padding: usePremiumBackground
-                        ? const EdgeInsets.only(left: 16.0, top: 16.0, bottom: 16.0, right: 8.0)
-                        : EdgeInsets.zero,
-                    child: SizedBox(
-                      width: 280,
-                      child: drawer,
+      body: SafeArea(
+        top: appBar == null,
+        bottom: bottomNav == null,
+        child: isTablet
+            ? Row(
+                children: [
+                  if (drawer != null && isTablet)
+                    Padding(
+                      padding: drawerPadding,
+                      child: SizedBox(
+                        width: drawerWidth,
+                        child: drawer,
+                      ),
                     ),
-                  ),
-                Expanded(child: body),
-              ],
-            )
-          : body,
+                  Expanded(child: body),
+                ],
+              )
+            : body,
+      ),
       bottomNavigationBar: isTablet ? null : bottomNav,
       floatingActionButton: fab,
     );

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:civilhelp/app/theme.dart';
 import '../../../core/providers/tenant_provider.dart';
+import '../../../shared/widgets/module_header.dart';
 import '../../../shared/widgets/company_header.dart';
 import '../providers/company_profile_provider.dart';
 
@@ -150,26 +151,31 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Company Profile'),
-        actions: [
-          if (state.isSaving)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-              ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _saveDetails,
-            ),
-        ],
-      ),
-      body: companyState.when(
+      body: Column(
+        children: [
+          ModuleHeader(
+            title: 'Company Profile',
+            subtitle: 'Manage company branding, office contact, and registration details',
+            showBackButton: true,
+            actions: [
+              if (state.isSaving)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.save),
+                  onPressed: _saveDetails,
+                ),
+            ],
+          ),
+          Expanded(
+            child: companyState.when(
         data: (company) {
           if (company == null) {
             return const Center(child: Text('Company data not found.'));
@@ -313,7 +319,10 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error loading company: $err')),
+        ),
       ),
-    );
-  }
+    ],
+  ),
+);
+}
 }

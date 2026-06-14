@@ -32,6 +32,8 @@ class _HeroKpiCardState extends State<HeroKpiCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
 
     final cardContent = widget.valueAsync.when(
       data: (number) {
@@ -51,64 +53,73 @@ class _HeroKpiCardState extends State<HeroKpiCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      widget.label,
-                      style: TextStyle(
-                        fontFamily: 'NotoSans',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? const Color(0xFFB4B8D0) : Colors.black54,
+                    Expanded(
+                      child: Text(
+                        widget.label,
+                        style: TextStyle(
+                          fontFamily: 'NotoSans',
+                          fontSize: isMobile ? 11 : 13,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? const Color(0xFFB4B8D0) : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Icon(
                       widget.icon,
-                      color: widget.accentColor.withOpacity(0.8),
-                      size: 18,
+                      color: widget.accentColor.withValues(alpha: 0.8),
+                      size: isMobile ? 16 : 18,
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: isMobile ? 4 : 12),
                 Text(
                   formattedValue,
                   style: TextStyle(
                     fontFamily: 'NotoSans',
-                    fontSize: 28,
+                    fontSize: isMobile ? 20 : 28,
                     fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                     height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 4),
-                // Subtle status accent dot
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: widget.accentColor,
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.accentColor,
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ],
+                if (!isMobile) ...[
+                  const SizedBox(height: 4),
+                  // Subtle status accent dot
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: widget.accentColor,
+                          boxShadow: [
+                            BoxShadow(
+                              color: widget.accentColor,
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Live Metrics',
-                      style: TextStyle(
-                        fontFamily: 'NotoSans',
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? const Color(0xFFB4B8D0).withOpacity(0.7) : Colors.black38,
+                      const SizedBox(width: 6),
+                      Text(
+                        'Live Metrics',
+                        style: TextStyle(
+                          fontFamily: 'NotoSans',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? const Color(0xFFB4B8D0).withValues(alpha: 0.7)
+                              : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ],
             );
           },
@@ -125,12 +136,21 @@ class _HeroKpiCardState extends State<HeroKpiCard> {
         child: Text(
           'N/A',
           style: TextStyle(
-            color: isDark ? Colors.white : Colors.black87,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
     );
+
+    // Dynamic backgrounds for light/dark theme contrast
+    final cardBgColor = isDark
+        ? Colors.white.withValues(alpha: 0.04)
+        : widget.accentColor.withValues(alpha: 0.08);
+
+    final borderColor = isDark
+        ? (_isHovered ? widget.accentColor.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.08))
+        : (_isHovered ? widget.accentColor.withValues(alpha: 0.5) : widget.accentColor.withValues(alpha: 0.15));
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -140,36 +160,36 @@ class _HeroKpiCardState extends State<HeroKpiCard> {
         duration: const Duration(milliseconds: 200),
         child: Container(
           width: widget.width,
-          height: 120,
+          height: isMobile ? 85.0 : 120.0,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(isMobile ? 16 : 24),
+            color: cardBgColor,
             border: Border.all(
-              color: isDark
-                  ? (_isHovered ? widget.accentColor.withOpacity(0.4) : Colors.white.withOpacity(0.08))
-                  : Colors.black.withOpacity(0.08),
+              color: borderColor,
               width: 1,
             ),
             boxShadow: [
               if (_isHovered)
                 BoxShadow(
-                  color: widget.accentColor.withOpacity(isDark ? 0.15 : 0.06),
+                  color: widget.accentColor.withValues(alpha: isDark ? 0.15 : 0.06),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 )
               else
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
+                  color: Colors.black.withValues(alpha: 0.02),
                   blurRadius: 4,
                 ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(isMobile ? 16 : 24),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                padding: isMobile
+                    ? const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0)
+                    : const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
                 child: cardContent,
               ),
             ),
@@ -191,7 +211,6 @@ class HeroKpiStrip extends ConsumerWidget {
     final currentMonthPayroll = ref.watch(currentMonthPayrollProvider);
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 1200;
 
     final cards = [
       HeroKpiCard(
@@ -237,7 +256,7 @@ class HeroKpiStrip extends ConsumerWidget {
       ),
     ];
 
-    if (isDesktop) {
+    if (screenWidth >= 600) {
       return Row(
         children: cards
             .map((card) => Expanded(
@@ -250,22 +269,25 @@ class HeroKpiStrip extends ConsumerWidget {
       );
     }
 
-    // Horizontal scrollable strip for mobile and tablet
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 6.0),
-      child: Row(
-        children: cards
-            .map((card) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: SizedBox(
-                    width: 180,
-                    child: card,
-                  ),
-                ))
-            .toList(),
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(child: cards[0]),
+            const SizedBox(width: 12),
+            Expanded(child: cards[1]),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: cards[2]),
+            const SizedBox(width: 12),
+            Expanded(child: cards[3]),
+          ],
+        ),
+      ],
     );
   }
 }

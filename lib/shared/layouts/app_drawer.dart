@@ -441,18 +441,6 @@ class AppDrawer extends ConsumerWidget {
                             }
                           },
                         ),
-                      if (role.canAccessPayments)
-                        buildNavItem(
-                          icon: Icons.payment_outlined,
-                          title: 'Payments',
-                          routeName: AppRoutes.payments,
-                          onTap: () {
-                            if (currentRoute != AppRoutes.payments) {
-                              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
-                              Navigator.of(context).pushNamed(AppRoutes.payments);
-                            }
-                          },
-                        ),
                       if (role.hasPermission(Permission.managePayments))
                         buildNavItem(
                           icon: Icons.receipt_long_outlined,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:civilhelp/app/theme.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../../../shared/widgets/module_header.dart';
 import '../providers/payroll_providers.dart';
 import '../repositories/payroll_repository.dart';
 
@@ -26,22 +27,16 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
     final calculationsAsync = ref.watch(payrollCalculationProvider(widget.periodId));
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Process Payroll', style: TextStyle(fontWeight: FontWeight.bold)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [context.colors.primary, context.colors.secondary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-      ),
-      child: Stack(
+      child: Column(
         children: [
+          const ModuleHeader(
+            title: 'Process Payroll',
+            subtitle: 'Finalize calculations and settle payments',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: Stack(
+              children: [
           periodAsync.when(
             data: (period) {
               if (period == null) {
@@ -93,6 +88,9 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
                 ),
               ),
             ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -223,46 +221,44 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
               ),
             ],
           ),
-          child: SafeArea(
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<String>(
-                    value: _paymentMode,
-                    dropdownColor: context.colors.surface,
-                    decoration: const InputDecoration(
-                      labelText: 'Payment Mode',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                      DropdownMenuItem(value: 'upi', child: Text('UPI')),
-                      DropdownMenuItem(value: 'bankTransfer', child: Text('Bank Transfer')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => _paymentMode = val);
-                    },
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: DropdownButtonFormField<String>(
+                  value: _paymentMode,
+                  dropdownColor: context.colors.surface,
+                  decoration: const InputDecoration(
+                    labelText: 'Payment Mode',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                    DropdownMenuItem(value: 'upi', child: Text('UPI')),
+                    DropdownMenuItem(value: 'bankTransfer', child: Text('Bank Transfer')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _paymentMode = val);
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 3,
+                child: ElevatedButton.icon(
+                  onPressed: () => _finalizePayroll(context, period, calcs, totalNet),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Finalize & Settle', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.colors.primary,
+                    foregroundColor: context.colors.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 3,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _finalizePayroll(context, period, calcs, totalNet),
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Finalize & Settle', style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.colors.primary,
-                      foregroundColor: context.colors.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],

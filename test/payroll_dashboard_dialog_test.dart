@@ -50,9 +50,11 @@ class FakePayrollRepository extends PayrollRepository {
 
 void main() {
   late FakePayrollRepository fakeRepo;
+  late FakeFirebaseFirestore fakeFirestore;
 
   setUp(() {
-    fakeRepo = FakePayrollRepository(firestore: FakeFirebaseFirestore());
+    fakeFirestore = FakeFirebaseFirestore();
+    fakeRepo = FakePayrollRepository(firestore: fakeFirestore);
   });
 
   Widget createTestWidget() {
@@ -61,6 +63,7 @@ void main() {
         userCompanyIdProvider.overrideWith((ref) => 'comp_abc'),
         currentUserProvider.overrideWith((ref) => null),
         payrollRepositoryProvider.overrideWith((ref) => fakeRepo),
+        firestoreProvider.overrideWith((ref) => fakeFirestore),
       ],
       child: const MaterialApp(
         home: PayrollDashboardScreen(),
