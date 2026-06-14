@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:civilhelp/core/services/firestore_path_service.dart';
+import '../../domain/entities/labour_entity.dart';
 import '../models/labour_model.dart';
 
 class LabourRepository {
@@ -8,6 +9,36 @@ class LabourRepository {
 
   LabourRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  Future<void> _checkDeactivationPrerequisites(String companyId, String labourId) async {
+    final attendancePath = FirestorePathService.attendance(companyId);
+    final advancesPath = FirestorePathService.advances(companyId);
+
+    // Unpaid attendance check (where isDeleted != true and paymentStatus != paid)
+    final unpaidAttendanceQuery = await _firestore
+        .collection(attendancePath)
+        .where('labourId', isEqualTo: labourId)
+        .where('isDeleted', isNotEqualTo: true)
+        .get();
+
+    final hasUnpaidAttendance = unpaidAttendanceQuery.docs.any((doc) => 
+        doc.data()['paymentStatus'] != 'paid');
+
+    if (hasUnpaidAttendance) {
+      throw Exception('Cannot deactivate worker: unpaid attendance logs exist.');
+    }
+
+    // Unpaid advances check (where status is pending or partial)
+    final unpaidAdvancesQuery = await _firestore
+        .collection(advancesPath)
+        .where('labourId', isEqualTo: labourId)
+        .where('status', whereIn: ['pending', 'partial'])
+        .get();
+
+    if (unpaidAdvancesQuery.docs.isNotEmpty) {
+      throw Exception('Cannot deactivate worker: unpaid/unrecovered advances exist.');
+    }
+  }
 
   /// Create a new labour record
   Future<LabourModel> createLabour({
@@ -23,8 +54,10 @@ class LabourRepository {
     required String createdBy,
   }) async {
     try {
-      final docRef = await _firestore.collection(FirestorePathService.labour(companyId)).add({
+      LabourEntity.validatePhone(phoneNumber);
+      LabourEntity.validateAadhaar(aadhaarNumber);
 
+      final docRef = await _firestore.collection(FirestorePathService.labour(companyId)).add({
         'fullName': fullName,
         'phoneNumber': phoneNumber,
         'aadhaarNumber': aadhaarNumber,
@@ -59,6 +92,13 @@ class LabourRepository {
     required String status,
   }) async {
     try {
+      LabourEntity.validatePhone(phoneNumber);
+      LabourEntity.validateAadhaar(aadhaarNumber);
+
+      if (status == 'inactive') {
+        await _checkDeactivationPrerequisites(companyId, labourId);
+      }
+
       await _firestore.collection(FirestorePathService.labour(companyId)).doc(labourId).update({
         'fullName': fullName,
         'phoneNumber': phoneNumber,
@@ -81,6 +121,10 @@ class LabourRepository {
     required String status,
   }) async {
     try {
+      if (status == 'inactive') {
+        await _checkDeactivationPrerequisites(companyId, labourId);
+      }
+
       await _firestore.collection(FirestorePathService.labour(companyId)).doc(labourId).update({
         'status': status,
       });

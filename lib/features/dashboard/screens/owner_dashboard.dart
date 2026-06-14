@@ -128,6 +128,14 @@ class OwnerDashboard extends ConsumerWidget {
                   ),
                   const Divider(height: 0),
                   QuickActionTile(
+                    label: 'Payroll Dashboard',
+                    icon: Icons.receipt_long,
+                    onTap: () {
+                      Navigator.pushNamed(context, '/payroll');
+                    },
+                  ),
+                  const Divider(height: 0),
+                  QuickActionTile(
                     label: 'Manage Sites',
                     icon: Icons.location_on,
                     onTap: () {

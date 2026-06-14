@@ -14,6 +14,27 @@ class AttendanceModel {
   final DateTime createdAt;
   final String createdBy;
 
+  // Snapshot Fields
+  final double dailyWageSnapshot;
+  final double earningsSnapshot;
+  final String labourNameSnapshot;
+  final String siteNameSnapshot;
+
+  // Audit Fields
+  final String? updatedBy;
+  final DateTime? updatedAt;
+
+  // Soft Delete Fields
+  final bool isDeleted;
+  final String? deletedBy;
+  final DateTime? deletedAt;
+  final String? deleteReason;
+
+  // Payroll / Settlement Fields
+  final String? payrollPeriodId;
+  final String paymentStatus; // unpaid, paid
+  final String? paymentId;
+
   const AttendanceModel({
     required this.id,
     required this.labourId,
@@ -27,9 +48,32 @@ class AttendanceModel {
     required this.companyId,
     required this.createdAt,
     required this.createdBy,
+    required this.dailyWageSnapshot,
+    required this.earningsSnapshot,
+    required this.labourNameSnapshot,
+    required this.siteNameSnapshot,
+    this.updatedBy,
+    this.updatedAt,
+    this.isDeleted = false,
+    this.deletedBy,
+    this.deletedAt,
+    this.deleteReason,
+    this.payrollPeriodId,
+    this.paymentStatus = 'unpaid',
+    this.paymentId,
   });
 
   factory AttendanceModel.fromMap(Map<String, dynamic> map, String documentId) {
+    final status = map['status'] ?? 'unknown';
+    final dailyWageSnapshot = (map['dailyWageSnapshot'] as num?)?.toDouble() ?? 
+                              (map['dailyWage'] as num?)?.toDouble() ?? 0.0;
+    
+    final double defaultEarnings = (map['musterQuantity'] as num? ?? 1.0).toDouble() * dailyWageSnapshot;
+    final earningsSnapshot = (map['earningsSnapshot'] as num?)?.toDouble() ?? defaultEarnings;
+
+    var pStatus = map['paymentStatus'] ?? 'unpaid';
+    if (pStatus == 'open') pStatus = 'unpaid'; // backward compatibility
+
     return AttendanceModel(
       id: documentId,
       labourId: map['labourId'] ?? '',
@@ -37,16 +81,29 @@ class AttendanceModel {
       siteId: map['siteId'] ?? '',
       siteName: map['siteName'] ?? '',
       date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      status: map['status'] ?? 'unknown',
-      musterQuantity: map['musterQuantity'] != null
-          ? (map['musterQuantity'] as num).toDouble()
-          : (map['status'] == 'Present'
-                ? 1.0
-                : (map['status'] == 'Half Day' ? 0.5 : 0.0)),
+      status: status,
       hoursWorked: (map['hoursWorked'] as num?)?.toDouble() ?? 0.0,
+      musterQuantity: (map['musterQuantity'] as num?)?.toDouble() ?? 0.0,
       companyId: map['companyId'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdBy: map['createdBy'] ?? '',
+      
+      dailyWageSnapshot: dailyWageSnapshot,
+      earningsSnapshot: earningsSnapshot,
+      labourNameSnapshot: map['labourNameSnapshot'] ?? map['labourName'] ?? '',
+      siteNameSnapshot: map['siteNameSnapshot'] ?? map['siteName'] ?? '',
+      
+      updatedBy: map['updatedBy'] as String?,
+      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
+      
+      isDeleted: map['isDeleted'] as bool? ?? false,
+      deletedBy: map['deletedBy'] as String?,
+      deletedAt: (map['deletedAt'] as Timestamp?)?.toDate(),
+      deleteReason: map['deleteReason'] as String?,
+      
+      payrollPeriodId: map['payrollPeriodId'] as String?,
+      paymentStatus: pStatus,
+      paymentId: map['paymentId'] as String?,
     );
   }
 
@@ -73,6 +130,23 @@ class AttendanceModel {
       'companyId': companyId,
       'createdAt': Timestamp.fromDate(createdAt),
       'createdBy': createdBy,
+      
+      'dailyWageSnapshot': dailyWageSnapshot,
+      'earningsSnapshot': earningsSnapshot,
+      'labourNameSnapshot': labourNameSnapshot,
+      'siteNameSnapshot': siteNameSnapshot,
+      
+      'updatedBy': updatedBy,
+      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      
+      'isDeleted': isDeleted,
+      'deletedBy': deletedBy,
+      'deletedAt': deletedAt != null ? Timestamp.fromDate(deletedAt!) : null,
+      'deleteReason': deleteReason,
+      
+      'payrollPeriodId': payrollPeriodId,
+      'paymentStatus': paymentStatus,
+      'paymentId': paymentId,
     };
   }
 
@@ -89,6 +163,19 @@ class AttendanceModel {
     String? companyId,
     DateTime? createdAt,
     String? createdBy,
+    double? dailyWageSnapshot,
+    double? earningsSnapshot,
+    String? labourNameSnapshot,
+    String? siteNameSnapshot,
+    String? updatedBy,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    String? deletedBy,
+    DateTime? deletedAt,
+    String? deleteReason,
+    String? payrollPeriodId,
+    String? paymentStatus,
+    String? paymentId,
   }) {
     return AttendanceModel(
       id: id ?? this.id,
@@ -103,15 +190,23 @@ class AttendanceModel {
       companyId: companyId ?? this.companyId,
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,
+      dailyWageSnapshot: dailyWageSnapshot ?? this.dailyWageSnapshot,
+      earningsSnapshot: earningsSnapshot ?? this.earningsSnapshot,
+      labourNameSnapshot: labourNameSnapshot ?? this.labourNameSnapshot,
+      siteNameSnapshot: siteNameSnapshot ?? this.siteNameSnapshot,
+      updatedBy: updatedBy ?? this.updatedBy,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedBy: deletedBy ?? this.deletedBy,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deleteReason: deleteReason ?? this.deleteReason,
+      payrollPeriodId: payrollPeriodId ?? this.payrollPeriodId,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentId: paymentId ?? this.paymentId,
     );
   }
 
   double calculateEarnings(double dailyWage) {
-    if (status.toLowerCase() == 'present') {
-      return dailyWage * (hoursWorked > 0 ? (hoursWorked / 8.0).clamp(0.0, 1.0) : 1.0);
-    } else if (status.toLowerCase() == 'half day') {
-      return dailyWage * 0.5;
-    }
-    return 0.0;
+    return earningsSnapshot;
   }
 }

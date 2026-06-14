@@ -2,50 +2,61 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdvanceModel {
   final String id;
+  final String companyId;
   final String labourId;
   final String labourName;
-  final String siteId;
-  final String siteName;
   final double amount;
-  final String reason;
+  final double recoveredAmount;
+  final double remainingAmount; // remainingAmount = amount - recoveredAmount
+  final String status; // 'pending', 'partial', 'recovered'
   final DateTime date;
-  final bool paidBack;
-  final String companyId;
+  final String description;
   final DateTime createdAt;
   final String createdBy;
-  final double recoveredAmount;
 
   const AdvanceModel({
     required this.id,
+    required this.companyId,
     required this.labourId,
     required this.labourName,
-    required this.siteId,
-    required this.siteName,
     required this.amount,
-    required this.reason,
+    required this.recoveredAmount,
+    required this.remainingAmount,
+    required this.status,
     required this.date,
-    required this.paidBack,
-    required this.companyId,
+    required this.description,
     required this.createdAt,
     required this.createdBy,
-    this.recoveredAmount = 0.0,
   });
 
   factory AdvanceModel.fromMap(Map<String, dynamic> map, String documentId) {
+    final amount = (map['amount'] as num?)?.toDouble() ?? 0.0;
+    final recoveredAmount = (map['recoveredAmount'] as num?)?.toDouble() ?? 0.0;
+    final remainingAmount = amount - recoveredAmount;
+    
+    // Resolve status based on recovered/total
+    String resolvedStatus = map['status'] ?? 'pending';
+    if (recoveredAmount <= 0) {
+      resolvedStatus = 'pending';
+    } else if (recoveredAmount >= amount) {
+      resolvedStatus = 'recovered';
+    } else {
+      resolvedStatus = 'partial';
+    }
+
     return AdvanceModel(
       id: documentId,
+      companyId: map['companyId'] ?? '',
       labourId: map['labourId'] ?? '',
       labourName: map['labourName'] ?? '',
-      siteId: map['siteId'] ?? '',
-      siteName: map['siteName'] ?? '',
-      amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
-      reason: map['reason'] ?? '',
+      amount: amount,
+      recoveredAmount: recoveredAmount,
+      remainingAmount: remainingAmount,
+      status: resolvedStatus,
       date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      paidBack: map['paidBack'] as bool? ?? false,
-      companyId: map['companyId'] ?? '',
+      description: map['description'] ?? map['reason'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdBy: map['createdBy'] ?? '',
-      recoveredAmount: (map['recoveredAmount'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -59,50 +70,54 @@ class AdvanceModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'companyId': companyId,
       'labourId': labourId,
       'labourName': labourName,
-      'siteId': siteId,
-      'siteName': siteName,
       'amount': amount,
-      'reason': reason,
+      'recoveredAmount': recoveredAmount,
+      'remainingAmount': remainingAmount,
+      'status': status,
       'date': Timestamp.fromDate(date),
-      'paidBack': paidBack,
-      'companyId': companyId,
+      'description': description,
       'createdAt': Timestamp.fromDate(createdAt),
       'createdBy': createdBy,
-      'recoveredAmount': recoveredAmount,
     };
   }
 
   AdvanceModel copyWith({
     String? id,
+    String? companyId,
     String? labourId,
     String? labourName,
-    String? siteId,
-    String? siteName,
     double? amount,
-    String? reason,
+    double? recoveredAmount,
+    double? remainingAmount,
+    String? status,
     DateTime? date,
-    bool? paidBack,
-    String? companyId,
+    String? description,
     DateTime? createdAt,
     String? createdBy,
-    double? recoveredAmount,
   }) {
+    final newAmount = amount ?? this.amount;
+    final newRecoveredAmount = recoveredAmount ?? this.recoveredAmount;
     return AdvanceModel(
       id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
       labourId: labourId ?? this.labourId,
       labourName: labourName ?? this.labourName,
-      siteId: siteId ?? this.siteId,
-      siteName: siteName ?? this.siteName,
-      amount: amount ?? this.amount,
-      reason: reason ?? this.reason,
+      amount: newAmount,
+      recoveredAmount: newRecoveredAmount,
+      remainingAmount: remainingAmount ?? (newAmount - newRecoveredAmount),
+      status: status ?? this.status,
       date: date ?? this.date,
-      paidBack: paidBack ?? this.paidBack,
-      companyId: companyId ?? this.companyId,
+      description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,
-      recoveredAmount: recoveredAmount ?? this.recoveredAmount,
     );
   }
+
+  // Compatibility Getters for Reports/UI
+  String get reason => description;
+  String get siteId => '';
+  String get siteName => 'All Sites';
 }

@@ -4,6 +4,9 @@ class AttendanceSummaryWorkerEntry {
   final int attendanceDays;
   final double totalEarned;
   final double averageDailyWage;
+  final int presentCount;
+  final int halfDayCount;
+  final int absentCount;
 
   const AttendanceSummaryWorkerEntry({
     required this.labourId,
@@ -11,6 +14,9 @@ class AttendanceSummaryWorkerEntry {
     required this.attendanceDays,
     required this.totalEarned,
     required this.averageDailyWage,
+    required this.presentCount,
+    required this.halfDayCount,
+    required this.absentCount,
   });
 }
 
@@ -19,6 +25,9 @@ class AttendanceSummaryReportDTO {
   final int totalAttendanceDays;
   final double totalEarned;
   final double averageDailyWage;
+  final int totalPresentCount;
+  final int totalHalfDayCount;
+  final int totalAbsentCount;
   final List<AttendanceSummaryWorkerEntry> entries;
 
   const AttendanceSummaryReportDTO({
@@ -26,6 +35,9 @@ class AttendanceSummaryReportDTO {
     required this.totalAttendanceDays,
     required this.totalEarned,
     required this.averageDailyWage,
+    required this.totalPresentCount,
+    required this.totalHalfDayCount,
+    required this.totalAbsentCount,
     required this.entries,
   });
 }

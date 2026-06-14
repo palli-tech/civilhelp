@@ -39,6 +39,28 @@ service cloud.firestore {
       return isOwner(companyId) || isSupervisor(companyId);
     }
 
+    // Retrieve company-level configurable backdate limit (defaults to 3)
+    function getBackdateLimitDays(companyId) {
+      let company = get(/databases/$(database)/documents/companies/$(companyId)).data;
+      return company.attendanceBackdateLimitDays != null ? company.attendanceBackdateLimitDays : 3;
+    }
+
+    // Helper to format Timestamp as YYYY-MM-DD string
+    function getFormattedDate(t) {
+      let y = string(t.year());
+      let m = t.month() < 10 ? '0' + string(t.month()) : string(t.month());
+      let d = t.day() < 10 ? '0' + string(t.day()) : string(t.day());
+      return y + '-' + m + '-' + d;
+    }
+
+    // Helper to check if a payroll period is locked (frozen or paid)
+    function isPeriodLocked(companyId, periodId) {
+      return periodId != null && periodId != '' &&
+             exists(/databases/$(database)/documents/companies/$(companyId)/payrollPeriods/$(periodId)) &&
+             (get(/databases/$(database)/documents/companies/$(companyId)/payrollPeriods/$(periodId)).data.status == 'frozen' ||
+              get(/databases/$(database)/documents/companies/$(companyId)/payrollPeriods/$(periodId)).data.status == 'paid');
+    }
+
     // ─── Global Users ───────────────────────────────────────
 
     match /users/{uid} {
@@ -169,27 +191,73 @@ service cloud.firestore {
          allow write: if isOwner(companyId);
        }
  
-       // ─── Attendance ─────────────────────────────────────
-       match /attendance/{attendanceId} {
-         // All tenant members can read attendance
-         allow read: if isTenantMember(companyId);
-         // Owners and supervisors can create and update attendance
-         allow create, update: if isOwner(companyId) || isSupervisor(companyId);
-         // Only owners can delete attendance records
-         allow delete: if isOwner(companyId);
-       }
- 
-       // ─── Payments ───────────────────────────────────────
-       match /payments/{paymentId} {
-         // Only owners can read, create, edit, or delete payments
-         allow read, write: if isOwner(companyId);
-       }
- 
-       // ─── Advances ───────────────────────────────────────
-       match /advances/{advanceId} {
-         // Only owners can read, create, edit, or delete advances
-         allow read, write: if isOwner(companyId);
-       }
-     }
-  }
+        // ─── Attendance ─────────────────────────────────────
+        match /attendance/{attendanceId} {
+          // All tenant members can read attendance
+          allow read: if isTenantMember(companyId);
+
+          // Owners and supervisors can create attendance, matching deterministic ID, backdate limit, not soft-deleted, and not locked by period
+          allow create: if (isOwner(companyId) || (isSupervisor(companyId) && request.resource.data.siteId in getUserData().assignedSiteIds)) &&
+                        attendanceId == request.resource.data.labourId + '_' + request.resource.data.siteId + '_' + getFormattedDate(request.resource.data.date) &&
+                        get(/databases/$(database)/documents/companies/$(companyId)/labour/$(request.resource.data.labourId)).data.status == 'active' &&
+                        request.resource.data.date.toMillis() <= request.time.toMillis() + 300000 &&
+                        request.time.toMillis() - request.resource.data.date.toMillis() <= getBackdateLimitDays(companyId) * 86400000 &&
+                        request.resource.data.isDeleted == false &&
+                        request.resource.data.paymentStatus == 'unpaid' &&
+                        !isPeriodLocked(companyId, request.resource.data.payrollPeriodId);
+
+          // Owners and supervisors can update attendance if not deleted, not locked by period, and identity fields are unchanged
+          allow update: if (isOwner(companyId) || (isSupervisor(companyId) && resource.data.siteId in getUserData().assignedSiteIds)) &&
+                        resource.data.isDeleted == false &&
+                        resource.data.paymentStatus != 'paid' &&
+                        !isPeriodLocked(companyId, resource.data.payrollPeriodId) &&
+                        request.resource.data.labourId == resource.data.labourId &&
+                        request.resource.data.siteId == resource.data.siteId &&
+                        request.resource.data.date == resource.data.date;
+
+          // No physical deletes allowed
+          allow delete: if false;
+        }
+
+        // ─── Payroll Periods ─────────────────────────────────
+        match /payrollPeriods/{periodId} {
+          allow read: if isTenantMember(companyId);
+          allow write: if isOwner(companyId);
+        }
+
+        // ─── Payments ────────────────────────────────────────
+        match /payments/{paymentId} {
+          allow read: if isTenantMember(companyId);
+          allow create: if isOwner(companyId);
+          allow update, delete: if false;
+        }
+
+        // ─── Payroll Registers ────────────────────────────────
+        match /payrollRegisters/{registerId} {
+          allow read: if isTenantMember(companyId);
+          allow create: if isOwner(companyId);
+          allow update, delete: if false;
+        }
+
+        // ─── Payroll Summaries ────────────────────────────────
+        match /payrollSummaries/{periodId} {
+          allow read: if isTenantMember(companyId);
+          allow create: if isOwner(companyId);
+          allow update, delete: if false;
+        }
+
+        // ─── Advances ────────────────────────────────────────
+        match /advances/{advanceId} {
+          allow read: if isTenantMember(companyId);
+          allow write: if isOwner(companyId);
+        }
+
+        // ─── Advance Recoveries ──────────────────────────────
+        match /advanceRecoveries/{recoveryId} {
+          allow read: if isTenantMember(companyId);
+          allow create: if isOwner(companyId);
+          allow update, delete: if false;
+        }
+      }
+   }
 }

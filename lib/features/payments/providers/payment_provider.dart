@@ -11,7 +11,7 @@ final advanceRepositoryProvider = Provider<AdvanceRepository>((ref) {
 });
 
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
-  return PaymentRepository(advanceRepository: ref.watch(advanceRepositoryProvider));
+  return PaymentRepository();
 });
 
 final paymentsStreamProvider = StreamProvider<List<PaymentModel>>((ref) {
@@ -147,8 +147,7 @@ final deletePaymentProvider =
 
 final hasOverlappingPaymentProvider = FutureProvider.family<bool, (
   String labourId,
-  DateTime periodStart,
-  DateTime periodEnd,
+  String payrollPeriodId,
 )>((ref, params) async {
   final repository = ref.watch(paymentRepositoryProvider);
   final companyId = await ref.watch(userCompanyIdProvider.future);
@@ -156,8 +155,7 @@ final hasOverlappingPaymentProvider = FutureProvider.family<bool, (
   return repository.hasOverlappingPayment(
     companyId: companyId,
     labourId: params.$1,
-    periodStart: params.$2,
-    periodEnd: params.$3,
+    payrollPeriodId: params.$2,
   );
 });
 

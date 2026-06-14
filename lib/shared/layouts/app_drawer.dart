@@ -142,6 +142,17 @@ class AppDrawer extends ConsumerWidget {
               },
             ),
 
+          // --- Owner only: Payroll ---
+          if (role.hasPermission(Permission.managePayments))
+            ListTile(
+              leading: const Icon(Icons.receipt_long),
+              title: const Text('Payroll'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).pushNamed(AppRoutes.payroll);
+              },
+            ),
+
           // --- Owner only: Advances ---
           if (role.canAccessAdvances)
             ListTile(

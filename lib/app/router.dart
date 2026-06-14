@@ -15,6 +15,8 @@ import 'package:civilhelp/features/sites/screens/sites_screen.dart';
 import 'package:civilhelp/features/attendance/screens/attendance_screen.dart';
 import 'package:civilhelp/features/payments/screens/payments_screen.dart';
 import 'package:civilhelp/features/advances/screens/advances_screen.dart';
+import 'package:civilhelp/features/payroll/screens/payroll_dashboard_screen.dart';
+import 'package:civilhelp/features/payroll/screens/payroll_processing_screen.dart';
 import 'package:civilhelp/features/reports/screens/reports_dashboard_screen.dart';
 import 'package:civilhelp/features/reports/screens/worker_ledger_screen.dart';
 import 'package:civilhelp/features/reports/screens/attendance_summary_screen.dart';
@@ -48,6 +50,8 @@ class AppRoutes {
   static const attendance = '/attendance';
   static const payments = '/payments';
   static const advances = '/advances';
+  static const payroll = '/payroll';
+  static const payrollProcessing = '/payroll-processing';
   static const reports = '/reports';
   static const workerLedger = '/worker-ledger';
   static const attendanceSummary = '/attendance-summary';
@@ -168,6 +172,15 @@ class AppRouter {
       // --- Advances ---
       case AppRoutes.advances:
         return _permissionGuardedRoute(const AdvancesScreen(), settings, Permission.viewAdvances);
+
+      // --- Payroll ---
+      case AppRoutes.payroll:
+        return _permissionGuardedRoute(const PayrollDashboardScreen(), settings, Permission.managePayments);
+      case AppRoutes.payrollProcessing:
+        if (args is String) {
+          return _permissionGuardedRoute(PayrollProcessingScreen(periodId: args), settings, Permission.managePayments);
+        }
+        return _errorRoute('Payroll period ID is missing.');
 
       // --- Reports ---
       case AppRoutes.reports:

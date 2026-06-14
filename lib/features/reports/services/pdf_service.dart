@@ -346,5 +346,313 @@ class PdfService {
       }).toList(),
     );
   }
+
+  // --- Worker Payroll Statement ---
+  Future<void> previewWorkerPayrollStatementPdf({
+    required String workerName,
+    required String periodName,
+    required int presentDays,
+    required double wageRate,
+    required double grossEarnings,
+    required double deductions,
+    required double netPayable,
+    required List<Map<String, dynamic>> attendanceDetails,
+    required String companyName,
+  }) async {
+    final pdf = pw.Document();
+    final fonts = await _loadPdfFonts();
+    final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        theme: pw.ThemeData(defaultTextStyle: pw.TextStyle(font: fonts.regular)),
+        build: (context) => [
+          pw.Text(companyName.toUpperCase(), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, font: fonts.bold, color: PdfColors.blueGrey900)),
+          pw.Text('WORKER PAYROLL STATEMENT', style: pw.TextStyle(fontSize: 14, font: fonts.bold, color: PdfColors.grey700)),
+          pw.SizedBox(height: 8),
+          pw.Divider(),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('Worker: $workerName', style: pw.TextStyle(fontSize: 12, font: fonts.bold)),
+              pw.Text('Period: $periodName', style: pw.TextStyle(fontSize: 12, font: fonts.bold)),
+            ],
+          ),
+          pw.SizedBox(height: 16),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                _buildPdfSummaryCol('Present Days', '$presentDays', fonts.bold),
+                _buildPdfSummaryCol('Wage Rate', currencyFmt.format(wageRate), fonts.bold),
+                _buildPdfSummaryCol('Gross Earnings', currencyFmt.format(grossEarnings), fonts.bold),
+                _buildPdfSummaryCol('Deductions', currencyFmt.format(deductions), fonts.bold),
+                _buildPdfSummaryCol('Net Payable', currencyFmt.format(netPayable), fonts.bold, color: PdfColors.green700),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+          pw.Text('MUSTER & ATTENDANCE RECORDS', style: pw.TextStyle(fontSize: 12, font: fonts.bold, color: PdfColors.blueGrey800)),
+          pw.SizedBox(height: 8),
+          pw.TableHelper.fromTextArray(
+            headers: ['Date', 'Site', 'Status', 'Muster Qty', 'Earnings'],
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, font: fonts.bold),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+            cellHeight: 25,
+            data: attendanceDetails.map((a) {
+              return [
+                a['date'] != null ? DateFormat('dd-MMM-yyyy').format(a['date'] as DateTime) : '',
+                a['siteName'] ?? '',
+                a['status'] ?? '',
+                '${a['musterQuantity'] ?? 0.0}',
+                currencyFmt.format(a['earningsSnapshot'] ?? 0.0),
+              ];
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+
+    final pdfBytes = await pdf.save();
+    if (kIsWeb) {
+      await _previewAndDownloadOnWeb(pdfBytes: pdfBytes, fileName: 'Worker_Payroll_Statement.pdf');
+    } else {
+      await _previewOnNonWeb(pdfBytes: pdfBytes, fileName: 'Worker_Payroll_Statement.pdf');
+    }
+  }
+
+  // --- Site Payroll Summary ---
+  Future<void> previewSitePayrollSummaryPdf({
+    required String periodName,
+    required List<Map<String, dynamic>> siteSummaries,
+    required double totalGross,
+    required double totalDeductions,
+    required double totalNet,
+    required String companyName,
+  }) async {
+    final pdf = pw.Document();
+    final fonts = await _loadPdfFonts();
+    final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        theme: pw.ThemeData(defaultTextStyle: pw.TextStyle(font: fonts.regular)),
+        build: (context) => [
+          pw.Text(companyName.toUpperCase(), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, font: fonts.bold, color: PdfColors.blueGrey900)),
+          pw.Text('SITE PAYROLL SUMMARY', style: pw.TextStyle(fontSize: 14, font: fonts.bold, color: PdfColors.grey700)),
+          pw.SizedBox(height: 8),
+          pw.Divider(),
+          pw.SizedBox(height: 8),
+          pw.Text('Period: $periodName', style: pw.TextStyle(fontSize: 12, font: fonts.bold)),
+          pw.SizedBox(height: 16),
+          pw.TableHelper.fromTextArray(
+            headers: ['Site Name', 'Workers Count', 'Muster Days', 'Gross Cost', 'Deductions', 'Net Payout'],
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, font: fonts.bold),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+            cellHeight: 25,
+            data: siteSummaries.map((s) {
+              return [
+                s['siteName'] ?? '',
+                '${s['workerCount'] ?? 0}',
+                '${s['attendanceDays'] ?? 0}',
+                currencyFmt.format(s['totalGross'] ?? 0.0),
+                currencyFmt.format(s['totalDeductions'] ?? 0.0),
+                currencyFmt.format(s['totalNet'] ?? 0.0),
+              ];
+            }).toList(),
+          ),
+          pw.SizedBox(height: 20),
+          pw.Divider(),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.end,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text('Total Gross: ${currencyFmt.format(totalGross)}', style: pw.TextStyle(font: fonts.bold)),
+                  pw.Text('Total Deductions: ${currencyFmt.format(totalDeductions)}', style: pw.TextStyle(font: fonts.bold)),
+                  pw.Text('Total Net Paid: ${currencyFmt.format(totalNet)}', style: pw.TextStyle(font: fonts.bold, color: PdfColors.green700, fontSize: 14)),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    final pdfBytes = await pdf.save();
+    if (kIsWeb) {
+      await _previewAndDownloadOnWeb(pdfBytes: pdfBytes, fileName: 'Site_Payroll_Summary.pdf');
+    } else {
+      await _previewOnNonWeb(pdfBytes: pdfBytes, fileName: 'Site_Payroll_Summary.pdf');
+    }
+  }
+
+  // --- Outstanding Liabilities Report ---
+  Future<void> previewOutstandingLiabilitiesPdf({
+    required List<Map<String, dynamic>> workerLiabilities,
+    required double totalUnpaidAttendance,
+    required double totalOutstandingAdvances,
+    required String companyName,
+  }) async {
+    final pdf = pw.Document();
+    final fonts = await _loadPdfFonts();
+    final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        theme: pw.ThemeData(defaultTextStyle: pw.TextStyle(font: fonts.regular)),
+        build: (context) => [
+          pw.Text(companyName.toUpperCase(), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, font: fonts.bold, color: PdfColors.blueGrey900)),
+          pw.Text('OUTSTANDING LIABILITIES REPORT', style: pw.TextStyle(fontSize: 14, font: fonts.bold, color: PdfColors.grey700)),
+          pw.SizedBox(height: 8),
+          pw.Divider(),
+          pw.SizedBox(height: 16),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                color: PdfColors.grey100,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Total Unpaid Attendance', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                    pw.Text(currencyFmt.format(totalUnpaidAttendance), style: pw.TextStyle(fontSize: 16, font: fonts.bold, color: PdfColors.red700)),
+                  ],
+                ),
+              ),
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                color: PdfColors.grey100,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Total Outstanding Advances', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                    pw.Text(currencyFmt.format(totalOutstandingAdvances), style: pw.TextStyle(fontSize: 16, font: fonts.bold, color: PdfColors.orange700)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 20),
+          pw.Text('WORKER BALANCE LIABILITIES', style: pw.TextStyle(fontSize: 12, font: fonts.bold, color: PdfColors.blueGrey800)),
+          pw.SizedBox(height: 8),
+          pw.TableHelper.fromTextArray(
+            headers: ['Worker Name', 'Unpaid Attendance', 'Outstanding Advances', 'Net Liability'],
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, font: fonts.bold),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+            cellHeight: 25,
+            data: workerLiabilities.map((l) {
+              return [
+                l['workerName'] ?? '',
+                currencyFmt.format(l['unpaidAttendance'] ?? 0.0),
+                currencyFmt.format(l['outstandingAdvances'] ?? 0.0),
+                currencyFmt.format((l['unpaidAttendance'] ?? 0.0) - (l['outstandingAdvances'] ?? 0.0)),
+              ];
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+
+    final pdfBytes = await pdf.save();
+    if (kIsWeb) {
+      await _previewAndDownloadOnWeb(pdfBytes: pdfBytes, fileName: 'Outstanding_Liabilities_Report.pdf');
+    } else {
+      await _previewOnNonWeb(pdfBytes: pdfBytes, fileName: 'Outstanding_Liabilities_Report.pdf');
+    }
+  }
+
+  // --- Worker Ledger Report ---
+  Future<void> previewWorkerLedgerReportPdf({
+    required String workerName,
+    required double openingBalance,
+    required double totalAdvances,
+    required double totalRecoveries,
+    required double closingBalance,
+    required List<Map<String, dynamic>> transactions,
+    required String companyName,
+  }) async {
+    final pdf = pw.Document();
+    final fonts = await _loadPdfFonts();
+    final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        theme: pw.ThemeData(defaultTextStyle: pw.TextStyle(font: fonts.regular)),
+        build: (context) => [
+          pw.Text(companyName.toUpperCase(), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, font: fonts.bold, color: PdfColors.blueGrey900)),
+          pw.Text('WORKER LEDGER REPORT', style: pw.TextStyle(fontSize: 14, font: fonts.bold, color: PdfColors.grey700)),
+          pw.SizedBox(height: 8),
+          pw.Divider(),
+          pw.SizedBox(height: 8),
+          pw.Text('Worker: $workerName', style: pw.TextStyle(fontSize: 12, font: fonts.bold)),
+          pw.SizedBox(height: 16),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                _buildPdfSummaryCol('Opening Bal', currencyFmt.format(openingBalance), fonts.bold),
+                _buildPdfSummaryCol('+ Advances', currencyFmt.format(totalAdvances), fonts.bold),
+                _buildPdfSummaryCol('- Recoveries', currencyFmt.format(totalRecoveries), fonts.bold),
+                _buildPdfSummaryCol('= Closing Bal', currencyFmt.format(closingBalance), fonts.bold, color: PdfColors.blue700),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+          pw.Text('TRANSACTION HISTORY', style: pw.TextStyle(fontSize: 12, font: fonts.bold, color: PdfColors.blueGrey800)),
+          pw.SizedBox(height: 8),
+          pw.TableHelper.fromTextArray(
+            headers: ['Date', 'Type', 'Description', 'Amount', 'Balance'],
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, font: fonts.bold),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+            cellHeight: 25,
+            data: transactions.map((t) {
+              return [
+                t['date'] != null ? DateFormat('dd-MMM-yyyy').format(t['date'] as DateTime) : '',
+                t['type'] ?? '',
+                t['description'] ?? '',
+                currencyFmt.format(t['amount'] ?? 0.0),
+                currencyFmt.format(t['runningBalance'] ?? 0.0),
+              ];
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+
+    final pdfBytes = await pdf.save();
+    if (kIsWeb) {
+      await _previewAndDownloadOnWeb(pdfBytes: pdfBytes, fileName: 'Worker_Ledger_Report.pdf');
+    } else {
+      await _previewOnNonWeb(pdfBytes: pdfBytes, fileName: 'Worker_Ledger_Report.pdf');
+    }
+  }
+
+  static pw.Widget _buildPdfSummaryCol(String label, String val, pw.Font font, {PdfColor? color}) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(label, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+        pw.SizedBox(height: 4),
+        pw.Text(val, style: pw.TextStyle(fontSize: 13, font: font, color: color ?? PdfColors.black)),
+      ],
+    );
+  }
 }
 

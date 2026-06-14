@@ -4,7 +4,7 @@ import 'package:civilhelp/core/enums/payment_mode.dart';
 import 'package:civilhelp/features/labour/domain/entities/labour_entity.dart';
 
 class LabourModel extends LabourEntity {
-  const LabourModel({
+  LabourModel({
     required super.id,
     required super.fullName,
     required super.phoneNumber,

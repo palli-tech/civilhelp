@@ -20,25 +20,37 @@ class AdvanceRepository {
   Future<AdvanceModel> createAdvance({
     required String labourId,
     required String labourName,
-    required String siteId,
-    required String siteName,
     required double amount,
-    required String reason,
+    required String description,
     required DateTime date,
-    required bool paidBack,
     required String companyId,
     required String createdBy,
   }) async {
+    // Enforce that labour must be active
+    final labourDoc = await _firestore
+        .collection('companies')
+        .doc(companyId)
+        .collection('labour')
+        .doc(labourId)
+        .get();
+    if (!labourDoc.exists) {
+      throw Exception('Labour record not found.');
+    }
+    final workerStatus = labourDoc.data()?['status'] as String? ?? 'active';
+    if (workerStatus != 'active') {
+      throw Exception('Cannot issue advance to inactive worker.');
+    }
+
     final docRef = await _advancesCollection(companyId).add({
+      'companyId': companyId,
       'labourId': labourId,
       'labourName': labourName,
-      'siteId': siteId,
-      'siteName': siteName,
       'amount': amount,
-      'reason': reason,
+      'recoveredAmount': 0.0,
+      'remainingAmount': amount,
+      'status': 'pending',
       'date': Timestamp.fromDate(date),
-      'paidBack': paidBack,
-      'companyId': companyId,
+      'description': description,
       'createdAt': Timestamp.now(),
       'createdBy': createdBy,
     });
@@ -80,13 +92,13 @@ class AdvanceRepository {
   ) {
     try {
       return _advancesCollection(companyId)
-          .where('paidBack', isEqualTo: false)
-          .orderBy('date', descending: true)
+          .where('status', whereIn: ['pending', 'partial'])
           .snapshots()
           .map(
             (snapshot) => snapshot.docs
                 .map((doc) => AdvanceModel.fromFirestore(doc))
-                .toList(),
+                .toList()
+                ..sort((a, b) => b.date.compareTo(a.date)),
           );
     } catch (e) {
       return Stream.error(e);
@@ -100,16 +112,15 @@ class AdvanceRepository {
     try {
       return _advancesCollection(companyId)
           .where('labourId', isEqualTo: labourId)
-          .orderBy('date', descending: true)
           .snapshots()
           .map(
             (snapshot) => snapshot.docs
                 .map((doc) => AdvanceModel.fromFirestore(doc))
-                .toList(),
+                .toList()
+                ..sort((a, b) => b.date.compareTo(a.date)),
           );
     } catch (e) {
       return Stream.error(e);
     }
   }
 }
-

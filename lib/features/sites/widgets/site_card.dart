@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/shared/widgets/status_chip.dart';
+
 class SiteCard extends StatelessWidget {
   final dynamic site;
   final VoidCallback onTap;
@@ -15,21 +17,6 @@ class SiteCard extends StatelessWidget {
 
   String _statusName() {
     return site.status.toString().split('.').last;
-  }
-
-  Color _getStatusColor() {
-    switch (_statusName().toLowerCase()) {
-      case 'active':
-        return Colors.green;
-      case 'completed':
-        return Colors.blue;
-      case 'paused':
-        return Colors.orange;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
   }
 
   @override
@@ -123,18 +110,7 @@ class SiteCard extends StatelessWidget {
                           color: Colors.grey[500],
                         ),
                   ),
-                  Chip(
-                    label: Text(
-                      _statusName(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    backgroundColor: _getStatusColor(),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
+                  StatusChip(status: _statusName()),
                 ],
               ),
             ],

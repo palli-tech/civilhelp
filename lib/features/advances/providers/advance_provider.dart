@@ -58,12 +58,9 @@ final createAdvanceProvider = FutureProvider.family<AdvanceModel, (
   final advance = await repository.createAdvance(
     labourId: params.$1,
     labourName: params.$2,
-    siteId: params.$3,
-    siteName: params.$4,
     amount: params.$5,
-    reason: params.$6,
+    description: params.$6,
     date: params.$7,
-    paidBack: false,
     companyId: companyId,
     createdBy: 'system',
   );

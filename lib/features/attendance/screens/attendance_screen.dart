@@ -5,6 +5,7 @@ import 'package:civilhelp/core/auth/permissions.dart';
 import 'package:civilhelp/core/enums/user_role.dart';
 import 'package:civilhelp/core/providers/user_role_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/shared/widgets/civil_empty_state.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import '../models/attendance_model.dart';
@@ -73,60 +74,13 @@ class AttendanceScreen extends ConsumerWidget {
               child: attendanceAsync.when(
                 data: (attendance) {
                   if (attendance.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No attendance records yet',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Mark attendance to track labour presence and hours',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.grey[600]),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  _showNewAttendanceDialog(
-                                    context,
-                                    ref,
-                                    sitesAsync,
-                                    labourAsync,
-                                  );
-                                },
-                                icon: const Icon(Icons.person_add),
-                                label: const Text('Single'),
-                              ),
-                              const SizedBox(width: 16),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  _showBulkAttendanceDialog(
-                                    context,
-                                    ref,
-                                    sitesAsync,
-                                    labourAsync,
-                                  );
-                                },
-                                icon: const Icon(Icons.group_add),
-                                label: const Text('Bulk'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                    return CivilEmptyState(
+                      icon: Icons.calendar_today_outlined,
+                      title: 'No Attendance Records',
+                      description: 'Mark attendance to track labour presence, hours, and earnings.',
+                      ctaLabel: 'Mark Attendance',
+                      onCta: () => _showNewAttendanceDialog(
+                        context, ref, sitesAsync, labourAsync),
                     );
                   }
 
@@ -246,12 +200,39 @@ class AttendanceScreen extends ConsumerWidget {
     WidgetRef ref,
     AttendanceModel attendance,
   ) {
+    final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Attendance'),
-        content: Text(
-          'Are you sure you want to delete attendance for ${attendance.labourName}?',
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Are you sure you want to delete attendance for ${attendance.labourName}?',
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: reasonController,
+                decoration: const InputDecoration(
+                  labelText: 'Reason for deletion',
+                  hintText: 'e.g., Wrong hours entered, duplicate entry',
+                  isDense: true,
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a reason for deletion';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -260,7 +241,14 @@ class AttendanceScreen extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () async {
-              await ref.read(deleteAttendanceProvider(attendance.id).future);
+              if (!formKey.currentState!.validate()) return;
+
+              await ref.read(
+                deleteAttendanceProvider((
+                  attendanceId: attendance.id,
+                  deleteReason: reasonController.text.trim(),
+                )).future,
+              );
 
               if (context.mounted) {
                 Navigator.pop(context);

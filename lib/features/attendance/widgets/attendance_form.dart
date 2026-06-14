@@ -241,24 +241,28 @@ class _AttendanceFormState extends State<AttendanceForm> {
 
             // Date picker button
             TextButton(
-              onPressed: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: selectedDate,
-                  firstDate: DateTime.now().subtract(
-                    const Duration(days: 365),
-                  ),
-                  lastDate: DateTime.now(),
-                );
-                if (picked != null) {
-                  setState(() {
-                    selectedDate = picked;
-                    widget.onChanged?.call();
-                  });
-                }
-              },
+              onPressed: widget.initialAttendance != null
+                  ? null
+                  : () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime.now().subtract(
+                          const Duration(days: 365),
+                        ),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          selectedDate = picked;
+                          widget.onChanged?.call();
+                        });
+                      }
+                    },
               child: Text(
-                'Date: ${selectedDate.toLocal().toShortDateString()}',
+                widget.initialAttendance != null
+                    ? 'Date: ${selectedDate.toLocal().toShortDateString()} (locked)'
+                    : 'Date: ${selectedDate.toLocal().toShortDateString()}',
               ),
             ),
             const SizedBox(height: 20),

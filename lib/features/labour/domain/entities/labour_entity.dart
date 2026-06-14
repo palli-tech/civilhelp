@@ -16,7 +16,7 @@ class LabourEntity {
   final DateTime createdAt;
   final String createdBy;
 
-  const LabourEntity({
+  LabourEntity({
     required this.id,
     required this.fullName,
     required this.phoneNumber,
@@ -30,7 +30,24 @@ class LabourEntity {
     required this.companyId,
     required this.createdAt,
     required this.createdBy,
-  });
+  }) {
+    validatePhone(phoneNumber);
+    validateAadhaar(aadhaarNumber);
+  }
+
+  static void validatePhone(String phone) {
+    final cleaned = phone.replaceAll(RegExp(r'\D'), '');
+    if (cleaned.length != 10) {
+      throw ArgumentError('Phone number must be exactly 10 digits.');
+    }
+  }
+
+  static void validateAadhaar(String aadhaar) {
+    final cleaned = aadhaar.replaceAll(RegExp(r'\D'), '');
+    if (cleaned.length != 12) {
+      throw ArgumentError('Aadhaar number must be exactly 12 digits.');
+    }
+  }
 
   LabourEntity copyWith({
     String? id,

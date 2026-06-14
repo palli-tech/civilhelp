@@ -65,6 +65,7 @@ final updateAttendanceProvider = FutureProvider.family<void, AttendanceModel>((
 ) async {
   final repository = ref.read(attendanceRepositoryProvider);
   final companyId = await ref.watch(userCompanyIdProvider.future);
+  final currentUser = ref.watch(currentUserProvider);
 
   // Prevent date collisions: if another attendance exists for same labour+date, block update
   final existing = await repository.getAttendanceForLabourOnDate(
@@ -79,7 +80,10 @@ final updateAttendanceProvider = FutureProvider.family<void, AttendanceModel>((
     );
   }
 
-  await repository.updateAttendance(attendance);
+  await repository.updateAttendance(
+    attendance: attendance,
+    updatedBy: currentUser?.uid ?? 'unknown',
+  );
 
   // Invalidate affected streams
   ref.invalidate(attendanceStreamProvider);
@@ -88,17 +92,21 @@ final updateAttendanceProvider = FutureProvider.family<void, AttendanceModel>((
   ref.invalidate(attendanceTodayStreamProvider);
 });
 
-final deleteAttendanceProvider = FutureProvider.family<void, String>((
+final deleteAttendanceProvider =
+    FutureProvider.family<void, ({String attendanceId, String deleteReason})>((
   ref,
-  attendanceId,
+  params,
 ) async {
   final companyId = await ref.watch(userCompanyIdProvider.future);
+  final currentUser = ref.watch(currentUserProvider);
 
   await ref
       .read(attendanceRepositoryProvider)
       .deleteAttendance(
-        attendanceId: attendanceId,
+        attendanceId: params.attendanceId,
         companyId: companyId,
+        deletedBy: currentUser?.uid ?? 'unknown',
+        deleteReason: params.deleteReason,
       );
 
   // Invalidate all attendance streams after delete

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:civilhelp/shared/widgets/status_chip.dart';
 
 class LabourCard extends StatelessWidget {
   final dynamic labour;
@@ -13,19 +14,6 @@ class LabourCard extends StatelessWidget {
     this.onDelete,
     this.onEdit,
   });
-
-  Color _getStatusColor() {
-    switch (labour.status.toString().toLowerCase()) {
-      case 'labourstatus.active':
-        return Colors.green;
-      case 'labourstatus.inactive':
-        return Colors.grey;
-      case 'labourstatus.onleave':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,18 +105,7 @@ class LabourCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                   ),
-                  Chip(
-                    label: Text(
-                      labour.status.toString().split('.').last.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    backgroundColor: _getStatusColor(),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
+                  StatusChip(status: labour.status.toString().split('.').last),
                 ],
               ),
             ],

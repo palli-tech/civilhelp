@@ -6,7 +6,7 @@ import 'package:civilhelp/features/labour/presentation/providers/labour_provider
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import '../models/payment_model.dart';
 import '../providers/payment_provider.dart';
-import '../repositories/payment_repository.dart';
+
 import '../widgets/payment_card.dart';
 import '../../labour/data/models/labour_model.dart';
 import '../../sites/models/site_model.dart';
@@ -534,12 +534,13 @@ class PaymentsScreen extends ConsumerWidget {
                             clearValidation();
                           });
 
-                          // Validate duplicate / overlapping payments before creating.
+                          // Manual payment creation: overlap check is not applicable
+                          // (this flow is deprecated and will be removed in Issue #4).
+                          // Pass empty periodId so hasOverlappingPayment returns false.
                           final isDuplicate = await ref.read(
                             hasOverlappingPaymentProvider((
                               selectedLabour.id,
-                              periodStart,
-                              periodEnd,
+                              '',
                             )).future,
                           );
 

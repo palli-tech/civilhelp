@@ -4,6 +4,9 @@ import 'package:civilhelp/features/attendance/models/attendance_model.dart';
 import 'package:civilhelp/features/labour/data/models/labour_model.dart';
 import 'package:civilhelp/features/payments/models/payment_model.dart';
 import 'package:civilhelp/features/sites/models/site_model.dart';
+import 'package:civilhelp/features/payroll/models/payroll_period_model.dart';
+import 'package:civilhelp/features/payroll/models/payroll_register_model.dart';
+import 'package:civilhelp/features/payroll/models/payroll_summary_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/services/firestore_path_service.dart';
@@ -40,6 +43,18 @@ class ReportRepository {
     return _firestore.collection(FirestorePathService.sites(companyId));
   }
 
+  CollectionReference<Map<String, Object?>> _periodsCollection(String companyId) {
+    return _firestore.collection('companies/$companyId/payrollPeriods');
+  }
+
+  CollectionReference<Map<String, Object?>> _registersCollection(String companyId) {
+    return _firestore.collection('companies/$companyId/payrollRegisters');
+  }
+
+  CollectionReference<Map<String, Object?>> _summariesCollection(String companyId) {
+    return _firestore.collection('companies/$companyId/payrollSummaries');
+  }
+
   Future<LabourModel> _getLabour(String companyId, String labourId) async {
     if (_labourCache.containsKey(labourId)) {
       return _labourCache[labourId]!;
@@ -64,16 +79,11 @@ class ReportRepository {
     final startDate = Timestamp.fromDate(filter.startDate);
     final endDate = Timestamp.fromDate(filter.endDate);
 
-    // Fetch Labour to get daily wage
-    debugPrint('[DEBUG] ReportRepository: Fetching labour: $labourId');
-    final labour = await _getLabour(companyId, labourId);
-    final dailyWage = labour.dailyWage;
-    debugPrint('[DEBUG] ReportRepository: Fetched labour successfully');
-
-    // Fetch Attendances
+    // Fetch Attendances (non-deleted only)
     debugPrint('[DEBUG] ReportRepository: Executing attendance query');
     Query attQuery = _attendanceCollection(companyId)
         .where('labourId', isEqualTo: labourId)
+        .where('isDeleted', isEqualTo: false)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
         
@@ -110,12 +120,8 @@ class ReportRepository {
     debugPrint('[DEBUG] ReportRepository: Executing payments query');
     Query payQuery = _paymentsCollection(companyId)
         .where('labourId', isEqualTo: labourId)
-        .where('periodStart', isGreaterThanOrEqualTo: startDate) // Note: Using periodStart to align with payment timeline
-        .where('periodStart', isLessThanOrEqualTo: endDate);
-        
-    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
-      payQuery = payQuery.where('siteId', isEqualTo: filter.siteId);
-    }
+        .where('paymentDate', isGreaterThanOrEqualTo: startDate)
+        .where('paymentDate', isLessThanOrEqualTo: endDate);
     
     final paymentsSnap = await payQuery.get();
     debugPrint('[DEBUG] ReportRepository: Payments query completed. Found ${paymentsSnap.docs.length}');
@@ -131,11 +137,9 @@ class ReportRepository {
     double totalAdvances = 0.0;
     double totalPayments = 0.0;
     
-    // Sort all raw data by their relevant dates
-    
     // Process attendances
     for (final att in attendances) {
-      final earned = att.calculateEarnings(dailyWage);
+      final earned = att.earningsSnapshot;
       if (earned > 0) {
         totalEarned += earned;
         entries.add(WorkerLedgerEntry(
@@ -164,16 +168,15 @@ class ReportRepository {
 
     // Process payments
     for (final pay in payments) {
-      // Use paidDate if available, otherwise periodStart or createdAt
       final date = pay.paidDate ?? pay.periodStart; 
-      // Only netAmount is a real debit against the ledger, since advances are debited when given
-      totalPayments += pay.netAmount;
+      // Only netAmount (pay.amount) is a real debit against the ledger, since advances are debited when given
+      totalPayments += pay.amount;
       entries.add(WorkerLedgerEntry(
         date: date,
         type: LedgerEntryType.payment,
         description: 'Payment Settled (Net)',
         credit: 0.0,
-        debit: pay.netAmount,
+        debit: pay.amount,
         runningBalance: 0.0, // Calculated later
       ));
     }
@@ -213,6 +216,7 @@ class ReportRepository {
     final endDate = Timestamp.fromDate(filter.endDate);
 
     Query query = _attendanceCollection(filter.companyId)
+        .where('isDeleted', isEqualTo: false) // exclude soft deleted
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
 
@@ -228,23 +232,38 @@ class ReportRepository {
 
     Map<String, AttendanceSummaryWorkerEntry> workerData = {};
 
-    Future<void> initializeWorker(String labourId) async {
-      if (!workerData.containsKey(labourId)) {
-        final labour = await _getLabour(filter.companyId, labourId);
-        workerData[labourId] = AttendanceSummaryWorkerEntry(
-          labourId: labourId,
-          labourName: labour.fullName,
+    int totalPresent = 0;
+    int totalHalfDay = 0;
+    int totalAbsent = 0;
+
+    for (final att in attendances) {
+      final statusLower = att.status.toLowerCase();
+      final isPresent = statusLower == 'present';
+      final isHalfDay = statusLower == 'half-day';
+      final isAbsent = statusLower == 'absent';
+
+      if (isPresent) {
+        totalPresent++;
+      } else if (isHalfDay) {
+        totalHalfDay++;
+      } else if (isAbsent) {
+        totalAbsent++;
+      }
+
+      final earned = att.earningsSnapshot;
+      
+      if (!workerData.containsKey(att.labourId)) {
+        workerData[att.labourId] = AttendanceSummaryWorkerEntry(
+          labourId: att.labourId,
+          labourName: att.labourNameSnapshot,
           attendanceDays: 0,
           totalEarned: 0,
           averageDailyWage: 0,
+          presentCount: 0,
+          halfDayCount: 0,
+          absentCount: 0,
         );
       }
-    }
-
-    for (final att in attendances) {
-      await initializeWorker(att.labourId);
-      final labour = await _getLabour(filter.companyId, att.labourId);
-      final earned = att.calculateEarnings(labour.dailyWage);
       
       final current = workerData[att.labourId]!;
       workerData[att.labourId] = AttendanceSummaryWorkerEntry(
@@ -253,6 +272,9 @@ class ReportRepository {
         attendanceDays: current.attendanceDays + 1,
         totalEarned: current.totalEarned + earned,
         averageDailyWage: 0, // Calculated later
+        presentCount: current.presentCount + (isPresent ? 1 : 0),
+        halfDayCount: current.halfDayCount + (isHalfDay ? 1 : 0),
+        absentCount: current.absentCount + (isAbsent ? 1 : 0),
       );
     }
 
@@ -272,6 +294,9 @@ class ReportRepository {
         attendanceDays: entry.attendanceDays,
         totalEarned: entry.totalEarned,
         averageDailyWage: avgWage,
+        presentCount: entry.presentCount,
+        halfDayCount: entry.halfDayCount,
+        absentCount: entry.absentCount,
       ));
     }
 
@@ -284,6 +309,9 @@ class ReportRepository {
       totalAttendanceDays: globalAttendanceDays,
       totalEarned: globalTotalEarned,
       averageDailyWage: globalAvgWage,
+      totalPresentCount: totalPresent,
+      totalHalfDayCount: totalHalfDay,
+      totalAbsentCount: totalAbsent,
       entries: finalEntries,
     );
   }
@@ -311,7 +339,7 @@ class ReportRepository {
 
     for (final adv in advances) {
       totalAdvances += adv.amount;
-      remainingUnapplied += (adv.amount - adv.recoveredAmount);
+      remainingUnapplied += adv.remainingAmount;
     }
 
     return AdvanceReportDTO(
@@ -326,14 +354,11 @@ class ReportRepository {
     final endDate = Timestamp.fromDate(filter.endDate);
 
     Query query = _paymentsCollection(filter.companyId)
-        .where('periodStart', isGreaterThanOrEqualTo: startDate)
-        .where('periodStart', isLessThanOrEqualTo: endDate);
+        .where('paymentDate', isGreaterThanOrEqualTo: startDate)
+        .where('paymentDate', isLessThanOrEqualTo: endDate);
 
     if (filter.labourId != null && filter.labourId!.isNotEmpty) {
       query = query.where('labourId', isEqualTo: filter.labourId);
-    }
-    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
-      query = query.where('siteId', isEqualTo: filter.siteId);
     }
 
     final snap = await query.get();
@@ -342,7 +367,7 @@ class ReportRepository {
     double totalPayments = 0.0;
 
     for (final pay in payments) {
-      totalPayments += pay.netAmount;
+      totalPayments += pay.amount;
     }
 
     return PaymentReportDTO(
@@ -352,49 +377,55 @@ class ReportRepository {
   }
 
   Future<MonthlyPayrollReportDTO> getMonthlyPayrollReport(ReportFilter filter) async {
-    // For this, we just reuse the data fetching logic without worker ledger specifics,
-    // but grouped by month.
-    
     final companyId = filter.companyId;
-    final startDate = Timestamp.fromDate(filter.startDate);
-    final endDate = Timestamp.fromDate(filter.endDate);
+    final filterStart = filter.startDate;
+    final filterEnd = filter.endDate;
 
-    Query attQuery = _attendanceCollection(companyId)
-        .where('date', isGreaterThanOrEqualTo: startDate)
-        .where('date', isLessThanOrEqualTo: endDate);
-        
-    Query advQuery = _advancesCollection(companyId)
-        .where('date', isGreaterThanOrEqualTo: startDate)
-        .where('date', isLessThanOrEqualTo: endDate);
-        
-    Query payQuery = _paymentsCollection(companyId)
-        .where('periodStart', isGreaterThanOrEqualTo: startDate)
-        .where('periodStart', isLessThanOrEqualTo: endDate);
+    // Fetch all payroll periods for this company
+    final periodsSnap = await _periodsCollection(companyId).get();
+    final periods = periodsSnap.docs
+        .map((doc) => PayrollPeriodModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+        .where((p) {
+          // Check if the period overlaps with the filter range
+          return (p.startDate.isBefore(filterEnd) || p.startDate.isAtSameMomentAs(filterEnd)) &&
+                 (p.endDate.isAfter(filterStart) || p.endDate.isAtSameMomentAs(filterStart));
+        })
+        .toList();
+
+    if (periods.isEmpty) {
+      return const MonthlyPayrollReportDTO(entries: []);
+    }
+
+    final periodIds = periods.map((p) => p.id).toList();
+
+    Map<String, List<PayrollRegisterModel>> registersByPeriod = {};
+    Map<String, PayrollSummaryModel> summariesByPeriod = {};
 
     if (filter.labourId != null && filter.labourId!.isNotEmpty) {
-      attQuery = attQuery.where('labourId', isEqualTo: filter.labourId);
-      advQuery = advQuery.where('labourId', isEqualTo: filter.labourId);
-      payQuery = payQuery.where('labourId', isEqualTo: filter.labourId);
+      // Query registers for this worker
+      for (final periodId in periodIds) {
+        final regSnap = await _registersCollection(companyId)
+            .where('periodId', isEqualTo: periodId)
+            .where('labourId', isEqualTo: filter.labourId)
+            .get();
+        if (regSnap.docs.isNotEmpty) {
+          registersByPeriod[periodId] = regSnap.docs
+              .map((doc) => PayrollRegisterModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+              .toList();
+        }
+      }
+    } else {
+      // Fetch summaries for these periods
+      for (final periodId in periodIds) {
+        final sumSnap = await _summariesCollection(companyId).doc(periodId).get();
+        if (sumSnap.exists) {
+          summariesByPeriod[periodId] = PayrollSummaryModel.fromFirestore(sumSnap as DocumentSnapshot<Map<String, dynamic>>);
+        }
+      }
     }
-    
-    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
-      attQuery = attQuery.where('siteId', isEqualTo: filter.siteId);
-      advQuery = advQuery.where('siteId', isEqualTo: filter.siteId);
-      payQuery = payQuery.where('siteId', isEqualTo: filter.siteId);
-    }
-
-    final results = await Future.wait([
-      attQuery.get(),
-      advQuery.get(),
-      payQuery.get(),
-    ]);
-
-    final attendances = results[0].docs.map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
-    final advances = results[1].docs.map((doc) => AdvanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
-    final payments = results[2].docs.map((doc) => PaymentModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
 
     Map<String, MonthlyPayrollEntry> monthlyData = {};
-    
+
     String getMonthKey(DateTime date) {
       return DateFormat('MMM yyyy').format(date);
     }
@@ -417,50 +448,37 @@ class ReportRepository {
       }
     }
 
-    for (final att in attendances) {
-      initializeMonth(att.date);
-      final key = getMonthKey(att.date);
-      final labour = await _getLabour(companyId, att.labourId);
-      final earned = att.calculateEarnings(labour.dailyWage);
-      
+    for (final period in periods) {
+      initializeMonth(period.startDate);
+      final key = getMonthKey(period.startDate);
       final current = monthlyData[key]!;
-      monthlyData[key] = MonthlyPayrollEntry(
-        month: current.month,
-        monthKey: current.monthKey,
-        totalEarned: current.totalEarned + earned,
-        totalAdvances: current.totalAdvances,
-        totalPayments: current.totalPayments,
-        closingBalance: 0,
-      );
-    }
 
-    for (final adv in advances) {
-      initializeMonth(adv.date);
-      final key = getMonthKey(adv.date);
-      
-      final current = monthlyData[key]!;
-      monthlyData[key] = MonthlyPayrollEntry(
-        month: current.month,
-        monthKey: current.monthKey,
-        totalEarned: current.totalEarned,
-        totalAdvances: current.totalAdvances + adv.amount,
-        totalPayments: current.totalPayments,
-        closingBalance: 0,
-      );
-    }
+      double gross = 0.0;
+      double deductions = 0.0;
+      double net = 0.0;
 
-    for (final pay in payments) {
-      final date = pay.paidDate ?? pay.periodStart;
-      initializeMonth(date);
-      final key = getMonthKey(date);
-      
-      final current = monthlyData[key]!;
+      if (filter.labourId != null && filter.labourId!.isNotEmpty) {
+        final regs = registersByPeriod[period.id] ?? [];
+        for (final reg in regs) {
+          gross += reg.grossEarnings;
+          deductions += reg.advanceDeductions;
+          net += reg.netPayable;
+        }
+      } else {
+        final sum = summariesByPeriod[period.id];
+        if (sum != null) {
+          gross += sum.totalGross;
+          deductions += sum.totalDeductions;
+          net += sum.totalNetPaid;
+        }
+      }
+
       monthlyData[key] = MonthlyPayrollEntry(
         month: current.month,
         monthKey: current.monthKey,
-        totalEarned: current.totalEarned,
-        totalAdvances: current.totalAdvances,
-        totalPayments: current.totalPayments + pay.netAmount,
+        totalEarned: current.totalEarned + gross,
+        totalAdvances: current.totalAdvances + deductions,
+        totalPayments: current.totalPayments + net,
         closingBalance: 0,
       );
     }
@@ -495,95 +513,81 @@ class ReportRepository {
     final startDate = Timestamp.fromDate(filter.startDate);
     final endDate = Timestamp.fromDate(filter.endDate);
 
+    // Fetch non-deleted unpaid attendances in range
     Query attQuery = _attendanceCollection(companyId)
+        .where('isDeleted', isEqualTo: false)
+        .where('paymentStatus', isEqualTo: 'unpaid')
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
-        
-    Query advQuery = _advancesCollection(companyId)
-        .where('date', isGreaterThanOrEqualTo: startDate)
-        .where('date', isLessThanOrEqualTo: endDate);
-        
-    Query payQuery = _paymentsCollection(companyId)
-        .where('periodStart', isGreaterThanOrEqualTo: startDate)
-        .where('periodStart', isLessThanOrEqualTo: endDate);
 
     if (filter.labourId != null && filter.labourId!.isNotEmpty) {
       attQuery = attQuery.where('labourId', isEqualTo: filter.labourId);
-      advQuery = advQuery.where('labourId', isEqualTo: filter.labourId);
-      payQuery = payQuery.where('labourId', isEqualTo: filter.labourId);
     }
-    
     if (filter.siteId != null && filter.siteId!.isNotEmpty) {
       attQuery = attQuery.where('siteId', isEqualTo: filter.siteId);
-      advQuery = advQuery.where('siteId', isEqualTo: filter.siteId);
-      payQuery = payQuery.where('siteId', isEqualTo: filter.siteId);
     }
 
-    final results = await Future.wait([
-      attQuery.get(),
-      advQuery.get(),
-      payQuery.get(),
-    ]);
+    final attSnap = await attQuery.get();
+    final attendances = attSnap.docs
+        .map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+        .toList();
 
-    final attendances = results[0].docs.map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
-    final advances = results[1].docs.map((doc) => AdvanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
-    final payments = results[2].docs.map((doc) => PaymentModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+    // Fetch outstanding advances (pending or partial) in range
+    Query advQuery = _advancesCollection(companyId)
+        .where('status', whereIn: ['pending', 'partial'])
+        .where('date', isGreaterThanOrEqualTo: startDate)
+        .where('date', isLessThanOrEqualTo: endDate);
+
+    if (filter.labourId != null && filter.labourId!.isNotEmpty) {
+      advQuery = advQuery.where('labourId', isEqualTo: filter.labourId);
+    }
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      advQuery = advQuery.where('siteId', isEqualTo: filter.siteId);
+    }
+
+    final advSnap = await advQuery.get();
+    final advances = advSnap.docs
+        .map((doc) => AdvanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+        .toList();
 
     Map<String, OutstandingBalanceWorkerEntry> workerData = {};
 
-    Future<void> initializeWorker(String labourId) async {
+    void initializeWorker(String labourId, String workerName) {
       if (!workerData.containsKey(labourId)) {
-        final labour = await _getLabour(companyId, labourId);
         workerData[labourId] = OutstandingBalanceWorkerEntry(
           labourId: labourId,
-          workerName: labour.fullName,
-          totalEarned: 0,
-          totalAdvances: 0,
-          totalPayments: 0,
-          outstandingBalance: 0,
+          workerName: workerName,
+          totalEarned: 0.0,
+          totalAdvances: 0.0,
+          totalPayments: 0.0,
+          outstandingBalance: 0.0,
         );
       }
     }
 
     for (final att in attendances) {
-      await initializeWorker(att.labourId);
-      final labour = await _getLabour(companyId, att.labourId);
-      final earned = att.calculateEarnings(labour.dailyWage);
-      
+      initializeWorker(att.labourId, att.labourNameSnapshot);
       final current = workerData[att.labourId]!;
       workerData[att.labourId] = OutstandingBalanceWorkerEntry(
         labourId: current.labourId,
         workerName: current.workerName,
-        totalEarned: current.totalEarned + earned,
+        totalEarned: current.totalEarned + att.earningsSnapshot,
         totalAdvances: current.totalAdvances,
         totalPayments: current.totalPayments,
-        outstandingBalance: 0,
+        outstandingBalance: 0.0,
       );
     }
 
     for (final adv in advances) {
-      await initializeWorker(adv.labourId);
+      initializeWorker(adv.labourId, adv.labourName);
       final current = workerData[adv.labourId]!;
       workerData[adv.labourId] = OutstandingBalanceWorkerEntry(
         labourId: current.labourId,
         workerName: current.workerName,
         totalEarned: current.totalEarned,
-        totalAdvances: current.totalAdvances + adv.amount,
+        totalAdvances: current.totalAdvances + adv.remainingAmount,
         totalPayments: current.totalPayments,
-        outstandingBalance: 0,
-      );
-    }
-
-    for (final pay in payments) {
-      await initializeWorker(pay.labourId);
-      final current = workerData[pay.labourId]!;
-      workerData[pay.labourId] = OutstandingBalanceWorkerEntry(
-        labourId: current.labourId,
-        workerName: current.workerName,
-        totalEarned: current.totalEarned,
-        totalAdvances: current.totalAdvances,
-        totalPayments: current.totalPayments + pay.netAmount,
-        outstandingBalance: 0,
+        outstandingBalance: 0.0,
       );
     }
 
@@ -591,7 +595,7 @@ class ReportRepository {
     double totalOutstandingBalance = 0;
 
     for (var entry in workerData.values) {
-      final outBalance = entry.totalEarned - entry.totalAdvances - entry.totalPayments;
+      final outBalance = entry.totalEarned - entry.totalAdvances;
       totalOutstandingBalance += outBalance;
       
       finalEntries.add(OutstandingBalanceWorkerEntry(
@@ -599,7 +603,7 @@ class ReportRepository {
         workerName: entry.workerName,
         totalEarned: entry.totalEarned,
         totalAdvances: entry.totalAdvances,
-        totalPayments: entry.totalPayments,
+        totalPayments: 0.0,
         outstandingBalance: outBalance,
       ));
     }
@@ -617,31 +621,94 @@ class ReportRepository {
     final startDate = Timestamp.fromDate(filter.startDate);
     final endDate = Timestamp.fromDate(filter.endDate);
 
-    Query siteQuery = _sitesCollection(companyId);
+    final sitesSnap = await _sitesCollection(companyId).get();
+    final sites = sitesSnap.docs
+        .map((doc) => SiteModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+        .toList();
 
     Query attQuery = _attendanceCollection(companyId)
+        .where('isDeleted', isEqualTo: false)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
-        
+
+    final attSnap = await attQuery.get();
+    final attendances = attSnap.docs
+        .map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+        .toList();
+
     Query advQuery = _advancesCollection(companyId)
         .where('date', isGreaterThanOrEqualTo: startDate)
         .where('date', isLessThanOrEqualTo: endDate);
-        
+
+    final advSnap = await advQuery.get();
+    
     Query payQuery = _paymentsCollection(companyId)
-        .where('periodStart', isGreaterThanOrEqualTo: startDate)
-        .where('periodStart', isLessThanOrEqualTo: endDate);
+        .where('paymentDate', isGreaterThanOrEqualTo: startDate)
+        .where('paymentDate', isLessThanOrEqualTo: endDate);
 
-    final results = await Future.wait([
-      siteQuery.get(),
-      attQuery.get(),
-      advQuery.get(),
-      payQuery.get(),
-    ]);
+    final paySnap = await payQuery.get();
 
-    final sites = results[0].docs.map((doc) => SiteModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
-    final attendances = results[1].docs.map((doc) => AttendanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
-    final advances = results[2].docs.map((doc) => AdvanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
-    final payments = results[3].docs.map((doc) => PaymentModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+    // Site Resolution Helper implementing Priority historical site attribution
+    Future<String> resolveHistoricalSiteId({
+      required String labourId,
+      required String? payrollPeriodId,
+      required DateTime date,
+      required Map<String, dynamic> rawDocData,
+    }) async {
+      // Priority 1: siteIdSnapshot or siteId on payment/advance
+      final directSiteId = rawDocData['siteId'] as String? ?? rawDocData['siteIdSnapshot'] as String?;
+      if (directSiteId != null && directSiteId.isNotEmpty) {
+        return directSiteId;
+      }
+
+      // Priority 2: payrollRegister.siteId for payroll-linked transactions
+      if (payrollPeriodId != null && payrollPeriodId.isNotEmpty) {
+        final regSnap = await _registersCollection(companyId).doc('${payrollPeriodId}_$labourId').get();
+        if (regSnap.exists) {
+          final regSiteId = regSnap.data()?['siteId'] as String? ?? regSnap.data()?['siteIdSnapshot'] as String?;
+          if (regSiteId != null && regSiteId.isNotEmpty) {
+            return regSiteId;
+          }
+        }
+      }
+
+      // Priority 3: Attendance records associated with the reporting period
+      Query histAttQuery = _attendanceCollection(companyId)
+          .where('labourId', isEqualTo: labourId)
+          .where('isDeleted', isEqualTo: false);
+
+      if (payrollPeriodId != null && payrollPeriodId.isNotEmpty) {
+        histAttQuery = histAttQuery.where('payrollPeriodId', isEqualTo: payrollPeriodId);
+      } else {
+        final rangeStart = Timestamp.fromDate(date.subtract(const Duration(days: 15)));
+        final rangeEnd = Timestamp.fromDate(date.add(const Duration(days: 15)));
+        histAttQuery = histAttQuery.where('date', isGreaterThanOrEqualTo: rangeStart).where('date', isLessThanOrEqualTo: rangeEnd);
+      }
+
+      final histAttSnap = await histAttQuery.get();
+      if (histAttSnap.docs.isNotEmpty) {
+        final Map<String, int> siteCounts = {};
+        for (final doc in histAttSnap.docs) {
+          final data = doc.data() as Map<String, dynamic>?;
+          final sId = data?['siteId'] as String? ?? '';
+          if (sId.isNotEmpty) {
+            siteCounts[sId] = (siteCounts[sId] ?? 0) + 1;
+          }
+        }
+        if (siteCounts.isNotEmpty) {
+          final sortedSites = siteCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+          return sortedSites.first.key;
+        }
+      }
+
+      // Fallback: get worker's current assignedSiteId
+      try {
+        final labour = await _getLabour(companyId, labourId);
+        return labour.assignedSiteId;
+      } catch (_) {
+        return '';
+      }
+    }
 
     Map<String, SitePerformanceEntry> siteData = {};
     Map<String, Set<String>> siteWorkers = {};
@@ -683,26 +750,31 @@ class ReportRepository {
       final current = getOrCreateSiteEntry(att.siteId);
       siteWorkers[att.siteId]!.add(att.labourId);
       
-      final labour = await _getLabour(companyId, att.labourId);
-      final earned = att.calculateEarnings(labour.dailyWage);
-      
       siteData[att.siteId] = SitePerformanceEntry(
         siteId: current.siteId,
         siteName: current.siteName,
         workerCount: current.workerCount,
         attendanceDays: current.attendanceDays + 1,
-        totalEarned: current.totalEarned + earned,
+        totalEarned: current.totalEarned + att.earningsSnapshot,
         totalAdvances: current.totalAdvances,
         totalPayments: current.totalPayments,
         outstandingBalance: 0,
       );
     }
 
-    for (final adv in advances) {
-      if (adv.siteId.isEmpty) continue;
+    for (final doc in advSnap.docs) {
+      final adv = AdvanceModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+      final rawData = doc.data() as Map<String, dynamic>;
+      final targetSiteId = await resolveHistoricalSiteId(
+        labourId: adv.labourId,
+        payrollPeriodId: null,
+        date: adv.date,
+        rawDocData: rawData,
+      );
+      if (targetSiteId.isEmpty) continue;
 
-      final current = getOrCreateSiteEntry(adv.siteId, fallbackName: adv.siteName.isNotEmpty ? adv.siteName : 'Unknown Site');
-      siteData[adv.siteId] = SitePerformanceEntry(
+      final current = getOrCreateSiteEntry(targetSiteId, fallbackName: adv.siteName.isNotEmpty ? adv.siteName : 'Unknown Site');
+      siteData[targetSiteId] = SitePerformanceEntry(
         siteId: current.siteId,
         siteName: current.siteName,
         workerCount: current.workerCount,
@@ -714,18 +786,26 @@ class ReportRepository {
       );
     }
 
-    for (final pay in payments) {
-      if (pay.siteId.isEmpty) continue;
+    for (final doc in paySnap.docs) {
+      final pay = PaymentModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+      final rawData = doc.data() as Map<String, dynamic>;
+      final targetSiteId = await resolveHistoricalSiteId(
+        labourId: pay.labourId,
+        payrollPeriodId: pay.payrollPeriodId,
+        date: pay.paymentDate,
+        rawDocData: rawData,
+      );
+      if (targetSiteId.isEmpty) continue;
 
-      final current = getOrCreateSiteEntry(pay.siteId, fallbackName: pay.siteName.isNotEmpty ? pay.siteName : 'Unknown Site');
-      siteData[pay.siteId] = SitePerformanceEntry(
+      final current = getOrCreateSiteEntry(targetSiteId, fallbackName: pay.siteName.isNotEmpty ? pay.siteName : 'Unknown Site');
+      siteData[targetSiteId] = SitePerformanceEntry(
         siteId: current.siteId,
         siteName: current.siteName,
         workerCount: current.workerCount,
         attendanceDays: current.attendanceDays,
         totalEarned: current.totalEarned,
         totalAdvances: current.totalAdvances,
-        totalPayments: current.totalPayments + pay.netAmount,
+        totalPayments: current.totalPayments + pay.amount,
         outstandingBalance: 0,
       );
     }

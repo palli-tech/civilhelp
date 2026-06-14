@@ -1,410 +1,211 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
+import 'package:civilhelp/shared/widgets/app_design_system.dart';
+import 'package:civilhelp/shared/widgets/civil_empty_state.dart';
+import 'package:civilhelp/shared/widgets/metric_card.dart';
+import 'package:civilhelp/shared/widgets/status_chip.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
-import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import '../models/advance_model.dart';
-import '../providers/advance_provider.dart';
+import '../providers/advances_providers.dart';
 import '../../labour/data/models/labour_model.dart';
-import '../../sites/models/site_model.dart';
 
-class AdvancesScreen extends ConsumerWidget {
+class AdvancesScreen extends ConsumerStatefulWidget {
   const AdvancesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final advancesAsync = ref.watch(advancesStreamProvider);
-    final sitesAsync = ref.watch(sitesStreamProvider);
+  ConsumerState<AdvancesScreen> createState() => _AdvancesScreenState();
+}
+
+class _AdvancesScreenState extends ConsumerState<AdvancesScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final advancesAsync = ref.watch(advancesListStreamProvider);
     final labourAsync = ref.watch(labourStreamProvider);
 
-    final FloatingActionButton? fab = advancesAsync.when(
-      data: (advances) => advances.isEmpty
-          ? null
-          : FloatingActionButton(
-              onPressed: () {
-                _showNewAdvanceDialog(context, ref, sitesAsync, labourAsync);
-              },
-              tooltip: 'Add Advance',
-              child: const Icon(Icons.add),
-            ),
-      loading: () => null,
-      error: (_, _) => null,
-    );
-
     return AppScaffold(
-      appBar: AppBar(title: const Text('Advances'), elevation: 0),
-      fab: fab,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(
-              child: advancesAsync.when(
-                data: (advances) {
-                  if (advances.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.account_balance_wallet,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No advances recorded yet',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Add advances to track loaned amounts and repayments',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.grey[600]),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              _showNewAdvanceDialog(
-                                context,
-                                ref,
-                                sitesAsync,
-                                labourAsync,
-                              );
-                            },
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Advance'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.separated(
-                    itemCount: advances.length,
-                    separatorBuilder: (context, index) => const Divider(),
-                    itemBuilder: (context, index) {
-                      final advance = advances[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 6,
-                        ),
-                        child: ListTile(
-                          onTap: () {
-                            _showAdvanceDetailsDialog(context, advance);
-                          },
-                          title: Text(
-                            advance.labourName,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(advance.siteName),
-                              Text(
-                                'Date: ${advance.date.toLocal().toShortDateString()}',
-                                style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                              ),
-                              if (advance.recoveredAmount > 0 && !advance.paidBack)
-                                Text(
-                                  '₹${advance.amount.toStringAsFixed(0)} • Recovered: ₹${advance.recoveredAmount.toStringAsFixed(0)} • Outstanding: ₹${(advance.amount - advance.recoveredAmount).toStringAsFixed(0)}',
-                                )
-                              else if (advance.paidBack)
-                                Text(
-                                  '₹${advance.amount.toStringAsFixed(0)} • Fully Recovered',
-                                  style: const TextStyle(color: Colors.green),
-                                )
-                              else
-                                Text(
-                                  '₹${advance.amount.toStringAsFixed(0)} • ${advance.reason}',
-                                ),
-                            ],
-                          ),
-                          trailing: PopupMenuButton<String>(
-                            onSelected: (value) {
-                              switch (value) {
-                                case 'edit':
-                                  _showEditAdvanceDialog(context, ref, advance);
-                                  break;
-
-                                case 'delete':
-                                  _showDeleteAdvanceDialog(
-                                    context,
-                                    ref,
-                                    advance,
-                                  );
-                                  break;
-                              }
-                            },
-                            itemBuilder: (context) => const [
-                              PopupMenuItem(value: 'edit', child: Text('Edit')),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Delete'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) =>
-                    Center(child: Text('Failed to load advances: $error')),
-              ),
+      appBar: AppBar(
+        title: const Text(
+          'Advances Ledger',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFE65100), Color(0xFFF57C00)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          tabs: const [
+            Tab(text: 'Outstanding'),
+            Tab(text: 'Recovered'),
+            Tab(text: 'Worker Ledger'),
           ],
         ),
       ),
-    );
-  }
-
-  void _showDeleteAdvanceDialog(
-    BuildContext context,
-    WidgetRef ref,
-    AdvanceModel advance,
-  ) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Advance'),
-        content: Text('Delete advance for ${advance.labourName}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              await ref.read(deleteAdvanceProvider(advance.id).future);
-
-              if (context.mounted) {
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Advance deleted')),
-                );
-              }
-            },
-            child: const Text('Delete'),
-          ),
+      fab: FloatingActionButton.extended(
+        onPressed: () => _showNewAdvanceDialog(context, ref, labourAsync),
+        label: const Text('Issue Advance', style: TextStyle(fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.add),
+        backgroundColor: const Color(0xFFE65100),
+        foregroundColor: Colors.white,
+      ),
+      child: TabBarView(
+        controller: _tabController,
+        children: [
+          _OutstandingTab(advancesAsync: advancesAsync, onIssue: () => _showNewAdvanceDialog(context, ref, labourAsync)),
+          _RecoveredTab(advancesAsync: advancesAsync),
+          _WorkerLedgerTab(advancesAsync: advancesAsync, labourAsync: labourAsync),
         ],
       ),
     );
   }
 
-  void _showEditAdvanceDialog(
-    BuildContext context,
-    WidgetRef ref,
-    AdvanceModel advance,
-  ) {
-    final amountController = TextEditingController(
-      text: advance.amount.toString(),
-    );
-
-    final reasonController = TextEditingController(text: advance.reason);
-
-    bool paidBack = advance.paidBack;
-
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Edit Advance'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  initialValue: advance.date.toLocal().toShortDateString(),
-                  decoration: const InputDecoration(labelText: 'Advance Date'),
-                  readOnly: true,
-                  enabled: false,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: amountController,
-                  decoration: const InputDecoration(labelText: 'Amount'),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: reasonController,
-                  decoration: const InputDecoration(labelText: 'Reason'),
-                ),
-                const SizedBox(height: 12),
-                CheckboxListTile(
-                  value: paidBack,
-                  title: const Text('Paid Back'),
-                  onChanged: (value) {
-                    setState(() {
-                      paidBack = value ?? false;
-                    });
-                  },
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  await ref.read(
-                    updateAdvanceProvider(
-                      advance.copyWith(
-                        amount:
-                            double.tryParse(amountController.text) ??
-                            advance.amount,
-                        reason: reasonController.text,
-                        paidBack: paidBack,
-                      ),
-                    ).future,
-                  );
-
-                  if (context.mounted) {
-                    Navigator.pop(context);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Advance updated')),
-                    );
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
+  // ─── Issue Advance Dialog ─────────────────────────────────────────────────
 
   void _showNewAdvanceDialog(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<List<SiteModel>> sitesAsync,
     AsyncValue<List<LabourModel>> labourAsync,
   ) {
     final formKey = GlobalKey<FormState>();
-    DateTime selectedDate = DateTime.now();
-    String? selectedSiteId;
     String? selectedLabourId;
-    String amountValue = '0';
-    String reason = '';
+    String? selectedLabourName;
+    double amount = 0.0;
+    String description = '';
+    DateTime selectedDate = DateTime.now();
 
-    showDialog<void>(
+    showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogCtx) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (dialogCtx, setState) {
             return AlertDialog(
-              title: const Text('Add Advance'),
+              title: const Text(
+                'Issue New Advance',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE65100)),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               content: Form(
                 key: formKey,
                 child: SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       DropdownButtonFormField<String>(
-                        initialValue: selectedSiteId,
-                        decoration: const InputDecoration(labelText: 'Site'),
-                        items: sitesAsync.when(
-                          data: (sites) => sites
-                              .map(
-                                (site) => DropdownMenuItem(
-                                  value: site.id,
-                                  child: Text(site.name),
-                                ),
-                              )
-                              .toList(),
-                          loading: () => const [],
-                          error: (error, stackTrace) => const [],
+                        decoration: const InputDecoration(
+                          labelText: 'Labour / Worker',
+                          prefixIcon: Icon(Icons.person_outline),
                         ),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedSiteId = value;
-                          });
-                        },
-                        validator: (value) =>
-                            value == null ? 'Select a site' : null,
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedLabourId,
-                        decoration: const InputDecoration(labelText: 'Labour'),
                         items: labourAsync.when(
-                          data: (labour) => labour
-                              .map(
-                                (entry) => DropdownMenuItem(
-                                  value: entry.id,
-                                  child: Text(entry.fullName),
-                                ),
-                              )
+                          data: (list) => list
+                              .where((l) => l.status.name == 'active')
+                              .map((l) => DropdownMenuItem(
+                                    value: l.id,
+                                    child: Text(l.fullName),
+                                  ))
                               .toList(),
-                          loading: () => const [],
-                          error: (_, _) => const [],
+                          loading: () => [],
+                          error: (_, e) => [],
                         ),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedLabourId = value;
-                          });
-                        },
-                        validator: (value) =>
-                            value == null ? 'Select a labour' : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        initialValue: amountValue,
-                        decoration: const InputDecoration(labelText: 'Amount'),
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) => amountValue = value,
-                        validator: (value) {
-                          final amount = double.tryParse(value ?? '');
-                          if (amount == null || amount <= 0) {
-                            return 'Enter a valid amount';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        decoration: const InputDecoration(labelText: 'Reason'),
-                        onChanged: (value) => reason = value,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Enter a reason';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate,
-                            firstDate: DateTime.now().subtract(
-                              const Duration(days: 365),
-                            ),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
-                          );
-                          if (picked != null) {
+                        onChanged: (val) {
+                          if (val != null) {
                             setState(() {
-                              selectedDate = picked;
+                              selectedLabourId = val;
+                              selectedLabourName = labourAsync.value
+                                  ?.firstWhere((l) => l.id == val)
+                                  .fullName;
                             });
                           }
                         },
-                        child: Text(
-                          'Date: ${selectedDate.toLocal().toShortDateString()}',
+                        validator: (val) => val == null ? 'Select a worker' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'Advance Amount (₹)',
+                          prefixIcon: Icon(Icons.currency_rupee),
                         ),
+                        keyboardType: TextInputType.number,
+                        validator: (val) {
+                          final amt = double.tryParse(val ?? '');
+                          if (amt == null || amt <= 0) return 'Enter a valid amount';
+                          return null;
+                        },
+                        onSaved: (val) {
+                          if (val != null) amount = double.parse(val);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'Description / Purpose',
+                          prefixIcon: Icon(Icons.notes),
+                        ),
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Enter description' : null,
+                        onSaved: (val) {
+                          if (val != null) description = val;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.event, size: 18, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                DateFormat('dd MMM yyyy').format(selectedDate),
+                                style: const TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: dialogCtx,
+                                initialDate: selectedDate,
+                                firstDate: DateTime.now().subtract(const Duration(days: 90)),
+                                lastDate: DateTime.now().add(const Duration(days: 30)),
+                              );
+                              if (picked != null) {
+                                setState(() => selectedDate = picked);
+                              }
+                            },
+                            child: const Text('Change Date'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -412,52 +213,42 @@ class AdvancesScreen extends ConsumerWidget {
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Cancel'),
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
                 ),
-                ElevatedButton(
+                FilledButton(
                   onPressed: () async {
-                    if (!formKey.currentState!.validate()) {
-                      return;
-                    }
+                    if (!formKey.currentState!.validate()) return;
+                    formKey.currentState!.save();
+                    Navigator.pop(dialogCtx);
 
-                    final selectedSite = sitesAsync.valueOrNull?.firstWhere(
-                      (site) => site.id == selectedSiteId,
-                    );
-                    final selectedLabour = labourAsync.valueOrNull?.firstWhere(
-                      (labour) => labour.id == selectedLabourId,
-                    );
+                    try {
+                      await ref.read(createAdvanceProvider((
+                        labourId: selectedLabourId!,
+                        labourName: selectedLabourName ?? 'Unknown',
+                        amount: amount,
+                        description: description,
+                        date: selectedDate,
+                      )).future);
 
-                    if (selectedSite == null || selectedLabour == null) {
-                      return;
-                    }
-
-                    final advance = await ref.read(
-                      createAdvanceProvider((
-                        selectedLabour.id,
-                        selectedLabour.fullName,
-                        selectedSite.id,
-                        selectedSite.name,
-                        double.tryParse(amountValue) ?? 0.0,
-                        reason,
-                        selectedDate,
-                      )).future,
-                    );
-
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Advance issued successfully.')),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            'Advance created for ${advance.labourName}',
-                          ),
+                          content: Text('Failed to issue advance: $e'),
+                          backgroundColor: Colors.redAccent,
                         ),
                       );
                     }
                   },
-                  child: const Text('Save'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFE65100),
+                  ),
+                  child: const Text('Issue Advance'),
                 ),
               ],
             );
@@ -466,67 +257,596 @@ class AdvancesScreen extends ConsumerWidget {
       },
     );
   }
+}
 
-  void _showAdvanceDetailsDialog(
-    BuildContext context,
-    AdvanceModel advance,
-  ) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Advance Details'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+// ─── Outstanding Tab ──────────────────────────────────────────────────────────
+
+class _OutstandingTab extends StatelessWidget {
+  final AsyncValue<List<AdvanceModel>> advancesAsync;
+  final VoidCallback onIssue;
+
+  const _OutstandingTab({required this.advancesAsync, required this.onIssue});
+
+  @override
+  Widget build(BuildContext context) {
+    return advancesAsync.when(
+      data: (advances) {
+        final outstanding = advances.where((a) => a.status != 'recovered').toList();
+        final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+
+        final totalOutstanding = outstanding.fold<double>(
+          0.0, (acc, a) => acc + a.remainingAmount);
+        final workersWithAdvances = outstanding.map((a) => a.labourId).toSet().length;
+        final pendingCount = outstanding.where((a) => a.status == 'pending').length;
+
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _detailField('Labour', advance.labourName),
-            _detailField('Site', advance.siteName),
-            _detailField('Amount', '₹${advance.amount.toStringAsFixed(2)}'),
-            _detailField('Reason', advance.reason),
-            _detailField('Advance Date', advance.date.toLocal().toShortDateString()),
-            _detailField('Status', advance.paidBack ? 'Fully Recovered' : 'Outstanding (₹${(advance.amount - advance.recoveredAmount).toStringAsFixed(2)} outstanding)'),
+            // ── Summary Metric Bar ─────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Row(
+                children: [
+                  MetricCard(
+                    label: 'Total Outstanding',
+                    value: currencyFmt.format(totalOutstanding),
+                    icon: Icons.account_balance_wallet_outlined,
+                    color: AppDesignSystem.warningColor,
+                  ),
+                  const SizedBox(width: AppDesignSystem.spacingSm),
+                  MetricCard(
+                    label: 'Workers',
+                    value: '$workersWithAdvances',
+                    icon: Icons.people_outline,
+                    color: AppDesignSystem.infoColor,
+                  ),
+                  const SizedBox(width: AppDesignSystem.spacingSm),
+                  MetricCard(
+                    label: 'Pending',
+                    value: '$pendingCount',
+                    icon: Icons.pending_outlined,
+                    color: AppDesignSystem.neutralColor,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // ── List ──────────────────────────────────────────────────────
+            Expanded(
+              child: outstanding.isEmpty
+                  ? CivilEmptyState(
+                      icon: Icons.check_circle_outline,
+                      title: 'No Outstanding Advances',
+                      description: 'All advances have been fully recovered. Great work!',
+                      iconColor: AppDesignSystem.successColor,
+                      ctaLabel: 'Issue Advance',
+                      onCta: onIssue,
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                      itemCount: outstanding.length,
+                      itemBuilder: (context, index) {
+                        return _OutstandingCard(advance: outstanding[index]);
+                      },
+                    ),
+            ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
     );
   }
+}
 
-  Widget _detailField(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
+class _OutstandingCard extends StatelessWidget {
+  final AdvanceModel advance;
+  const _OutstandingCard({required this.advance});
+
+  @override
+  Widget build(BuildContext context) {
+    final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+    final recoveryPct = advance.amount > 0
+        ? (advance.recoveredAmount / advance.amount).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Card(
+      elevation: AppDesignSystem.elevationCard,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignSystem.radiusLg)),
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(AppDesignSystem.spacingMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Name + Status
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    advance.labourName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                StatusChip(status: advance.status),
+              ],
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 4),
+            Text(
+              advance.description,
+              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+            // Outstanding amount — DOMINANT
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  currencyFmt.format(advance.remainingAmount),
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: AppDesignSystem.warningColor,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'outstanding',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Recovery progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: recoveryPct,
+                backgroundColor: Colors.grey[200],
+                color: AppDesignSystem.recoveryColor,
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // Secondary info row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Issued: ${currencyFmt.format(advance.amount)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                ),
+                Text(
+                  'Recovered: ${currencyFmt.format(advance.recoveredAmount)} (${(recoveryPct * 100).toStringAsFixed(0)}%)',
+                  style: TextStyle(fontSize: 12, color: AppDesignSystem.recoveryColor),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Issued on ${DateFormat('dd MMM yyyy').format(advance.date)}',
+              style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-extension on DateTime {
-  String toShortDateString() {
-    return '${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')}/${year.toString()}';
+// ─── Recovered Tab ────────────────────────────────────────────────────────────
+
+class _RecoveredTab extends StatelessWidget {
+  final AsyncValue<List<AdvanceModel>> advancesAsync;
+  const _RecoveredTab({required this.advancesAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    return advancesAsync.when(
+      data: (advances) {
+        final recovered = advances.where((a) => a.status == 'recovered').toList();
+        final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+        final totalRecovered = recovered.fold<double>(0.0, (acc, a) => acc + a.recoveredAmount);
+
+        return Column(
+          children: [
+            if (recovered.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  children: [
+                    MetricCard(
+                      label: 'Total Recovered',
+                      value: currencyFmt.format(totalRecovered),
+                      icon: Icons.task_alt_outlined,
+                      color: AppDesignSystem.recoveryColor,
+                    ),
+                    const SizedBox(width: AppDesignSystem.spacingSm),
+                    MetricCard(
+                      label: 'Workers',
+                      value: '${recovered.map((a) => a.labourId).toSet().length}',
+                      icon: Icons.people_outline,
+                      color: AppDesignSystem.successColor,
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: recovered.isEmpty
+                  ? const CivilEmptyState(
+                      icon: Icons.offline_pin_outlined,
+                      title: 'No Recovered Advances',
+                      description: 'Advances fully repaid during payroll settlement appear here.',
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                      itemCount: recovered.length,
+                      itemBuilder: (context, index) {
+                        return _RecoveredCard(advance: recovered[index]);
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
+    );
+  }
+}
+
+class _RecoveredCard extends StatelessWidget {
+  final AdvanceModel advance;
+  const _RecoveredCard({required this.advance});
+
+  @override
+  Widget build(BuildContext context) {
+    final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+
+    return Card(
+      elevation: AppDesignSystem.elevationCard,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd)),
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(AppDesignSystem.spacingMd),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppDesignSystem.recoveryLight,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Icon(Icons.check_circle_outline,
+                  color: AppDesignSystem.recoveryColor, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    advance.labourName,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    advance.description,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Issued: ${DateFormat('dd MMM yyyy').format(advance.date)}',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  currencyFmt.format(advance.amount),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppDesignSystem.recoveryColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const StatusChip(status: 'recovered', fontSize: 10),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Worker Ledger Tab ────────────────────────────────────────────────────────
+
+class _WorkerLedgerTab extends StatelessWidget {
+  final AsyncValue<List<AdvanceModel>> advancesAsync;
+  final AsyncValue<List<LabourModel>> labourAsync;
+
+  const _WorkerLedgerTab({required this.advancesAsync, required this.labourAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    return advancesAsync.when(
+      data: (advances) => labourAsync.when(
+        data: (labours) {
+          final Map<String, List<AdvanceModel>> workerAdvances = {};
+          for (final adv in advances) {
+            workerAdvances.putIfAbsent(adv.labourId, () => []).add(adv);
+          }
+
+          final workers = labours
+              .where((l) => workerAdvances.containsKey(l.id) || l.status.name == 'active')
+              .toList();
+
+          if (workers.isEmpty) {
+            return const CivilEmptyState(
+              icon: Icons.people_outline,
+              title: 'No Worker Data',
+              description: 'Active workers with advance history will appear here.',
+            );
+          }
+
+          // Sort: workers with outstanding balance first
+          workers.sort((a, b) {
+            final aBalance = (workerAdvances[a.id] ?? [])
+                .fold<double>(0.0, (acc, adv) => acc + adv.remainingAmount);
+            final bBalance = (workerAdvances[b.id] ?? [])
+                .fold<double>(0.0, (acc, adv) => acc + adv.remainingAmount);
+            return bBalance.compareTo(aBalance);
+          });
+
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            itemCount: workers.length,
+            itemBuilder: (context, index) {
+              final labour = workers[index];
+              final list = workerAdvances[labour.id] ?? [];
+
+              double totalIssued = list.fold(0.0, (acc, a) => acc + a.amount);
+              double totalRecovered = list.fold(0.0, (acc, a) => acc + a.recoveredAmount);
+              double outstanding = totalIssued - totalRecovered;
+
+              return _WorkerLedgerCard(
+                name: labour.fullName,
+                outstanding: outstanding,
+                totalIssued: totalIssued,
+                totalRecovered: totalRecovered,
+                advanceCount: list.length,
+                onTap: () => _showWorkerLedgerDetails(context, labour.fullName, list),
+              );
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
+    );
+  }
+
+  void _showWorkerLedgerDetails(
+      BuildContext context, String workerName, List<AdvanceModel> list) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            '$workerName\'s Advance History',
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, color: Color(0xFFE65100)),
+          ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: list.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('No advance history.'),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: list.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final adv = list[index];
+                      final currencyFmt =
+                          NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(adv.description,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    DateFormat('dd MMM yyyy').format(adv.date),
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  currencyFmt.format(adv.remainingAmount),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: adv.status == 'recovered'
+                                        ? AppDesignSystem.recoveryColor
+                                        : AppDesignSystem.warningColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                StatusChip(status: adv.status, fontSize: 10),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close',
+                  style: TextStyle(color: Color(0xFFE65100))),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _WorkerLedgerCard extends StatelessWidget {
+  final String name;
+  final double outstanding;
+  final double totalIssued;
+  final double totalRecovered;
+  final int advanceCount;
+  final VoidCallback onTap;
+
+  const _WorkerLedgerCard({
+    required this.name,
+    required this.outstanding,
+    required this.totalIssued,
+    required this.totalRecovered,
+    required this.advanceCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+    final hasOutstanding = outstanding > 0;
+
+    return Card(
+      elevation: AppDesignSystem.elevationCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusLg),
+        side: hasOutstanding
+            ? BorderSide(
+                color: AppDesignSystem.warningColor.withValues(alpha: 0.3),
+                width: 1)
+            : BorderSide.none,
+      ),
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDesignSystem.radiusLg),
+        child: Padding(
+          padding: const EdgeInsets.all(AppDesignSystem.spacingMd),
+          child: Row(
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: hasOutstanding
+                    ? AppDesignSystem.warningLight
+                    : AppDesignSystem.successLight,
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: hasOutstanding
+                        ? AppDesignSystem.warningColor
+                        : AppDesignSystem.successColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Worker info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '$advanceCount advance${advanceCount != 1 ? 's' : ''}',
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('·', style: TextStyle(color: Colors.grey[400])),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Issued: ${currencyFmt.format(totalIssued)}',
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Outstanding balance — dominant
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    currencyFmt.format(outstanding),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: hasOutstanding
+                          ? AppDesignSystem.warningColor
+                          : AppDesignSystem.successColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'outstanding',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                  ),
+                  const SizedBox(height: 4),
+                  const Icon(Icons.chevron_right, color: Colors.grey),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
