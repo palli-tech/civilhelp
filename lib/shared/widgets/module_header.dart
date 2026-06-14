@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/app/theme.dart';
-import 'profile_menu_button.dart';
+
 
 class ModuleHeaderConstants {
   static const double minHeaderHeight = 80.0;
@@ -36,28 +36,7 @@ class ModuleHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = context.isDarkMode;
 
-    Widget glassButton({required Widget child, required VoidCallback onTap}) {
-      return Container(
-        width: ModuleHeaderConstants.actionButtonSize,
-        height: ModuleHeaderConstants.actionButtonSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
-          border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
-          ),
-        ),
-        child: ClipOval(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: InkWell(
-              onTap: onTap,
-              child: Center(child: child),
-            ),
-          ),
-        ),
-      );
-    }
+
 
     Widget buildBackButton() {
       return StatefulHoverBackButton(
@@ -162,31 +141,13 @@ class ModuleHeader extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                // Right: Theme Toggle & Profile Avatar Menu Button
-                 Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (actions != null) ...[
-                      ...actions!,
-                      const SizedBox(width: 10),
-                    ],
-                    glassButton(
-                      onTap: () {
-                        ref.read(themeProvider.notifier).setThemeMode(
-                          isDark ? AppThemeMode.light : AppThemeMode.dark,
-                        );
-                      },
-                      child: Icon(
-                        isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                        color: isDark ? Colors.white : Colors.black87,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const ProfileMenuButton(),
-                  ],
-                ),
+                if (actions != null && actions!.isNotEmpty) ...[
+                  const SizedBox(width: 16),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: actions!,
+                  ),
+                ],
               ],
             ),
           ),

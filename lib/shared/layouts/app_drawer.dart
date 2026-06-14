@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,70 +8,182 @@ import 'package:civilhelp/app/router.dart';
 import 'package:civilhelp/core/providers/tenant_provider.dart';
 import '../../features/auth/providers/auth_provider.dart';
 
-class WavePainter extends CustomPainter {
-  final Color color;
-
-  WavePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    path.moveTo(0, size.height * 0.7);
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.55,
-      size.width * 0.5,
-      size.height * 0.7,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.85,
-      size.width,
-      size.height * 0.6,
-    );
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-
-    canvas.drawPath(path, paint);
-
-    final path2 = Path();
-    path2.moveTo(0, size.height * 0.8);
-    path2.quadraticBezierTo(
-      size.width * 0.3,
-      size.height * 0.9,
-      size.width * 0.6,
-      size.height * 0.75,
-    );
-    path2.quadraticBezierTo(
-      size.width * 0.85,
-      size.height * 0.6,
-      size.width,
-      size.height * 0.75,
-    );
-    path2.lineTo(size.width, size.height);
-    path2.lineTo(0, size.height);
-    path2.close();
-
-    final paint2 = Paint()
-      ..color = color.withValues(alpha: color.opacity * 0.5)
-      ..style = PaintingStyle.fill;
-    canvas.drawPath(path2, paint2);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class AppDrawer extends ConsumerWidget {
+class AppDrawer extends ConsumerStatefulWidget {
   const AppDrawer({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends ConsumerState<AppDrawer> {
+  bool _isMenuOpen = false;
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  Widget _buildAccountMenuItem({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required bool isDark,
+    required VoidCallback onTap,
+    String? routeName,
+    bool isLogout = false,
+  }) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    final isActive = routeName != null && currentRoute == routeName;
+
+    Color? textColor;
+    Color? iconColor;
+    Color? backgroundColor;
+
+    if (isLogout) {
+      textColor = Colors.redAccent;
+      iconColor = Colors.redAccent.withValues(alpha: 0.8);
+    } else {
+      if (isActive) {
+        textColor = const Color(0xFF7B4DFF);
+        iconColor = const Color(0xFF7B4DFF);
+        backgroundColor = const Color(0xFF7B4DFF).withValues(alpha: 0.08);
+      } else {
+        textColor = isDark ? Colors.white70 : Colors.black87;
+        iconColor = isDark ? Colors.white54 : Colors.black54;
+      }
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: backgroundColor,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          hoverColor: isLogout
+              ? Colors.redAccent.withValues(alpha: 0.08)
+              : const Color(0xFF7B4DFF).withValues(alpha: 0.08),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: iconColor,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontFamily: 'NotoSans',
+                      fontSize: 13,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAppearanceDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final activeThemeMode = ref.watch(themeProvider);
+            return AlertDialog(
+              title: const Text('Appearance Preferences'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RadioListTile<AppThemeMode>(
+                    title: const Text('Light Theme'),
+                    secondary: const Icon(Icons.light_mode_outlined),
+                    value: AppThemeMode.light,
+                    groupValue: activeThemeMode,
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(themeProvider.notifier).setThemeMode(val);
+                      }
+                    },
+                  ),
+                  RadioListTile<AppThemeMode>(
+                    title: const Text('Dark Theme'),
+                    secondary: const Icon(Icons.dark_mode_outlined),
+                    value: AppThemeMode.dark,
+                    groupValue: activeThemeMode,
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(themeProvider.notifier).setThemeMode(val);
+                      }
+                    },
+                  ),
+                  RadioListTile<AppThemeMode>(
+                    title: const Text('System Default'),
+                    secondary: const Icon(Icons.settings_brightness_outlined),
+                    value: AppThemeMode.system,
+                    groupValue: activeThemeMode,
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(themeProvider.notifier).setThemeMode(val);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Done'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required bool isDark,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 14,
+          color: isDark ? Colors.white60 : Colors.black45,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileCard(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
     final userDataAsync = ref.watch(userDataProvider);
     final tenantCompanyAsync = ref.watch(tenantCompanyStreamProvider);
@@ -80,7 +191,331 @@ class AppDrawer extends ConsumerWidget {
 
     final isDark = context.isDarkMode;
 
-    // Check currently active route
+    final companyName = tenantCompanyAsync.maybeWhen(
+      data: (company) => company?.name ?? 'PalliVerse Technologies',
+      orElse: () => 'PalliVerse Technologies',
+    );
+
+    final userName = userDataAsync.maybeWhen(
+      data: (userData) => userData?['name'] as String? ?? currentUser?.displayName ?? 'User',
+      orElse: () => currentUser?.displayName ?? 'User',
+    );
+
+    final initials = userName.isNotEmpty
+        ? userName.trim().split(RegExp(r'\s+')).map((s) => s[0]).take(2).join().toUpperCase()
+        : 'U';
+
+    final formattedRole = role.displayName;
+
+    double scale = 1.0;
+    if (_isPressed) {
+      scale = 0.99;
+    } else if (_isHovered) {
+      scale = 1.01;
+    }
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedScale(
+          scale: scale,
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOutCubic,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: isDark
+                  ? const LinearGradient(
+                      colors: [
+                        Color(0xFF130D32),
+                        Color(0xFF1A1140),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : LinearGradient(
+                      colors: [
+                        Colors.white,
+                        Color.lerp(Colors.white, const Color(0xFF7B4DFF), 0.03)!,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+              border: Border.all(
+                color: _isMenuOpen
+                    ? const Color(0xFF7B4DFF).withValues(alpha: 0.20)
+                    : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06)),
+                width: _isMenuOpen ? 1.5 : 1.0,
+              ),
+              boxShadow: [
+                if (_isMenuOpen)
+                  BoxShadow(
+                    color: const Color(0xFF7B4DFF).withValues(alpha: 0.18),
+                    blurRadius: 24,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 4),
+                  )
+                else
+                  BoxShadow(
+                    color: isDark
+                        ? const Color(0xFF7B4DFF).withValues(alpha: _isHovered ? 0.15 : 0.08)
+                        : Colors.black.withValues(alpha: _isHovered ? 0.08 : 0.04),
+                    blurRadius: _isHovered ? 20 : 12,
+                    offset: const Offset(0, 4),
+                  ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  Positioned(
+                    bottom: -20,
+                    right: -20,
+                    child: Icon(
+                      Icons.domain_outlined,
+                      size: 100,
+                      color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.04),
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _isMenuOpen = !_isMenuOpen;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Stack(
+                                      children: [
+                                        Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Color(0xFF7B4DFF),
+                                                Color(0xFF5F2EEA),
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              initials,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          bottom: 2,
+                                          right: 2,
+                                          child: Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF00C853),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: isDark ? const Color(0xFF130D32) : Colors.white,
+                                                width: 2,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    AnimatedRotation(
+                                      turns: _isMenuOpen ? 0.5 : 0.0,
+                                      duration: const Duration(milliseconds: 220),
+                                      child: Icon(
+                                        Icons.expand_more_rounded,
+                                        color: isDark ? Colors.white70 : Colors.black54,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  userName,
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.black87,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF7B4DFF).withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        formattedRole.toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Color(0xFF7B4DFF),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        companyName,
+                                        style: TextStyle(
+                                          color: isDark ? Colors.white70 : Colors.black54,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+                                ),
+                                const SizedBox(height: 12),
+                                _buildStatusItem(
+                                  context,
+                                  icon: Icons.verified_outlined,
+                                  label: 'Verified Company',
+                                  isDark: isDark,
+                                ),
+                                const SizedBox(height: 6),
+                                _buildStatusItem(
+                                  context,
+                                  icon: Icons.check_circle_outline_rounded,
+                                  label: 'Active Account',
+                                  isDark: isDark,
+                                ),
+                                const SizedBox(height: 6),
+                                _buildStatusItem(
+                                  context,
+                                  icon: Icons.star_outline_rounded,
+                                  label: 'Plan: Early Access',
+                                  isDark: isDark,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeInOut,
+                        child: AnimatedOpacity(
+                          opacity: _isMenuOpen ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeInOut,
+                          child: _isMenuOpen
+                              ? Padding(
+                                  padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const SizedBox(height: 8),
+                                      _buildAccountMenuItem(
+                                        context: context,
+                                        icon: Icons.person_outline_rounded,
+                                        label: 'My Profile',
+                                        routeName: AppRoutes.profileSetup,
+                                        isDark: isDark,
+                                        onTap: () {
+                                          setState(() {
+                                            _isMenuOpen = false;
+                                          });
+                                          Navigator.of(context).pushNamed(AppRoutes.profileSetup);
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildAccountMenuItem(
+                                        context: context,
+                                        icon: Icons.palette_outlined,
+                                        label: 'Appearance',
+                                        isDark: isDark,
+                                        onTap: () {
+                                          setState(() {
+                                            _isMenuOpen = false;
+                                          });
+                                          _showAppearanceDialog(context, ref);
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildAccountMenuItem(
+                                        context: context,
+                                        icon: Icons.logout_outlined,
+                                        label: 'Logout',
+                                        isDark: isDark,
+                                        isLogout: true,
+                                        onTap: () async {
+                                          setState(() {
+                                            _isMenuOpen = false;
+                                          });
+                                          final authService = ref.read(authServiceProvider);
+                                          await authService.signOut();
+                                          if (context.mounted) {
+                                            Navigator.of(context).pushReplacementNamed('/login');
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final role = ref.watch(userRoleProvider);
+    final isDark = context.isDarkMode;
     final currentRoute = ModalRoute.of(context)?.settings.name;
 
     Widget buildNavItem({
@@ -108,7 +543,7 @@ class AppDrawer extends ConsumerWidget {
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF7B4DFF).withOpacity(0.35),
+                      color: const Color(0xFF7B4DFF).withValues(alpha: 0.35),
                       blurRadius: 20,
                       offset: const Offset(0, 4),
                     ),
@@ -128,7 +563,7 @@ class AppDrawer extends ConsumerWidget {
                       icon,
                       color: isActive
                           ? Colors.white
-                          : (isDark ? const Color(0xFFB4B8D0) : Colors.black54),
+                          : (isDark ? Colors.white70 : Colors.black54),
                       size: 20,
                     ),
                     const SizedBox(width: 14),
@@ -141,7 +576,7 @@ class AppDrawer extends ConsumerWidget {
                           fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                           color: isActive
                               ? Colors.white
-                              : (isDark ? const Color(0xFFB4B8D0) : Colors.black87),
+                              : (isDark ? Colors.white70 : Colors.black87),
                         ),
                       ),
                     ),
@@ -154,43 +589,34 @@ class AppDrawer extends ConsumerWidget {
       );
     }
 
-    final companyName = tenantCompanyAsync.maybeWhen(
-      data: (company) => company?.name ?? 'PalliVerse Technologies',
-      orElse: () => 'PalliVerse Technologies',
-    );
-
-    final companyLogoUrl = tenantCompanyAsync.maybeWhen(
-      data: (company) => company?.logoUrl,
-      orElse: () => null,
-    );
-
-    final userName = userDataAsync.maybeWhen(
-      data: (userData) => userData?['name'] as String? ?? currentUser?.displayName ?? 'User',
-      orElse: () => currentUser?.displayName ?? 'User',
-    );
-
-    final formattedRole = role.displayName;
-
     final sidebarContent = Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: isDark
             ? const LinearGradient(
                 colors: [
-                  Color(0xFF1A1140),
                   Color(0xFF130D32),
+                  Color(0xFF1A1140),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               )
-            : null,
-        color: isDark ? null : Colors.white.withOpacity(0.95),
+            : LinearGradient(
+                colors: [
+                  Colors.white,
+                  Color.lerp(Colors.white, const Color(0xFF7B4DFF), 0.03)!,
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.12),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -198,192 +624,26 @@ class AppDrawer extends ConsumerWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: SafeArea(
-            child: Column(
+        child: Stack(
+          children: [
+            Positioned(
+              bottom: -40,
+              right: -40,
+              child: Icon(
+                Icons.domain_outlined,
+                size: 150,
+                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.04),
+              ),
+            ),
+            Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Redesigned Company Profile Card
-                Container(
-                  margin: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [
-                              const Color(0xFF7B4DFF).withOpacity(0.15),
-                              const Color(0xFF1B2142).withOpacity(0.4),
-                            ]
-                          : [
-                              const Color(0xFF7B4DFF).withOpacity(0.08),
-                              Colors.grey.shade100,
-                            ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    border: Border.all(
-                      color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      children: [
-                        // Decorative wave patterns
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: WavePainter(
-                              color: const Color(0xFF7B4DFF).withOpacity(isDark ? 0.08 : 0.04),
-                            ),
-                          ),
-                        ),
-                        // Profile details
-                        Padding(
-                          padding: const EdgeInsets.all(14.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  // Logo Avatar
-                                  Container(
-                                    width: 42,
-                                    height: 42,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: const Color(0xFF7B4DFF).withOpacity(0.3),
-                                        width: 1.5,
-                                      ),
-                                      color: isDark ? const Color(0xFF12182F) : Colors.white,
-                                    ),
-                                    child: ClipOval(
-                                      child: companyLogoUrl != null
-                                          ? Image.network(
-                                              companyLogoUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) =>
-                                                  const Icon(Icons.business, color: Color(0xFF7B4DFF), size: 20),
-                                            )
-                                          : const Icon(Icons.business, color: Color(0xFF7B4DFF), size: 20),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Details
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          companyName,
-                                          style: TextStyle(
-                                            color: isDark ? Colors.white : Colors.black87,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 0.2,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF7B4DFF).withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            formattedRole.toUpperCase(),
-                                            style: const TextStyle(
-                                              color: Color(0xFF7B4DFF),
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              // Active User Status
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 22,
-                                          height: 22,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: isDark ? const Color(0xFF1B2142) : Colors.grey.shade300,
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                                              style: TextStyle(
-                                                color: isDark ? Colors.white : Colors.black87,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            userName,
-                                            style: TextStyle(
-                                              color: isDark ? const Color(0xFFB4B8D0) : Colors.black54,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Color(0xFF00D68F),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      const Text(
-                                        'Active',
-                                        style: TextStyle(
-                                          color: Color(0xFF00D68F),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                  child: _buildProfileCard(context, ref),
                 ),
-
-                const SizedBox(height: 8),
-
-                // Navigation Items List
+                const SizedBox(height: 12),
                 Expanded(
                   child: ListView(
                     padding: EdgeInsets.zero,
@@ -477,15 +737,6 @@ class AppDrawer extends ConsumerWidget {
                             }
                           },
                         ),
-                      
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                        child: Divider(
-                          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black12,
-                          height: 1,
-                        ),
-                      ),
-
                       if (role.canAccessSettings)
                         buildNavItem(
                           icon: Icons.settings_outlined,
@@ -498,36 +749,28 @@ class AppDrawer extends ConsumerWidget {
                             }
                           },
                         ),
-                      buildNavItem(
-                        icon: Icons.logout_outlined,
-                        title: 'Logout',
-                        routeName: '/logout',
-                        onTap: () async {
-                          if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
-                          final authService = ref.read(authServiceProvider);
-                          await authService.signOut();
-                          if (context.mounted) {
-                            Navigator.of(context).pushReplacementNamed('/login');
-                          }
-                        },
-                      ),
                     ],
                   ),
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
 
-    // If displayed on mobile, wrap with standard Drawer wrapper so it slides nicely
     final screenWidth = MediaQuery.of(context).size.width;
     if (screenWidth < 600) {
       return Drawer(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        child: sidebarContent,
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 0.0, 16.0),
+            child: sidebarContent,
+          ),
+        ),
       );
     }
     return sidebarContent;
