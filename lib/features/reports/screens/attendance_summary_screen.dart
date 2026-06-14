@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
@@ -24,7 +25,6 @@ class _AttendanceSummaryScreenState extends ConsumerState<AttendanceSummaryScree
   @override
   Widget build(BuildContext context) {
     final companyIdAsync = ref.watch(userCompanyIdProvider);
-    // laboursAsync is no longer needed here as ReportFilterBar handles it internally
 
     return AppScaffold(
       appBar: AppBar(
@@ -77,11 +77,11 @@ class _AttendanceSummaryScreenState extends ConsumerState<AttendanceSummaryScree
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
-                const SizedBox(height: 16),
-                const Text(
+                Icon(Icons.event_busy, size: 64, color: context.colors.outline),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
                   'No attendance records found for selected filters',
-                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                  style: TextStyle(color: context.colors.outline, fontSize: 16),
                 ),
               ],
             ),
@@ -93,11 +93,11 @@ class _AttendanceSummaryScreenState extends ConsumerState<AttendanceSummaryScree
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(AppSpacing.screenPadding),
               child: Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
+                color: context.colors.primaryContainer,
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppSpacing.cardPadding),
                   child: Column(
                     children: [
                       Row(
@@ -126,13 +126,14 @@ class _AttendanceSummaryScreenState extends ConsumerState<AttendanceSummaryScree
             ),
             Expanded(
               child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
                 itemCount: report.entries.length,
                 itemBuilder: (context, index) {
                   final entry = report.entries[index];
                   return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding, vertical: 6.0),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(AppSpacing.cardPadding),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -141,14 +142,13 @@ class _AttendanceSummaryScreenState extends ConsumerState<AttendanceSummaryScree
                             children: [
                               Text(
                                 entry.labourName,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 currencyFmt.format(entry.totalEarned),
-                                style: const TextStyle(
+                                style: context.text.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.green,
+                                  color: context.customColors.success,
                                 ),
                               ),
                             ],
@@ -183,16 +183,16 @@ class _AttendanceSummaryScreenState extends ConsumerState<AttendanceSummaryScree
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+          style: context.text.titleSmall?.copyWith(
+                color: context.colors.onPrimaryContainer.withValues(alpha: 0.7),
               ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          style: context.text.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                color: context.colors.onPrimaryContainer,
               ),
         ),
       ],
@@ -205,7 +205,7 @@ class _AttendanceSummaryScreenState extends ConsumerState<AttendanceSummaryScree
       children: [
         Text(
           title,
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
+          style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12),
         ),
         const SizedBox(height: 4),
         Text(

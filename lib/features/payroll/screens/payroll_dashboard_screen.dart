@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:civilhelp/app/theme.dart';
 import '../../../shared/layouts/app_scaffold.dart';
 import '../../../shared/widgets/app_design_system.dart';
 import '../../../shared/widgets/civil_empty_state.dart';
@@ -27,9 +28,9 @@ class PayrollDashboardScreen extends ConsumerWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: AppDesignSystem.brandGradient,
+              colors: [context.colors.primary, context.colors.secondary],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -40,11 +41,12 @@ class PayrollDashboardScreen extends ConsumerWidget {
         onPressed: () => _showCreatePeriodDialog(context, ref),
         label: const Text('New Period', style: TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add),
-        backgroundColor: AppDesignSystem.payrollColor,
+        backgroundColor: context.colors.primary,
+        foregroundColor: context.colors.onPrimary,
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: context.colors.background,
         ),
         child: periodsAsync.when(
           data: (periods) {
@@ -53,15 +55,15 @@ class PayrollDashboardScreen extends ConsumerWidget {
             }
             return _buildPeriodsList(context, ref, periods);
           },
-          loading: () => const Center(
+          loading: () => Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppDesignSystem.payrollColor),
+              valueColor: AlwaysStoppedAnimation<Color>(context.colors.primary),
             ),
           ),
           error: (err, _) => Center(
             child: Text(
               'Error loading payroll: $err',
-              style: const TextStyle(color: AppDesignSystem.errorColor, fontSize: 16),
+              style: TextStyle(color: context.colors.error, fontSize: 16),
             ),
           ),
         ),
@@ -98,140 +100,158 @@ class PayrollDashboardScreen extends ConsumerWidget {
     final startStr = fmt.format(period.startDate);
     final endStr = fmt.format(period.endDate);
 
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
+      decoration: BoxDecoration(
+        gradient: context.surfaceGradient,
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          if (period.status != 'paid') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PayrollProcessingScreen(periodId: period.id),
-              ),
-            );
-          } else {
-            _showSummaryDialog(context, ref, period);
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      period.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppDesignSystem.payrollColor,
+        border: Border.all(
+          color: context.colors.outline.withValues(alpha: context.isDarkMode ? 0.15 : 0.08),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.25 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            if (period.status != 'paid') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PayrollProcessingScreen(periodId: period.id),
+                ),
+              );
+            } else {
+              _showSummaryDialog(context, ref, period);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        period.name,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.primary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  StatusChip(status: period.status),
+                    const SizedBox(width: 12),
+                    StatusChip(status: period.status),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.date_range, size: 16, color: context.colors.outline),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$startStr – $endStr',
+                      style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 14),
+                    ),
+                  ],
+                ),
+                if (period.status == 'paid') ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  _buildSummaryPreviewRow(context, ref, period),
                 ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(Icons.date_range, size: 16, color: Colors.grey),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$startStr – $endStr',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                  ),
-                ],
-              ),
-              if (period.status == 'paid') ...[
                 const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 8),
-                _buildSummaryPreviewRow(context, ref, period),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (period.status == 'open') ...[
+                      OutlinedButton.icon(
+                        onPressed: () => _freezePeriod(context, ref, period.id),
+                        icon: const Icon(Icons.lock, size: 16),
+                        label: const Text('Freeze'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: context.customColors.warning,
+                          side: BorderSide(color: context.customColors.warning),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PayrollProcessingScreen(periodId: period.id),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.payment, size: 16),
+                        label: const Text('Process'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: context.colors.primary,
+                          foregroundColor: context.colors.onPrimary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
+                    if (period.status == 'frozen') ...[
+                      OutlinedButton.icon(
+                        onPressed: () => _reopenPeriod(context, ref, period.id),
+                        icon: const Icon(Icons.lock_open, size: 16),
+                        label: const Text('Reopen'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: context.colors.primary,
+                          side: BorderSide(color: context.colors.primary),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PayrollProcessingScreen(periodId: period.id),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.payment, size: 16),
+                        label: const Text('Settle'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: context.customColors.success,
+                          foregroundColor: context.colors.onPrimary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
+                    if (period.status == 'paid')
+                      OutlinedButton.icon(
+                        onPressed: () => _showSummaryDialog(context, ref, period),
+                        icon: const Icon(Icons.analytics, size: 16),
+                        label: const Text('View Summary'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: context.colors.primary,
+                          side: BorderSide(color: context.colors.primary),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                  ],
+                ),
               ],
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (period.status == 'open') ...[
-                    OutlinedButton.icon(
-                      onPressed: () => _freezePeriod(context, ref, period.id),
-                      icon: const Icon(Icons.lock, size: 16),
-                      label: const Text('Freeze'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppDesignSystem.warningColor,
-                        side: const BorderSide(color: AppDesignSystem.warningColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PayrollProcessingScreen(periodId: period.id),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.payment, size: 16),
-                      label: const Text('Process'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppDesignSystem.payrollColor,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ],
-                  if (period.status == 'frozen') ...[
-                    OutlinedButton.icon(
-                      onPressed: () => _reopenPeriod(context, ref, period.id),
-                      icon: const Icon(Icons.lock_open, size: 16),
-                      label: const Text('Reopen'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppDesignSystem.payrollColor,
-                        side: const BorderSide(color: AppDesignSystem.payrollColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PayrollProcessingScreen(periodId: period.id),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.payment, size: 16),
-                      label: const Text('Settle'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppDesignSystem.successColor,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ],
-                  if (period.status == 'paid')
-                    OutlinedButton.icon(
-                      onPressed: () => _showSummaryDialog(context, ref, period),
-                      icon: const Icon(Icons.analytics, size: 16),
-                      label: const Text('View Summary'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppDesignSystem.payrollColor,
-                        side: const BorderSide(color: AppDesignSystem.payrollColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -249,28 +269,28 @@ class PayrollDashboardScreen extends ConsumerWidget {
               label: 'Workers',
               value: '${summary.totalWorkers}',
               icon: Icons.people,
-              color: AppDesignSystem.payrollColor,
+              color: context.colors.primary,
             ),
             const SizedBox(width: 8),
             MetricCard(
               label: 'Gross',
               value: '₹${summary.totalGross.toStringAsFixed(0)}',
               icon: Icons.account_balance_wallet,
-              color: AppDesignSystem.payrollColor,
+              color: context.colors.primary,
             ),
             const SizedBox(width: 8),
             MetricCard(
               label: 'Deductions',
               value: '₹${summary.totalDeductions.toStringAsFixed(0)}',
               icon: Icons.remove_circle_outline,
-              color: AppDesignSystem.warningColor,
+              color: context.customColors.warning,
             ),
             const SizedBox(width: 8),
             MetricCard(
               label: 'Net Settled',
               value: '₹${summary.totalNetPaid.toStringAsFixed(0)}',
               icon: Icons.check_circle_outline,
-              color: AppDesignSystem.successColor,
+              color: context.customColors.success,
             ),
           ],
         );
@@ -304,7 +324,7 @@ class PayrollDashboardScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to freeze: $e'),
-          backgroundColor: AppDesignSystem.errorColor,
+          backgroundColor: context.colors.error,
         ),
       );
     }
@@ -322,7 +342,7 @@ class PayrollDashboardScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to reopen: $e'),
-          backgroundColor: AppDesignSystem.errorColor,
+          backgroundColor: context.colors.error,
         ),
       );
     }
@@ -337,7 +357,7 @@ class PayrollDashboardScreen extends ConsumerWidget {
         return AlertDialog(
           title: Text(
             '${period.name} — Summary',
-            style: const TextStyle(fontWeight: FontWeight.bold, color: AppDesignSystem.payrollColor),
+            style: TextStyle(fontWeight: FontWeight.bold, color: context.colors.primary),
           ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           content: summaryAsync.when(
@@ -349,22 +369,23 @@ class PayrollDashboardScreen extends ConsumerWidget {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildSummaryItem('Total Workers', '${summary.totalWorkers}'),
+                  _buildSummaryItem(context, 'Total Workers', '${summary.totalWorkers}'),
                   _buildSummaryItem(
-                      'Total Gross Earnings', currencyFmt.format(summary.totalGross)),
+                      context, 'Total Gross Earnings', currencyFmt.format(summary.totalGross)),
                   _buildSummaryItem(
-                      'Total Advance Deductions', currencyFmt.format(summary.totalDeductions)),
+                      context, 'Total Advance Deductions', currencyFmt.format(summary.totalDeductions)),
                   const Divider(),
                   _buildSummaryItem(
+                    context,
                     'Net Settled Amount',
                     currencyFmt.format(summary.totalNetPaid),
                     isBold: true,
-                    color: AppDesignSystem.successColor,
+                    color: context.customColors.success,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Settled on ${DateFormat('dd MMM yyyy hh:mm a').format(summary.createdAt)}',
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    style: TextStyle(fontSize: 10, color: context.colors.outline),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -376,7 +397,7 @@ class PayrollDashboardScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Close', style: TextStyle(color: AppDesignSystem.payrollColor)),
+              child: Text('Close', style: TextStyle(color: context.colors.primary)),
             ),
           ],
         );
@@ -384,7 +405,7 @@ class PayrollDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryItem(String label, String value,
+  Widget _buildSummaryItem(BuildContext context, String label, String value,
       {bool isBold = false, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -395,14 +416,14 @@ class PayrollDashboardScreen extends ConsumerWidget {
             label,
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: Colors.black87,
+              color: context.colors.onSurface,
             ),
           ),
           Text(
             value,
             style: TextStyle(
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-              color: color ?? Colors.black87,
+              color: color ?? context.colors.onSurface,
               fontSize: isBold ? 16 : 14,
             ),
           ),
@@ -458,9 +479,9 @@ class _CreatePeriodDialogState extends State<_CreatePeriodDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       key: const Key('create_payroll_dialog'),
-      title: const Text(
+      title: Text(
         'New Payroll Period',
-        style: TextStyle(fontWeight: FontWeight.bold, color: AppDesignSystem.payrollColor),
+        style: TextStyle(fontWeight: FontWeight.bold, color: context.colors.primary),
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       content: SizedBox(
@@ -471,6 +492,7 @@ class _CreatePeriodDialogState extends State<_CreatePeriodDialog> {
           children: [
             // Start Date
             _buildDatePickerRow(
+              context: context,
               label: 'Start Date',
               date: selectedStart,
               onTap: isLoading ? () {} : () async {
@@ -495,6 +517,7 @@ class _CreatePeriodDialogState extends State<_CreatePeriodDialog> {
             const SizedBox(height: 12),
             // End Date
             _buildDatePickerRow(
+              context: context,
               label: 'End Date',
               date: selectedEnd,
               onTap: isLoading ? () {} : () async {
@@ -534,15 +557,15 @@ class _CreatePeriodDialogState extends State<_CreatePeriodDialog> {
             const SizedBox(height: 8),
             Text(
               'Leave name as-is to use the auto-generated label.',
-              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant),
             ),
             if (errorMessage != null) ...[
               const SizedBox(height: 16),
               Text(
                 errorMessage!,
                 key: const Key('dialog_error_text'),
-                style: const TextStyle(
-                  color: AppDesignSystem.errorColor,
+                style: TextStyle(
+                  color: context.colors.error,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -558,7 +581,7 @@ class _CreatePeriodDialogState extends State<_CreatePeriodDialog> {
               : () {
                   Navigator.pop(context);
                 },
-          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          child: Text('Cancel', style: TextStyle(color: context.colors.outline)),
         ),
         ElevatedButton(
           onPressed: isLoading
@@ -580,9 +603,9 @@ class _CreatePeriodDialogState extends State<_CreatePeriodDialog> {
                     Navigator.pop(context); // Pop ONLY on success
 
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Payroll period created successfully.'),
-                        backgroundColor: AppDesignSystem.successColor,
+                      SnackBar(
+                        content: const Text('Payroll period created successfully.'),
+                        backgroundColor: context.customColors.success,
                       ),
                     );
                   } catch (e) {
@@ -593,15 +616,16 @@ class _CreatePeriodDialogState extends State<_CreatePeriodDialog> {
                   }
                 },
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppDesignSystem.payrollColor,
+            backgroundColor: context.colors.primary,
+            foregroundColor: context.colors.onPrimary,
           ),
           child: isLoading
-              ? const SizedBox(
+              ? SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(context.colors.onPrimary),
                   ),
                 )
               : const Text('Create'),
@@ -611,6 +635,7 @@ class _CreatePeriodDialogState extends State<_CreatePeriodDialog> {
   }
 
   Widget _buildDatePickerRow({
+    required BuildContext context,
     required String label,
     required DateTime date,
     required VoidCallback onTap,
@@ -622,33 +647,33 @@ class _CreatePeriodDialogState extends State<_CreatePeriodDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[400]!),
+          border: Border.all(color: context.colors.outline.withValues(alpha: 0.5)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today, size: 18, color: AppDesignSystem.payrollColor),
+            Icon(Icons.calendar_today, size: 18, color: context.colors.primary),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   fmt.format(date),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: AppDesignSystem.payrollColor,
+                    color: context.colors.primary,
                   ),
                 ),
               ],
             ),
             const Spacer(),
-            const Icon(Icons.arrow_drop_down, color: Colors.grey),
+            Icon(Icons.arrow_drop_down, color: context.colors.outline),
           ],
         ),
       ),

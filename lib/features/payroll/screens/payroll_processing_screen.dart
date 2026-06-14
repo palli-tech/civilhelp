@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:civilhelp/app/theme.dart';
 import '../../../shared/layouts/app_scaffold.dart';
 import '../providers/payroll_providers.dart';
 import '../repositories/payroll_repository.dart';
@@ -30,9 +31,9 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
         elevation: 0,
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+              colors: [context.colors.primary, context.colors.secondary],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -62,29 +63,29 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
           ),
           if (_isSettling)
             Container(
-              color: Colors.black.withValues(alpha: 0.5),
+              color: Colors.black.withValues(alpha: 0.7),
               child: Center(
                 child: Card(
                   margin: const EdgeInsets.all(32),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+                          valueColor: AlwaysStoppedAnimation<Color>(context.colors.primary),
                         ),
-                        SizedBox(height: 24),
-                        Text(
+                        const SizedBox(height: 24),
+                        const Text(
                           'Settling Payroll...',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           'Updating balances, recovery ledgers, and attendance stamps.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                          style: TextStyle(color: context.colors.outline, fontSize: 13),
                         ),
                       ],
                     ),
@@ -104,7 +105,7 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.warning_amber_rounded, size: 64, color: Colors.amber),
+            Icon(Icons.warning_amber_rounded, size: 64, color: context.customColors.warning),
             const SizedBox(height: 16),
             const Text(
               'No Payable Attendance Found',
@@ -114,12 +115,12 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
             Text(
               'There are no active unpaid attendance records logged for workers in this payroll period.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: context.colors.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+              style: ElevatedButton.styleFrom(backgroundColor: context.colors.primary),
               child: const Text('Back to Dashboard'),
             ),
           ],
@@ -147,15 +148,15 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
       children: [
         // Top summary banner
         Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.green[50],
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
+          color: context.colors.surfaceVariant,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSummaryStat('Workers', '${calcs.length}', Colors.black87),
-              _buildSummaryStat('Total Gross', currencyFmt.format(totalGross), Colors.black87),
-              _buildSummaryStat('Deductions', currencyFmt.format(totalDeductions), Colors.orange[800]!),
-              _buildSummaryStat('Net Payable', currencyFmt.format(totalNet), const Color(0xFF2E7D32)),
+              _buildSummaryStat('Workers', '${calcs.length}', context.colors.onSurface),
+              _buildSummaryStat('Total Gross', currencyFmt.format(totalGross), context.colors.onSurface),
+              _buildSummaryStat('Deductions', currencyFmt.format(totalDeductions), context.customColors.advance),
+              _buildSummaryStat('Net Payable', currencyFmt.format(totalNet), context.customColors.success),
             ],
           ),
         ),
@@ -176,7 +177,7 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 margin: const EdgeInsets.only(bottom: 12),
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.cardPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -189,7 +190,7 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
                           ),
                           Text(
                             '${calc.presentDays} Days Present',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                            style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 13),
                           ),
                         ],
                       ),
@@ -199,7 +200,7 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
                         children: [
                           _buildDetailCol('Gross Earnings', currencyFmt.format(calc.grossEarnings)),
                           _buildEditableDeductionCol(calc, currentDeduction),
-                          _buildDetailCol('Net Payable', currencyFmt.format(netPayable), isBold: true, color: const Color(0xFF2E7D32)),
+                          _buildDetailCol('Net Payable', currencyFmt.format(netPayable), isBold: true, color: context.customColors.success),
                         ],
                       ),
                     ],
@@ -211,12 +212,12 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
         ),
         // Bottom Action Bar
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.colors.surface,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: context.isDarkMode ? 0.2 : 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -4),
               ),
@@ -228,7 +229,8 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
                 Expanded(
                   flex: 2,
                   child: DropdownButtonFormField<String>(
-                    initialValue: _paymentMode,
+                    value: _paymentMode,
+                    dropdownColor: context.colors.surface,
                     decoration: const InputDecoration(
                       labelText: 'Payment Mode',
                       border: OutlineInputBorder(),
@@ -252,7 +254,8 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
                     icon: const Icon(Icons.check_circle_outline),
                     label: const Text('Finalize & Settle', style: TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
+                      backgroundColor: context.colors.primary,
+                      foregroundColor: context.colors.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -269,7 +272,7 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
   Widget _buildSummaryStat(String label, String value, Color color) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        Text(label, style: TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant)),
         const SizedBox(height: 4),
         Text(
           value,
@@ -283,14 +286,14 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(label, style: TextStyle(fontSize: 11, color: context.colors.outline)),
         const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
             fontSize: 14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-            color: color ?? Colors.black87,
+            color: color ?? context.colors.onSurface,
           ),
         ),
       ],
@@ -300,21 +303,22 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
   Widget _buildEditableDeductionCol(PayrollCalculationResult calc, double currentDeduction) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Deduction', style: TextStyle(fontSize: 11, color: Colors.grey)),
+        Text('Deduction', style: TextStyle(fontSize: 11, color: context.colors.outline)),
         const SizedBox(height: 4),
         SizedBox(
           width: 90,
-          height: 32,
           child: TextFormField(
             initialValue: currentDeduction.toStringAsFixed(0),
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             decoration: const InputDecoration(
-              contentPadding: EdgeInsets.zero,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               border: OutlineInputBorder(),
             ),
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.orange),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: context.customColors.advance),
             onChanged: (val) {
               final amt = double.tryParse(val) ?? 0.0;
               // Limit deduction to grossEarnings
@@ -344,11 +348,11 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text('Cancel', style: TextStyle(color: context.colors.outline)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+              style: ElevatedButton.styleFrom(backgroundColor: context.colors.primary),
               child: const Text('Finalize'),
             ),
           ],
@@ -394,7 +398,7 @@ class _PayrollProcessingScreenState extends ConsumerState<PayrollProcessingScree
       setState(() => _isSettling = false);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to finalize payroll: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(content: Text('Failed to finalize payroll: $e'), backgroundColor: context.colors.error),
       );
     }
   }

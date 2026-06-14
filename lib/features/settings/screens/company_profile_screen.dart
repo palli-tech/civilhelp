@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import '../../../core/providers/tenant_provider.dart';
 import '../../../shared/widgets/company_header.dart';
 import '../providers/company_profile_provider.dart';
@@ -142,7 +143,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(curr.errorMessage!),
-            backgroundColor: Theme.of(context).colorScheme.error,
+            backgroundColor: context.colors.error,
           ),
         );
       }
@@ -176,7 +177,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
 
           return SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(AppSpacing.screenPadding),
               child: Form(
                 key: _formKey,
                 child: Center(
@@ -208,7 +209,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                                     const SizedBox(width: 8),
                                     TextButton.icon(
                                       style: TextButton.styleFrom(
-                                        foregroundColor: Theme.of(context).colorScheme.error,
+                                        foregroundColor: context.colors.error,
                                       ),
                                       onPressed: state.isSaving ? null : _deleteLogo,
                                       icon: const Icon(Icons.delete),
@@ -220,9 +221,9 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppSpacing.sectionGap),
                         const Divider(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.screenPadding),
 
                         // Form Fields
                         TextFormField(
@@ -239,7 +240,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.screenPadding),
 
                         TextFormField(
                           controller: _addressController,
@@ -250,7 +251,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                             border: OutlineInputBorder(),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.screenPadding),
 
                         TextFormField(
                           controller: _phoneController,
@@ -261,7 +262,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                             border: OutlineInputBorder(),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.screenPadding),
 
                         TextFormField(
                           controller: _emailController,
@@ -281,7 +282,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.screenPadding),
 
                         TextFormField(
                           controller: _gstController,
@@ -292,11 +293,11 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                             border: OutlineInputBorder(),
                           ),
                         ),
-                        const SizedBox(height: 32),
-
+                        const SizedBox(height: AppSpacing.sectionGap),
+ 
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.screenPadding),
                           ),
                           onPressed: state.isSaving ? null : _saveDetails,
                           icon: const Icon(Icons.save),

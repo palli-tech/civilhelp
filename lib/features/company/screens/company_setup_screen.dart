@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/enums/user_role.dart';
 import '../../../data/models/company.dart';
 import '../../../core/providers/tenant_provider.dart';
@@ -95,7 +96,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Company setup failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.colors.error,
             duration: const Duration(seconds: 4),
           ),
         );
@@ -111,8 +112,6 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -120,16 +119,16 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-              theme.colorScheme.secondaryContainer.withValues(alpha: 0.2),
-              theme.colorScheme.surface,
+              context.colors.primaryContainer.withValues(alpha: 0.4),
+              context.colors.secondaryContainer.withValues(alpha: 0.2),
+              context.colors.surface,
             ],
             stops: const [0.0, 0.5, 1.0],
           ),
         ),
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(AppSpacing.screenPadding),
             child: Container(
               constraints: const BoxConstraints(maxWidth: 500),
               child: Card(
@@ -140,8 +139,8 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 32.0,
-                    vertical: 40.0,
+                    horizontal: AppSpacing.screenPadding,
+                    vertical: AppSpacing.sectionGap,
                   ),
                   child: Form(
                     key: _formKey,
@@ -152,34 +151,34 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(AppSpacing.sm),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                color: context.colors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Icon(
                                 Icons.business,
                                 size: 32,
-                                color: theme.colorScheme.primary,
+                                color: context.colors.primary,
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: AppSpacing.md),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Company Setup',
-                                    style: theme.textTheme.headlineMedium?.copyWith(
+                                    style: context.text.headlineMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.onSurface,
+                                      color: context.colors.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'Create your workspace to get started',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
+                                    style: context.text.bodyMedium?.copyWith(
+                                      color: context.colors.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -187,7 +186,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _nameController,
                           decoration: const InputDecoration(
@@ -202,7 +201,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppSpacing.md),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
@@ -222,7 +221,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppSpacing.md),
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
@@ -238,7 +237,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppSpacing.md),
                         TextFormField(
                           controller: _addressController,
                           maxLines: 2,
@@ -255,7 +254,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppSpacing.md),
                         TextFormField(
                           controller: _gstController,
                           textCapitalization: TextCapitalization.characters,
@@ -265,7 +264,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                             hintText: 'e.g. 07AAAAA1111A1Z1',
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: AppSpacing.lg),
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -275,8 +274,8 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              backgroundColor: theme.colorScheme.primary,
-                              foregroundColor: theme.colorScheme.onPrimary,
+                              backgroundColor: context.colors.primary,
+                              foregroundColor: context.colors.onPrimary,
                               elevation: 2,
                             ),
                             child: _isLoading
@@ -285,7 +284,7 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
                                     width: 24,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.5,
-                                      color: theme.colorScheme.onPrimary,
+                                      color: context.colors.onPrimary,
                                     ),
                                   )
                                 : const Row(
@@ -316,3 +315,4 @@ class _CompanySetupScreenState extends ConsumerState<CompanySetupScreen> {
     );
   }
 }
+

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:civilhelp/app/theme.dart';
 
 class CompanyHeader extends StatelessWidget {
   final String? companyName;
@@ -34,10 +35,10 @@ class CompanyHeader extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: hasLogo ? Colors.transparent : Theme.of(context).colorScheme.primaryContainer,
+        color: hasLogo ? Colors.transparent : context.colors.primaryContainer,
         shape: BoxShape.circle,
         border: Border.all(
-          color: Theme.of(context).dividerColor.withAlpha(26),
+          color: context.colors.outline.withValues(alpha: 0.1),
           width: 1.5,
         ),
       ),
@@ -61,14 +62,14 @@ class CompanyHeader extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           logoWidget,
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.listGap),
           Text(
             name,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: textColor ?? Theme.of(context).colorScheme.onSurface,
+              color: textColor ?? context.colors.onSurface,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -81,14 +82,14 @@ class CompanyHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         logoWidget,
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.listGap),
         Flexible(
           child: Text(
             name,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: textColor ?? Theme.of(context).colorScheme.onSurface,
+              color: textColor ?? context.colors.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -103,7 +104,7 @@ class CompanyHeader extends StatelessWidget {
       child: Text(
         _getInitials(name),
         style: TextStyle(
-          color: Theme.of(context).colorScheme.onPrimaryContainer,
+          color: context.colors.onPrimaryContainer,
           fontWeight: FontWeight.bold,
           fontSize: size * 0.4,
         ),
@@ -111,3 +112,4 @@ class CompanyHeader extends StatelessWidget {
     );
   }
 }
+

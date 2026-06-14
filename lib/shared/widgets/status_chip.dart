@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:civilhelp/app/theme.dart';
 import 'app_design_system.dart';
 
 /// A standardized status chip used throughout CivilHelp.
 ///
 /// Automatically resolves the correct foreground/background colors from
-/// [AppDesignSystem] based on the [status] string.
+/// the theme based on the [status] string.
 ///
 /// Usage:
 /// ```dart
@@ -27,8 +28,46 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = AppDesignSystem.statusForeground(status);
-    final bg = AppDesignSystem.statusBackground(status);
+    // Resolve theme-aware colors
+    Color fg;
+    Color bg;
+
+    switch (status.toLowerCase()) {
+      case 'active':
+      case 'paid':
+      case 'completed':
+      case 'recovered':
+      case 'present':
+        fg = context.customColors.success;
+        bg = context.customColors.successContainer;
+        break;
+      case 'pending':
+      case 'open':
+      case 'outstanding':
+      case 'partial':
+      case 'half day':
+      case 'half-day':
+        fg = context.customColors.warning;
+        bg = context.customColors.warningContainer;
+        break;
+      case 'frozen':
+      case 'paused':
+        fg = context.customColors.info;
+        bg = context.customColors.infoContainer;
+        break;
+      case 'inactive':
+      case 'cancelled':
+      case 'failed':
+      case 'overdue':
+      case 'absent':
+        fg = context.customColors.error;
+        bg = context.customColors.errorContainer;
+        break;
+      default:
+        fg = context.colors.outline;
+        bg = context.colors.surfaceVariant;
+    }
+
     final text = label ?? AppDesignSystem.statusLabel(status);
 
     return Container(

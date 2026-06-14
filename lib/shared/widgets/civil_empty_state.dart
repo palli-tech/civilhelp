@@ -41,7 +41,7 @@ class CivilEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = iconColor ?? Colors.grey[400]!;
+    final color = iconColor ?? Theme.of(context).colorScheme.outlineVariant;
 
     return Center(
       child: Padding(
@@ -62,7 +62,7 @@ class CivilEmptyState extends StatelessWidget {
             Text(
               description,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
               textAlign: TextAlign.center,

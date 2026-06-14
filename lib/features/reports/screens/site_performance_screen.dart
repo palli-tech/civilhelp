@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
@@ -68,15 +69,15 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
     return reportAsync.when(
       data: (report) {
         if (report.entries.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.bar_chart, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
+                Icon(Icons.bar_chart, size: 64, color: context.colors.outline),
+                const SizedBox(height: AppSpacing.sm),
                 Text(
                   'No site performance data found',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: context.colors.outline),
                 ),
               ],
             ),
@@ -86,7 +87,7 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
         final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
 
         return ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
           children: [
             // Top Summary Cards Section
             Column(
@@ -96,29 +97,29 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: _buildSummaryCard('Total Sites', report.totalSites.toString(), Colors.blue),
+                        child: _buildSummaryCard('Total Sites', report.totalSites.toString(), context.customColors.info),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
-                        child: _buildSummaryCard('Total Workers', report.totalWorkers.toString(), Colors.orange),
+                        child: _buildSummaryCard('Total Workers', report.totalWorkers.toString(), context.customColors.worker),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.sm),
                 IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: _buildSummaryCard('Total Earned', currencyFmt.format(report.totalEarned), Colors.green),
+                        child: _buildSummaryCard('Total Earned', currencyFmt.format(report.totalEarned), context.customColors.success),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: _buildSummaryCard(
                           'Total Outstanding',
                           currencyFmt.format(report.totalOutstanding),
-                          report.totalOutstanding >= 0 ? Colors.teal : Colors.red,
+                          report.totalOutstanding >= 0 ? context.customColors.success : context.customColors.error,
                         ),
                       ),
                     ],
@@ -126,24 +127,24 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.sectionGap),
             Text(
               'Site Details',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: context.text.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.listGap),
             // Site Cards
             ...report.entries.map((entry) => Card(
-              margin: const EdgeInsets.only(bottom: 16.0),
+              margin: const EdgeInsets.only(bottom: AppSpacing.listGap),
               elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(AppSpacing.cardPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       entry.siteName,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -154,7 +155,7 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
                         Expanded(
                           child: Text(
                             'Workers: ${entry.workerCount}',
-                            style: const TextStyle(color: Colors.grey),
+                            style: TextStyle(color: context.colors.onSurfaceVariant),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -163,7 +164,7 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
                         Expanded(
                           child: Text(
                             'Attendance Days: ${entry.attendanceDays}',
-                            style: const TextStyle(color: Colors.grey),
+                            style: TextStyle(color: context.colors.onSurfaceVariant),
                             textAlign: TextAlign.end,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -186,19 +187,18 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Outstanding:',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             currencyFmt.format(entry.outstandingBalance),
                             textAlign: TextAlign.end,
-                            style: TextStyle(
+                            style: context.text.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: entry.outstandingBalance >= 0 ? Colors.green : Colors.red,
+                              color: entry.outstandingBalance >= 0 ? context.customColors.success : context.customColors.error,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -259,7 +259,7 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
       children: [
         Text(
           title,
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
+          style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),

@@ -1,8 +1,10 @@
-import 'package:civilhelp/core/enums/site_status.dart';
-import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
+import 'package:civilhelp/app/theme.dart';
+import 'package:civilhelp/core/enums/site_status.dart';
+import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../providers/site_provider.dart';
 import 'package:civilhelp/features/attendance/providers/attendance_provider.dart';
 
@@ -45,15 +47,15 @@ class SiteDetailsScreen extends ConsumerWidget {
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.screenPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Site Header
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.cardPadding),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
+                    color: context.customColors.site.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -76,26 +78,25 @@ class SiteDetailsScreen extends ConsumerWidget {
                           Chip(
                             label: Text(site.status.name),
                             backgroundColor:
-                                _getStatusColor(site.status).withValues(alpha: 0.2),
+                                _getStatusColor(context, site.status).withValues(alpha: 0.2),
                             labelStyle: TextStyle(
-                              color: _getStatusColor(site.status),
+                              color: _getStatusColor(context, site.status),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Icon(Icons.location_on,
-                              size: 18, color: Colors.grey[600]),
+                              size: 18, color: context.colors.onSurfaceVariant),
                           const SizedBox(width: 8),
                           Text(
                             site.location,
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
-                                ?.copyWith(color: Colors.grey[600]),
+                                ?.copyWith(color: context.colors.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -103,14 +104,14 @@ class SiteDetailsScreen extends ConsumerWidget {
                       Row(
                         children: [
                           Icon(Icons.person,
-                              size: 18, color: Colors.grey[600]),
+                              size: 18, color: context.colors.onSurfaceVariant),
                           const SizedBox(width: 8),
                           Text(
                             site.client,
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
-                                ?.copyWith(color: Colors.grey[600]),
+                                ?.copyWith(color: context.colors.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -118,7 +119,7 @@ class SiteDetailsScreen extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.sectionGap),
 
                 // Site Information
                 Text(
@@ -129,9 +130,9 @@ class SiteDetailsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.cardPadding),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: context.colors.outlineVariant),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -157,7 +158,7 @@ class SiteDetailsScreen extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.sectionGap),
 
                 // Labour Section
                 Text(
@@ -168,20 +169,20 @@ class SiteDetailsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.cardPadding),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: context.colors.outlineVariant),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.people, size: 48, color: Colors.grey[400]),
+                        Icon(Icons.people, size: 48, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
                         const SizedBox(height: 12),
                         Text(
                           'Labour management coming soon',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
+                                color: context.colors.onSurfaceVariant,
                               ),
                         ),
                       ],
@@ -189,7 +190,7 @@ class SiteDetailsScreen extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.sectionGap),
 
                 // Attendance Section
                 Text(
@@ -215,9 +216,9 @@ class SiteDetailsScreen extends ConsumerWidget {
                             .length;
 
                         return Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(AppSpacing.cardPadding),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
+                            border: Border.all(color: context.colors.outlineVariant),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -246,17 +247,17 @@ class SiteDetailsScreen extends ConsumerWidget {
                         );
                       },
                       loading: () => Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(AppSpacing.cardPadding),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: context.colors.outlineVariant),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(child: CircularProgressIndicator()),
                       ),
                       error: (error, _) => Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(AppSpacing.cardPadding),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: context.colors.outlineVariant),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text('Unable to load attendance: $error'),
@@ -265,7 +266,7 @@ class SiteDetailsScreen extends ConsumerWidget {
                   },
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.sectionGap),
 
                 // Expenses Section
                 Text(
@@ -276,21 +277,21 @@ class SiteDetailsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.cardPadding),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: context.colors.outlineVariant),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
                     child: Column(
                       children: [
                         Icon(Icons.money_off,
-                            size: 48, color: Colors.grey[400]),
+                            size: 48, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
                         const SizedBox(height: 12),
                         Text(
                           'Expense tracking coming soon',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
+                                color: context.colors.onSurfaceVariant,
                               ),
                         ),
                       ],
@@ -330,10 +331,10 @@ class SiteDetailsScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, size: 64, color: Colors.red),
+                Icon(Icons.error_outline, size: 64, color: context.colors.error),
                 const SizedBox(height: 16),
                 Text('Error loading site: ${error.toString()}'),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.sectionGap),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Go Back'),
@@ -346,19 +347,19 @@ class SiteDetailsScreen extends ConsumerWidget {
     );
   }
 
-Color _getStatusColor(SiteStatus status) {
+Color _getStatusColor(BuildContext context, SiteStatus status) {
   switch (status) {
     case SiteStatus.active:
-      return Colors.green;
+      return context.customColors.success;
 
     case SiteStatus.inactive:
-      return Colors.grey;
+      return context.colors.outline;
       
     case SiteStatus.completed:
-      return Colors.blue;
+      return context.colors.primary;
 
     case SiteStatus.onHold:
-      return Colors.orange;
+      return context.customColors.warning;
   }
 }
 }
@@ -412,7 +413,7 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
+        Icon(icon, size: 20, color: context.colors.onSurfaceVariant),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -421,7 +422,7 @@ class _InfoRow extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: context.colors.onSurfaceVariant,
                     ),
               ),
               const SizedBox(height: 4),

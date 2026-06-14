@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
@@ -82,25 +83,25 @@ class _OutstandingBalanceScreenState extends ConsumerState<OutstandingBalanceScr
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(AppSpacing.screenPadding),
               child: Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
+                color: context.colors.primaryContainer,
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppSpacing.cardPadding),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Total Outstanding Balance',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        style: context.text.titleMedium?.copyWith(
+                              color: context.colors.onPrimaryContainer,
                             ),
                       ),
                       Text(
                         currencyFmt.format(report.totalOutstandingBalance),
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        style: context.text.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: report.totalOutstandingBalance >= 0 ? Colors.green : Colors.red,
+                              color: report.totalOutstandingBalance >= 0 ? context.customColors.success : context.customColors.error,
                             ),
                       ),
                     ],
@@ -110,13 +111,14 @@ class _OutstandingBalanceScreenState extends ConsumerState<OutstandingBalanceScr
             ),
             Expanded(
               child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
                 itemCount: report.workerEntries.length,
                 itemBuilder: (context, index) {
                   final entry = report.workerEntries[index];
                   return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding, vertical: 6.0),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(AppSpacing.cardPadding),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -125,14 +127,13 @@ class _OutstandingBalanceScreenState extends ConsumerState<OutstandingBalanceScr
                             children: [
                               Text(
                                 entry.workerName,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 currencyFmt.format(entry.outstandingBalance),
-                                style: TextStyle(
+                                style: context.text.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: entry.outstandingBalance >= 0 ? Colors.green : Colors.red,
+                                  color: entry.outstandingBalance >= 0 ? context.customColors.success : context.customColors.error,
                                 ),
                               ),
                             ],
@@ -167,7 +168,7 @@ class _OutstandingBalanceScreenState extends ConsumerState<OutstandingBalanceScr
       children: [
         Text(
           title,
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
+          style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12),
         ),
         const SizedBox(height: 4),
         Text(

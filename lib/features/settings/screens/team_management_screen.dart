@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'package:civilhelp/app/theme.dart';
 import '../../../core/enums/user_role.dart';
 import '../../../core/enums/invitation_status.dart';
 import '../../../core/utils/email_helper.dart';
@@ -226,14 +227,14 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: member.active
-                                    ? Colors.green.withValues(alpha: 0.1)
-                                    : Colors.red.withValues(alpha: 0.1),
+                                    ? context.customColors.success.withValues(alpha: 0.1)
+                                    : context.colors.error.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 member.active ? 'Active' : 'Disabled',
                                 style: TextStyle(
-                                  color: member.active ? Colors.green : Colors.red,
+                                  color: member.active ? context.customColors.success : context.colors.error,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -316,8 +317,8 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
                                             ),
                                             label: Text(member.active ? 'Disable' : 'Enable'),
                                             style: OutlinedButton.styleFrom(
-                                              foregroundColor: member.active ? Colors.red : Colors.green,
-                                              side: BorderSide(color: member.active ? Colors.red : Colors.green),
+                                              foregroundColor: member.active ? context.colors.error : context.customColors.success,
+                                              side: BorderSide(color: member.active ? context.colors.error : context.customColors.success),
                                             ),
                                           ),
                                         ],
@@ -419,8 +420,8 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
                         child: FilterChip(
                           label: Text(status.displayName),
                           selected: _selectedInviteStatus == status,
-                          selectedColor: _getInvitationColor(status).withValues(alpha: 0.25),
-                          checkmarkColor: _getInvitationColor(status),
+                          selectedColor: _getInvitationColor(context, status).withValues(alpha: 0.25),
+                          checkmarkColor: _getInvitationColor(context, status),
                           onSelected: (val) {
                             setState(() {
                               _selectedInviteStatus = val ? status : null;
@@ -454,8 +455,8 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
                 )
               else
                 ...filteredInvitations.map((invite) {
-                  final badgeColor = _getInvitationColor(invite.status).withValues(alpha: 0.1);
-                  final textColor = _getInvitationColor(invite.status);
+                  final badgeColor = _getInvitationColor(context, invite.status).withValues(alpha: 0.1);
+                  final textColor = _getInvitationColor(context, invite.status);
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -539,8 +540,8 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
                                         icon: const Icon(Icons.cancel_outlined, size: 16),
                                         label: const Text('Revoke'),
                                         style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.red,
-                                          side: const BorderSide(color: Colors.red),
+                                          foregroundColor: context.colors.error,
+                                          side: BorderSide(color: context.colors.error),
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -570,16 +571,16 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
   }
 
   // --- Helpers ---
-  Color _getInvitationColor(InvitationStatus status) {
+  Color _getInvitationColor(BuildContext context, InvitationStatus status) {
     switch (status) {
       case InvitationStatus.pending:
-        return Colors.orange;
+        return context.customColors.warning;
       case InvitationStatus.accepted:
-        return Colors.green;
+        return context.customColors.success;
       case InvitationStatus.revoked:
-        return Colors.red;
+        return context.colors.error;
       case InvitationStatus.expired:
-        return Colors.grey;
+        return context.colors.outline;
     }
   }
 
@@ -880,11 +881,11 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
                       );
                     }),
                     if (tempSiteIds.isEmpty)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.all(8.0),
                         child: Text(
                           'Note: Site supervisors should be assigned to at least one site.',
-                          style: TextStyle(color: Colors.orange, fontSize: 12),
+                          style: TextStyle(color: context.customColors.warning, fontSize: 12),
                         ),
                       ),
                   ],
@@ -956,7 +957,7 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: member.active ? Colors.red : Colors.green),
+            style: ElevatedButton.styleFrom(backgroundColor: member.active ? context.colors.error : context.customColors.success),
             child: const Text('Confirm'),
           ),
         ],
@@ -993,7 +994,7 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: context.colors.error),
             child: const Text('Revoke'),
           ),
         ],

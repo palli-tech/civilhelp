@@ -29,6 +29,7 @@ import 'package:civilhelp/features/settings/screens/settings_screen.dart';
 import 'package:civilhelp/features/settings/screens/company_profile_screen.dart';
 import 'package:civilhelp/features/settings/screens/about_screen.dart';
 import 'package:civilhelp/features/settings/screens/team_management_screen.dart';
+import 'package:civilhelp/features/settings/screens/theme_showcase_screen.dart';
 import 'package:civilhelp/features/company/screens/company_setup_screen.dart';
 import 'package:civilhelp/shared/layouts/tenant_guard.dart';
 import 'package:civilhelp/shared/guards/permission_guard.dart';
@@ -64,6 +65,7 @@ class AppRoutes {
   static const companyProfile = '/settings/company-profile';
   static const about = '/settings/about';
   static const teamManagement = '/settings/team-management';
+  static const themeShowcase = '/theme-showcase';
 }
 
 class AppRouter {
@@ -207,6 +209,8 @@ class AppRouter {
         return _permissionGuardedRoute(const CompanyProfileScreen(), settings, Permission.manageCompany);
       case AppRoutes.teamManagement:
         return _permissionGuardedRoute(const TeamManagementScreen(), settings, Permission.manageUsers);
+      case AppRoutes.themeShowcase:
+        return _guardedRoute(const ThemeShowcaseScreen(), settings);
 
       default:
         return _errorRoute('Route not found: ${settings.name}');

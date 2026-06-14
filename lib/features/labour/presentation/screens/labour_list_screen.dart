@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/shared/widgets/civil_empty_state.dart';
 import 'package:civilhelp/features/labour/presentation/widgets/labour_card.dart';
@@ -50,12 +51,12 @@ class LabourListScreen extends ConsumerWidget {
               ref.invalidate(labourStreamProvider);
             },
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.screenPadding),
               itemCount: labourList.length,
               itemBuilder: (context, index) {
                 final labour = labourList[index];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.listGap),
                   child: LabourCard(
                     labour: labour,
                     onTap: () {
@@ -89,7 +90,7 @@ class LabourListScreen extends ConsumerWidget {
             icon: Icons.error_outline,
             title: 'Error Loading Labour Records',
             description: error.toString(),
-            iconColor: Colors.red[400],
+            iconColor: context.colors.error,
             ctaLabel: 'Retry',
             onCta: () => ref.invalidate(labourStreamProvider),
           );
@@ -129,7 +130,7 @@ class LabourListScreen extends ConsumerWidget {
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text('Delete', style: TextStyle(color: context.colors.error)),
           ),
         ],
       ),

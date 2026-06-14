@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/features/labour/data/models/labour_model.dart';
 import 'package:civilhelp/features/sites/models/site_model.dart';
 
@@ -314,7 +315,7 @@ class _BulkAttendanceFormState extends State<BulkAttendanceForm> {
           
           // Summary Panel
           Container(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            color: context.colors.surfaceVariant,
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -323,7 +324,7 @@ class _BulkAttendanceFormState extends State<BulkAttendanceForm> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('P: $presentCount | HD: $halfDayCount | A: $absentCount', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text('Total Muster: $totalMuster', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                    Text('Total Muster: $totalMuster', style: TextStyle(fontWeight: FontWeight.bold, color: context.customColors.info)),
                   ],
                 ),
               ],
@@ -333,7 +334,7 @@ class _BulkAttendanceFormState extends State<BulkAttendanceForm> {
 
         // Bottom Actions
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -373,10 +374,10 @@ class _BulkAttendanceFormState extends State<BulkAttendanceForm> {
                         widget.onSubmit(site.id, site.name, _selectedDate, selectedRecords);
                       },
                 child: widget.isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.onPrimary),
                       )
                     : const Text('Save Attendance'),
               ),

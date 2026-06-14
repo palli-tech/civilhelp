@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/enums/labour_status.dart';
 
 class LabourForm extends StatefulWidget {
@@ -216,11 +217,13 @@ class LabourFormState extends State<LabourForm> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: context.colors.outlineVariant),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                widget.assignedSiteName ?? 'No site assigned',
+                widget.assignedSiteName == null || widget.assignedSiteName!.isEmpty
+                    ? 'No site assigned'
+                    : widget.assignedSiteName!,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),

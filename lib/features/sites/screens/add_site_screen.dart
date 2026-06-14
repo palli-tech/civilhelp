@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import '../../../shared/layouts/app_scaffold.dart';
 import '../providers/site_provider.dart';
 import '../widgets/site_form.dart';
@@ -54,7 +55,7 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error creating site: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.colors.error,
           ),
         );
       }
@@ -72,7 +73,7 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
     return AppScaffold(
       appBar: AppBar(title: const Text('Add Site'), elevation: 0),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.screenPadding),
         child: Column(
           children: [
             SiteForm(
@@ -82,13 +83,13 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
             ),
             if (_isLoading)
               Padding(
-                padding: const EdgeInsets.only(top: 16),
+                padding: const EdgeInsets.only(top: AppSpacing.screenPadding),
                 child: SizedBox(
                   height: 48,
                   child: Center(
                     child: CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).colorScheme.primary,
+                        context.colors.primary,
                       ),
                     ),
                   ),

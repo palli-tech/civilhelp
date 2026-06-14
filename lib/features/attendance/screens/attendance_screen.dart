@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/auth/permissions.dart';
 import 'package:civilhelp/core/enums/user_role.dart';
 import 'package:civilhelp/core/providers/user_role_provider.dart';
@@ -67,7 +68,7 @@ class AttendanceScreen extends ConsumerWidget {
       ),
       fab: fab,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.screenPadding),
         child: Column(
           children: [
             Expanded(
@@ -87,7 +88,7 @@ class AttendanceScreen extends ConsumerWidget {
                   return ListView.separated(
                     itemCount: attendance.length,
                     separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSpacing.listGap),
                     itemBuilder: (context, index) {
                       final entry = attendance[index];
                       return AttendanceCard(

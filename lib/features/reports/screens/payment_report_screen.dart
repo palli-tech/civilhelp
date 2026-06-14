@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
@@ -73,7 +74,7 @@ class _PaymentReportScreenState extends ConsumerState<PaymentReportScreen> {
       data: (report) {
         final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
         return Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
           child: Column(
             children: [
               Card(
@@ -85,17 +86,23 @@ class _PaymentReportScreenState extends ConsumerState<PaymentReportScreen> {
                     children: [
                       CircleAvatar(
                         radius: 30,
-                        backgroundColor: Colors.purple.withValues(alpha: 0.2),
-                        child: const Icon(Icons.payment, color: Colors.purple, size: 30),
+                        backgroundColor: context.customColors.payroll.withValues(alpha: 0.2),
+                        child: Icon(Icons.payment, color: context.customColors.payroll, size: 30),
                       ),
                       const SizedBox(width: 24),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Net Payable Settled', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[700])),
+                            Text('Net Payable Settled', style: context.text.titleMedium?.copyWith(color: context.colors.onSurfaceVariant)),
                             const SizedBox(height: 8),
-                            Text(currencyFmt.format(report.totalPayments), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.purple)),
+                            Text(
+                              currencyFmt.format(report.totalPayments),
+                              style: context.text.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: context.customColors.payroll,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -103,16 +110,22 @@ class _PaymentReportScreenState extends ConsumerState<PaymentReportScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.listGap),
               Card(
                 elevation: 2,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      Text(report.paymentCount.toString(), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.blue)),
+                      Text(
+                        report.paymentCount.toString(),
+                        style: context.text.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: context.customColors.info,
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      Text('Payment Count', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+                      Text('Payment Count', style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant)),
                     ],
                   ),
                 ),

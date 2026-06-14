@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/shared/widgets/status_chip.dart';
 import '../models/attendance_model.dart';
 
@@ -26,7 +27,7 @@ class AttendanceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -39,15 +40,15 @@ class AttendanceCard extends StatelessWidget {
                     children: [
                       Text(
                         attendance.labourName,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: context.text.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         attendance.siteName,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
+                        style: context.text.bodyMedium?.copyWith(
+                              color: context.colors.onSurfaceVariant,
                             ),
                       ),
                     ],
@@ -96,19 +97,19 @@ class AttendanceCard extends StatelessWidget {
               children: [
                  StatusChip(status: attendance.status),
                 const SizedBox(width: 12),
-                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                Icon(Icons.calendar_today, size: 16, color: context.colors.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Text(
                   dateText,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[600],
+                  style: context.text.bodyMedium?.copyWith(
+                        color: context.colors.onSurfaceVariant,
                       ),
                 ),
                 const Spacer(),
                 Text(
                   '${attendance.hoursWorked.toStringAsFixed(1)}h',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[800],
+                  style: context.text.bodyMedium?.copyWith(
+                        color: context.colors.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                 ),

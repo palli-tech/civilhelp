@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
@@ -30,7 +31,7 @@ class _WorkerLedgerScreenState extends ConsumerState<WorkerLedgerScreen> {
   @override
   Widget build(BuildContext context) {
     debugPrint('WorkerLedgerScreen build called');
-final companyIdAsync = ref.watch(userCompanyIdProvider);
+    final companyIdAsync = ref.watch(userCompanyIdProvider);
     
     debugPrint('companyIdAsync: $companyIdAsync');
 
@@ -41,7 +42,7 @@ final companyIdAsync = ref.watch(userCompanyIdProvider);
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'Export PDF',
-onPressed: () {
+            onPressed: () {
                 // Only attempt export when companyId is resolved.
                 companyIdAsync.when(
                   data: (companyId) {
@@ -55,7 +56,7 @@ onPressed: () {
           ),
         ],
       ),
-child: companyIdAsync.when(
+      child: companyIdAsync.when(
         data: (companyId) {
                   debugPrint('companyIdAsync data: $companyId');
           if (companyId.isEmpty) {
@@ -121,6 +122,7 @@ child: companyIdAsync.when(
             _buildSummaryCards(report),
             Expanded(
               child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
                 itemCount: report.entries.length,
                 itemBuilder: (context, index) {
                   final entry = report.entries[index];
@@ -139,16 +141,16 @@ child: companyIdAsync.when(
   Widget _buildSummaryCards(WorkerLedgerReportDTO report) {
     final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
     return Container(
-      padding: const EdgeInsets.all(16.0),
-      color: Colors.blue.shade50,
+      padding: const EdgeInsets.all(AppSpacing.screenPadding),
+      color: context.colors.surfaceVariant,
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _SummaryStat(title: 'Earned', value: currencyFmt.format(report.totalEarned), color: Colors.green),
-              _SummaryStat(title: 'Advances', value: currencyFmt.format(report.totalAdvances), color: Colors.orange),
-              _SummaryStat(title: 'Paid', value: currencyFmt.format(report.totalPayments), color: Colors.blue),
+              _SummaryStat(title: 'Earned', value: currencyFmt.format(report.totalEarned), color: context.customColors.success),
+              _SummaryStat(title: 'Advances', value: currencyFmt.format(report.totalAdvances), color: context.customColors.advance),
+              _SummaryStat(title: 'Paid', value: currencyFmt.format(report.totalPayments), color: context.customColors.payroll),
             ],
           ),
           const SizedBox(height: 16),
@@ -157,13 +159,13 @@ child: companyIdAsync.when(
             children: [
               Text(
                 'Outstanding Balance: ',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: context.text.titleMedium,
               ),
               Text(
                 currencyFmt.format(report.outstandingBalance),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: context.text.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: report.outstandingBalance > 0 ? Colors.red : Colors.green,
+                  color: report.outstandingBalance > 0 ? context.customColors.error : context.customColors.success,
                 ),
               ),
             ],
@@ -182,20 +184,20 @@ child: companyIdAsync.when(
     switch(entry.type) {
       case LedgerEntryType.attendance:
         icon = Icons.work;
-        iconColor = Colors.green;
+        iconColor = context.customColors.success;
         break;
       case LedgerEntryType.advance:
         icon = Icons.money_off;
-        iconColor = Colors.orange;
+        iconColor = context.customColors.advance;
         break;
       case LedgerEntryType.payment:
         icon = Icons.payments;
-        iconColor = Colors.blue;
+        iconColor = context.customColors.payroll;
         break;
     }
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding, vertical: 4.0),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: iconColor.withValues(alpha: 0.2),
@@ -208,10 +210,10 @@ child: companyIdAsync.when(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (entry.credit > 0)
-              Text('+ ${currencyFmt.format(entry.credit)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              Text('+ ${currencyFmt.format(entry.credit)}', style: TextStyle(color: context.customColors.success, fontWeight: FontWeight.bold)),
             if (entry.debit > 0)
-              Text('- ${currencyFmt.format(entry.debit)}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-            Text('Bal: ${currencyFmt.format(entry.runningBalance)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text('- ${currencyFmt.format(entry.debit)}', style: TextStyle(color: context.customColors.error, fontWeight: FontWeight.bold)),
+            Text('Bal: ${currencyFmt.format(entry.runningBalance)}', style: TextStyle(fontSize: 12, color: context.colors.outline)),
           ],
         ),
       ),
@@ -268,7 +270,6 @@ child: companyIdAsync.when(
       final companyName = 'CivilHelp Construction';
 
       await pdfService.previewWorkerLedgerPdf(
-
         report: report,
         filter: filter,
         companyName: companyName,
@@ -295,7 +296,7 @@ class _SummaryStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(title, style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+        Text(title, style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12)),
         const SizedBox(height: 4),
         Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
       ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/user_role_provider.dart';
 import 'package:civilhelp/core/auth/permissions.dart';
 import '../../../app/router.dart';
@@ -18,6 +19,7 @@ class SettingsScreen extends ConsumerWidget {
     final userDataState = ref.watch(userDataProvider);
     final currentUser = ref.watch(currentUserProvider);
     final role = ref.watch(userRoleProvider);
+    final themeMode = ref.watch(themeProvider);
 
     return AppScaffold(
       appBar: AppBar(
@@ -25,7 +27,7 @@ class SettingsScreen extends ConsumerWidget {
       ),
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
           child: Center(
             child: Container(
               constraints: const BoxConstraints(maxWidth: 600),
@@ -33,19 +35,19 @@ class SettingsScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // User Profile Section
-                  const Text(
+                  Text(
                     'User Profile',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Card(
                     elevation: 1,
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(AppSpacing.cardPadding),
                       child: userDataState.when(
                         data: (userData) {
                           final userName = userData?['name'] as String? ?? currentUser?.displayName ?? 'User';
@@ -55,11 +57,11 @@ class SettingsScreen extends ConsumerWidget {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildInfoRow('Name', userName),
+                              _buildInfoRow(context, 'Name', userName),
                               const Divider(),
-                              _buildInfoRow('Email', userEmail),
+                              _buildInfoRow(context, 'Email', userEmail),
                               const Divider(),
-                              _buildInfoRow('Role', userRole),
+                              _buildInfoRow(context, 'Role', userRole),
                             ],
                           );
                         },
@@ -68,7 +70,58 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.sectionGap),
+
+                  // Theme Selector Section
+                  Text(
+                    'Theme Settings',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Card(
+                    elevation: 1,
+                    child: Column(
+                      children: [
+                        RadioListTile<AppThemeMode>(
+                          title: const Text('Light Mode'),
+                          value: AppThemeMode.light,
+                          groupValue: themeMode,
+                          onChanged: (val) {
+                            if (val != null) {
+                              ref.read(themeProvider.notifier).setThemeMode(val);
+                            }
+                          },
+                        ),
+                        const Divider(height: 1),
+                        RadioListTile<AppThemeMode>(
+                          title: const Text('Dark Mode'),
+                          value: AppThemeMode.dark,
+                          groupValue: themeMode,
+                          onChanged: (val) {
+                            if (val != null) {
+                              ref.read(themeProvider.notifier).setThemeMode(val);
+                            }
+                          },
+                        ),
+                        const Divider(height: 1),
+                        RadioListTile<AppThemeMode>(
+                          title: const Text('System Default'),
+                          value: AppThemeMode.system,
+                          groupValue: themeMode,
+                          onChanged: (val) {
+                            if (val != null) {
+                              ref.read(themeProvider.notifier).setThemeMode(val);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sectionGap),
 
                   // App Portal Card
                   Card(
@@ -76,7 +129,7 @@ class SettingsScreen extends ConsumerWidget {
                     child: Column(
                       children: [
                         ListTile(
-                          leading: const Icon(Icons.business, color: Colors.blue),
+                          leading: Icon(Icons.business, color: context.colors.primary),
                           title: const Text('Company Profile'),
                           subtitle: const Text('Update name, address, GST, and brand logo'),
                           trailing: const Icon(Icons.chevron_right),
@@ -87,7 +140,7 @@ class SettingsScreen extends ConsumerWidget {
                         if (role.hasPermission(Permission.manageUsers)) ...[
                           const Divider(height: 1),
                           ListTile(
-                            leading: const Icon(Icons.group, color: Colors.indigo),
+                            leading: Icon(Icons.group, color: context.customColors.payroll),
                             title: const Text('Team Management'),
                             subtitle: const Text('Manage supervisors, roles, and site assignments'),
                             trailing: const Icon(Icons.chevron_right),
@@ -98,7 +151,7 @@ class SettingsScreen extends ConsumerWidget {
                         ],
                         const Divider(height: 1),
                         ListTile(
-                          leading: const Icon(Icons.info_outline, color: Colors.green),
+                          leading: Icon(Icons.info_outline, color: context.customColors.success),
                           title: const Text('About App'),
                           subtitle: const Text('Version details and licenses'),
                           trailing: const Icon(Icons.chevron_right),
@@ -109,25 +162,25 @@ class SettingsScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.sectionGap),
 
                   // Tenant details
-                  const Text(
+                  Text(
                     'Tenant Information',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
 
                   tenantState.when(
                     data: (tenant) {
                       if (tenant == null) {
                         return const Card(
                           child: Padding(
-                            padding: EdgeInsets.all(16.0),
+                            padding: EdgeInsets.all(AppSpacing.cardPadding),
                             child: Text('No active tenant associated with this session.'),
                           ),
                         );
@@ -140,18 +193,22 @@ class SettingsScreen extends ConsumerWidget {
                       return Card(
                         elevation: 1,
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(AppSpacing.cardPadding),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildInfoRow('Company Name', tenant.companyName),
+                              _buildInfoRow(context, 'Company Name', tenant.companyName),
                               const Divider(),
-                              _buildInfoRow('Company ID', tenant.companyId),
+                              _buildInfoRow(context, 'Company ID', tenant.companyId),
                               const Divider(),
-                              _buildInfoRow('Status', tenant.tenantStatus.toUpperCase(), 
-                                  color: tenant.tenantStatus == 'active' ? Colors.green : Colors.red),
+                              _buildInfoRow(
+                                context,
+                                'Status',
+                                tenant.tenantStatus.toUpperCase(), 
+                                color: tenant.tenantStatus == 'active' ? context.customColors.success : context.colors.error,
+                              ),
                               const Divider(),
-                              _buildInfoRow('Registered On', dateFormatted),
+                              _buildInfoRow(context, 'Registered On', dateFormatted),
                             ],
                           ),
                         ),
@@ -159,34 +216,34 @@ class SettingsScreen extends ConsumerWidget {
                     },
                     loading: () => const Center(
                       child: Padding(
-                        padding: EdgeInsets.all(16.0),
+                        padding: EdgeInsets.all(AppSpacing.cardPadding),
                         child: CircularProgressIndicator(),
                       ),
                     ),
                     error: (err, stack) => Card(
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.all(AppSpacing.cardPadding),
                         child: Text('Error loading tenant context: $err'),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.sectionGap),
 
                   // Version Card
                   Card(
                     color: Theme.of(context).colorScheme.secondaryContainer,
-                    child: const Padding(
-                      padding: EdgeInsets.all(16.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.cardPadding),
                       child: Column(
                         children: [
-                          Text(
+                          const Text(
                             'Workforce Management System',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             'Version 1.0.0 (Build 1)',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                            style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12),
                           ),
                         ],
                       ),
@@ -201,13 +258,13 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {Color? color}) {
+  Widget _buildInfoRow(BuildContext context, String label, String value, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey)),
+          Text(label, style: TextStyle(fontWeight: FontWeight.w500, color: context.colors.onSurfaceVariant)),
           Text(
             value,
             style: TextStyle(

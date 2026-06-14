@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/enums/labour_status.dart';
 
 class LabourStatusChip extends StatelessWidget {
@@ -14,14 +15,14 @@ class LabourStatusChip extends StatelessWidget {
     this.padding,
   });
 
-  Color _getStatusColor() {
+  Color _getStatusColor(BuildContext context) {
     switch (status) {
       case LabourStatus.active:
-        return Colors.green;
+        return context.customColors.success;
       case LabourStatus.inactive:
-        return Colors.grey;
+        return context.colors.outline;
       case LabourStatus.onLeave:
-        return Colors.orange;
+        return context.customColors.warning;
     }
   }
 
@@ -39,7 +40,7 @@ class LabourStatusChip extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ),
-      backgroundColor: _getStatusColor(),
+      backgroundColor: _getStatusColor(context),
       padding: padding ?? const EdgeInsets.symmetric(horizontal: 8),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:civilhelp/app/router.dart';
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 
 class ReportsDashboardScreen extends StatelessWidget {
@@ -13,12 +14,12 @@ class ReportsDashboardScreen extends StatelessWidget {
         elevation: 0,
       ),
       child: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.screenPadding),
         children: [
           Card(
             elevation: 2,
             child: ListTile(
-              leading: const Icon(Icons.receipt_long, color: Colors.blue),
+              leading: Icon(Icons.receipt_long, color: context.customColors.worker),
               title: const Text('Worker Ledger'),
               subtitle: const Text('View detailed chronological ledger of attendance, advances, and payments for a specific worker.'),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -31,7 +32,7 @@ class ReportsDashboardScreen extends StatelessWidget {
           Card(
             elevation: 2,
             child: ListTile(
-              leading: const Icon(Icons.calendar_today, color: Colors.green),
+              leading: Icon(Icons.calendar_today, color: context.customColors.success),
               title: const Text('Attendance Summary'),
               subtitle: const Text('View aggregated attendance details including present, half-day, and absent counts.'),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -44,7 +45,7 @@ class ReportsDashboardScreen extends StatelessWidget {
           Card(
             elevation: 2,
             child: ListTile(
-              leading: const Icon(Icons.account_balance_wallet, color: Colors.orange),
+              leading: Icon(Icons.account_balance_wallet, color: context.customColors.advance),
               title: const Text('Advance Report'),
               subtitle: const Text('Track advances issued, including applied vs remaining unapplied amounts.'),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -57,7 +58,7 @@ class ReportsDashboardScreen extends StatelessWidget {
           Card(
             elevation: 2,
             child: ListTile(
-              leading: const Icon(Icons.payment, color: Colors.purple),
+              leading: Icon(Icons.payment, color: context.customColors.payroll),
               title: const Text('Payment Report'),
               subtitle: const Text('View total net payments made over a specific period.'),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -70,7 +71,7 @@ class ReportsDashboardScreen extends StatelessWidget {
           Card(
             elevation: 2,
             child: ListTile(
-              leading: const Icon(Icons.assessment, color: Colors.teal),
+              leading: Icon(Icons.assessment, color: context.customColors.payroll),
               title: const Text('Monthly Payroll Summary'),
               subtitle: const Text('View aggregated monthly data including earned, advances, payments and balances.'),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -83,7 +84,7 @@ class ReportsDashboardScreen extends StatelessWidget {
           Card(
             elevation: 2,
             child: ListTile(
-              leading: const Icon(Icons.bar_chart, color: Colors.deepPurple),
+              leading: Icon(Icons.bar_chart, color: context.customColors.attendance),
               title: const Text('Site Performance'),
               subtitle: const Text('Compare earnings, payments, advances and balances across sites.'),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -96,7 +97,7 @@ class ReportsDashboardScreen extends StatelessWidget {
           Card(
             elevation: 2,
             child: ListTile(
-              leading: const Icon(Icons.account_balance, color: Colors.indigo),
+              leading: Icon(Icons.account_balance, color: context.customColors.info),
               title: const Text('Outstanding Balance'),
               subtitle: const Text('View outstanding balance for all workers.'),
               trailing: const Icon(Icons.arrow_forward_ios),

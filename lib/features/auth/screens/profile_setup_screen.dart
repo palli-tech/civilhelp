@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/providers/tenant_provider.dart';
 
@@ -71,7 +72,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to save profile: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.colors.error,
           ),
         );
       }
@@ -86,7 +87,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final user = ref.watch(currentUserProvider);
 
     return Scaffold(
@@ -96,16 +96,16 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
-              theme.colorScheme.secondaryContainer.withValues(alpha: 0.15),
-              theme.colorScheme.surface,
+              context.colors.primaryContainer.withValues(alpha: 0.35),
+              context.colors.secondaryContainer.withValues(alpha: 0.15),
+              context.colors.surface,
             ],
             stops: const [0.0, 0.5, 1.0],
           ),
         ),
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(AppSpacing.screenPadding),
             child: Container(
               constraints: const BoxConstraints(maxWidth: 450),
               child: Card(
@@ -116,8 +116,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 32.0,
-                    vertical: 40.0,
+                    horizontal: AppSpacing.screenPadding,
+                    vertical: AppSpacing.sectionGap,
                   ),
                   child: Form(
                     key: _formKey,
@@ -128,34 +128,34 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(AppSpacing.sm),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                color: context.colors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Icon(
                                 Icons.person_outline,
                                 size: 32,
-                                color: theme.colorScheme.primary,
+                                color: context.colors.primary,
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: AppSpacing.md),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Profile Setup',
-                                    style: theme.textTheme.headlineMedium?.copyWith(
+                                    style: context.text.headlineMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.onSurface,
+                                      color: context.colors.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'Tell us your name to get started',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
+                                    style: context.text.bodyMedium?.copyWith(
+                                      color: context.colors.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -163,17 +163,17 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: AppSpacing.lg),
                         if (user?.email != null) ...[
                           Text(
                             'Email: ${user!.email}',
                             style: TextStyle(
                               fontSize: 14,
-                              color: theme.colorScheme.outline,
+                              color: context.colors.outline,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppSpacing.md),
                         ],
                         TextFormField(
                           controller: _nameController,
@@ -192,7 +192,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: AppSpacing.lg),
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -202,8 +202,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              backgroundColor: theme.colorScheme.primary,
-                              foregroundColor: theme.colorScheme.onPrimary,
+                              backgroundColor: context.colors.primary,
+                              foregroundColor: context.colors.onPrimary,
                               elevation: 2,
                             ),
                             child: _isLoading
@@ -212,7 +212,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                                     width: 24,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.5,
-                                      color: theme.colorScheme.onPrimary,
+                                      color: context.colors.onPrimary,
                                     ),
                                   )
                                 : const Row(
@@ -229,7 +229,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                                       Icon(Icons.arrow_forward),
                                     ],
                                   ),
-                           ),
+                          ),
                         ),
                       ],
                     ),

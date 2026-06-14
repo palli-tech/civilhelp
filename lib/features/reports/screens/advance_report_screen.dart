@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
@@ -73,7 +74,7 @@ class _AdvanceReportScreenState extends ConsumerState<AdvanceReportScreen> {
       data: (report) {
         final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
         return Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
           child: Column(
             children: [
               Card(
@@ -85,17 +86,23 @@ class _AdvanceReportScreenState extends ConsumerState<AdvanceReportScreen> {
                     children: [
                       CircleAvatar(
                         radius: 30,
-                        backgroundColor: Colors.orange.withValues(alpha: 0.2),
-                        child: const Icon(Icons.account_balance_wallet, color: Colors.orange, size: 30),
+                        backgroundColor: context.customColors.advance.withValues(alpha: 0.2),
+                        child: Icon(Icons.account_balance_wallet, color: context.customColors.advance, size: 30),
                       ),
                       const SizedBox(width: 24),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Total Advances Issued', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[700])),
+                            Text('Total Advances Issued', style: context.text.titleMedium?.copyWith(color: context.colors.onSurfaceVariant)),
                             const SizedBox(height: 8),
-                            Text(currencyFmt.format(report.totalAdvances), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.orange)),
+                            Text(
+                              currencyFmt.format(report.totalAdvances),
+                              style: context.text.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: context.customColors.advance,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -103,7 +110,7 @@ class _AdvanceReportScreenState extends ConsumerState<AdvanceReportScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.listGap),
               Row(
                 children: [
                   Expanded(
@@ -113,9 +120,15 @@ class _AdvanceReportScreenState extends ConsumerState<AdvanceReportScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            Text(report.advanceCount.toString(), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.blue)),
+                            Text(
+                              report.advanceCount.toString(),
+                              style: context.text.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: context.customColors.info,
+                              ),
+                            ),
                             const SizedBox(height: 8),
-                            Text('Advance Count', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+                            Text('Advance Count', style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant)),
                           ],
                         ),
                       ),
@@ -129,9 +142,15 @@ class _AdvanceReportScreenState extends ConsumerState<AdvanceReportScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            Text(currencyFmt.format(report.remainingUnapplied), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.red)),
+                            Text(
+                              currencyFmt.format(report.remainingUnapplied),
+                              style: context.text.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: context.customColors.error,
+                              ),
+                            ),
                             const SizedBox(height: 8),
-                            Text('Unapplied/Remaining', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+                            Text('Unapplied/Remaining', style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant)),
                           ],
                         ),
                       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/enums/site_status.dart';
 
 class SiteForm extends StatefulWidget {
@@ -88,7 +89,7 @@ class SiteFormState extends State<SiteForm> {
               return null;
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.screenPadding),
           TextFormField(
             controller: _locationController,
             decoration: InputDecoration(
@@ -106,7 +107,7 @@ class SiteFormState extends State<SiteForm> {
               return null;
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.screenPadding),
           TextFormField(
             controller: _clientController,
             decoration: InputDecoration(
@@ -124,7 +125,7 @@ class SiteFormState extends State<SiteForm> {
               return null;
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.screenPadding),
           InkWell(
             onTap: _selectDate,
             child: InputDecorator(
@@ -141,7 +142,7 @@ class SiteFormState extends State<SiteForm> {
             ),
           ),
           if (widget.showStatusSelector) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.screenPadding),
             DropdownButtonFormField<SiteStatus>(
               initialValue: _selectedStatus,
               decoration: InputDecoration(
@@ -163,7 +164,7 @@ class SiteFormState extends State<SiteForm> {
               },
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.sectionGap),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(

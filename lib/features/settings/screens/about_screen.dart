@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:civilhelp/app/theme.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -12,16 +13,16 @@ class AboutScreen extends StatelessWidget {
       body: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 600),
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(AppSpacing.sectionGap),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.business_center,
                 size: 80,
-                color: Colors.blue,
+                color: context.colors.primary,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.sectionGap),
               const Text(
                 'Workforce Management System',
                 textAlign: TextAlign.center,
@@ -31,50 +32,50 @@ class AboutScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'CivilHelp Enterprise Edition',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey,
+                  color: context.colors.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 24),
-              const Card(
+              const SizedBox(height: AppSpacing.sectionGap),
+              Card(
                 child: Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppSpacing.cardPadding),
                   child: Column(
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Version', style: TextStyle(color: Colors.grey)),
-                          Text('1.0.0', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Version', style: TextStyle(color: context.colors.onSurfaceVariant)),
+                          const Text('1.0.0', style: TextStyle(fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      Divider(),
+                      const Divider(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Build', style: TextStyle(color: Colors.grey)),
-                          Text('1', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Build', style: TextStyle(color: context.colors.onSurfaceVariant)),
+                          const Text('1', style: TextStyle(fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      Divider(),
+                      const Divider(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('SDK Version', style: TextStyle(color: Colors.grey)),
-                          Text('Flutter 3.x (Dart 3.x)', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('SDK Version', style: TextStyle(color: context.colors.onSurfaceVariant)),
+                          const Text('Flutter 3.x (Dart 3.x)', style: TextStyle(fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text(
+              const SizedBox(height: AppSpacing.sectionGap),
+              Text(
                 '© 2026 PalliVerse. All rights reserved.',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+                style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12),
               ),
             ],
           ),

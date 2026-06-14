@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
-import 'package:civilhelp/shared/widgets/app_design_system.dart';
 import 'package:civilhelp/shared/widgets/civil_empty_state.dart';
 import 'package:civilhelp/shared/widgets/metric_card.dart';
 import 'package:civilhelp/shared/widgets/status_chip.dart';
@@ -50,9 +50,12 @@ class _AdvancesScreenState extends ConsumerState<AdvancesScreen>
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFFE65100), Color(0xFFF57C00)],
+              colors: [
+                context.customColors.advance,
+                context.customColors.advance.withValues(alpha: 0.85),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -76,7 +79,7 @@ class _AdvancesScreenState extends ConsumerState<AdvancesScreen>
         onPressed: () => _showNewAdvanceDialog(context, ref, labourAsync),
         label: const Text('Issue Advance', style: TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add),
-        backgroundColor: const Color(0xFFE65100),
+        backgroundColor: context.customColors.advance,
         foregroundColor: Colors.white,
       ),
       child: TabBarView(
@@ -110,9 +113,9 @@ class _AdvancesScreenState extends ConsumerState<AdvancesScreen>
         return StatefulBuilder(
           builder: (dialogCtx, setState) {
             return AlertDialog(
-              title: const Text(
+              title: Text(
                 'Issue New Advance',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE65100)),
+                style: TextStyle(fontWeight: FontWeight.bold, color: context.customColors.advance),
               ),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               content: Form(
@@ -122,6 +125,7 @@ class _AdvancesScreenState extends ConsumerState<AdvancesScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       DropdownButtonFormField<String>(
+                        dropdownColor: context.colors.surface,
                         decoration: const InputDecoration(
                           labelText: 'Labour / Worker',
                           prefixIcon: Icon(Icons.person_outline),
@@ -183,7 +187,7 @@ class _AdvancesScreenState extends ConsumerState<AdvancesScreen>
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.event, size: 18, color: Colors.grey),
+                              Icon(Icons.event, size: 18, color: context.colors.outline),
                               const SizedBox(width: 8),
                               Text(
                                 DateFormat('dd MMM yyyy').format(selectedDate),
@@ -214,7 +218,7 @@ class _AdvancesScreenState extends ConsumerState<AdvancesScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogCtx),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  child: Text('Cancel', style: TextStyle(color: context.colors.outline)),
                 ),
                 FilledButton(
                   onPressed: () async {
@@ -240,13 +244,13 @@ class _AdvancesScreenState extends ConsumerState<AdvancesScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Failed to issue advance: $e'),
-                          backgroundColor: Colors.redAccent,
+                          backgroundColor: context.colors.error,
                         ),
                       );
                     }
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFE65100),
+                    backgroundColor: context.customColors.advance,
                   ),
                   child: const Text('Issue Advance'),
                 ),
@@ -284,33 +288,38 @@ class _OutstandingTab extends StatelessWidget {
           children: [
             // ── Summary Metric Bar ─────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenPadding,
+                AppSpacing.screenPadding,
+                AppSpacing.screenPadding,
+                0,
+              ),
               child: Row(
                 children: [
                   MetricCard(
                     label: 'Total Outstanding',
                     value: currencyFmt.format(totalOutstanding),
                     icon: Icons.account_balance_wallet_outlined,
-                    color: AppDesignSystem.warningColor,
+                    color: context.customColors.warning,
                   ),
-                  const SizedBox(width: AppDesignSystem.spacingSm),
+                  const SizedBox(width: AppSpacing.sm),
                   MetricCard(
                     label: 'Workers',
                     value: '$workersWithAdvances',
                     icon: Icons.people_outline,
-                    color: AppDesignSystem.infoColor,
+                    color: context.customColors.info,
                   ),
-                  const SizedBox(width: AppDesignSystem.spacingSm),
+                  const SizedBox(width: AppSpacing.sm),
                   MetricCard(
                     label: 'Pending',
                     value: '$pendingCount',
                     icon: Icons.pending_outlined,
-                    color: AppDesignSystem.neutralColor,
+                    color: context.colors.outline,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.listGap),
             // ── List ──────────────────────────────────────────────────────
             Expanded(
               child: outstanding.isEmpty
@@ -318,12 +327,17 @@ class _OutstandingTab extends StatelessWidget {
                       icon: Icons.check_circle_outline,
                       title: 'No Outstanding Advances',
                       description: 'All advances have been fully recovered. Great work!',
-                      iconColor: AppDesignSystem.successColor,
+                      iconColor: context.customColors.success,
                       ctaLabel: 'Issue Advance',
                       onCta: onIssue,
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.screenPadding,
+                        AppSpacing.xs,
+                        AppSpacing.screenPadding,
+                        100,
+                      ),
                       itemCount: outstanding.length,
                       itemBuilder: (context, index) {
                         return _OutstandingCard(advance: outstanding[index]);
@@ -350,13 +364,25 @@ class _OutstandingCard extends StatelessWidget {
         ? (advance.recoveredAmount / advance.amount).clamp(0.0, 1.0)
         : 0.0;
 
-    return Card(
-      elevation: AppDesignSystem.elevationCard,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDesignSystem.radiusLg)),
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        gradient: context.surfaceGradient,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: context.colors.outline.withValues(alpha: context.isDarkMode ? 0.15 : 0.08),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.2 : 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(AppDesignSystem.spacingMd),
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -380,7 +406,7 @@ class _OutstandingCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               advance.description,
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 13),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -392,16 +418,16 @@ class _OutstandingCard extends StatelessWidget {
               children: [
                 Text(
                   currencyFmt.format(advance.remainingAmount),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: AppDesignSystem.warningColor,
+                    color: context.customColors.warning,
                   ),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'outstanding',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                  style: TextStyle(fontSize: 13, color: context.colors.onSurfaceVariant),
                 ),
               ],
             ),
@@ -411,8 +437,8 @@ class _OutstandingCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: recoveryPct,
-                backgroundColor: Colors.grey[200],
-                color: AppDesignSystem.recoveryColor,
+                backgroundColor: context.colors.surfaceVariant,
+                color: context.customColors.success,
                 minHeight: 6,
               ),
             ),
@@ -423,18 +449,18 @@ class _OutstandingCard extends StatelessWidget {
               children: [
                 Text(
                   'Issued: ${currencyFmt.format(advance.amount)}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  style: TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant),
                 ),
                 Text(
                   'Recovered: ${currencyFmt.format(advance.recoveredAmount)} (${(recoveryPct * 100).toStringAsFixed(0)}%)',
-                  style: TextStyle(fontSize: 12, color: AppDesignSystem.recoveryColor),
+                  style: TextStyle(fontSize: 12, color: context.customColors.success),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Issued on ${DateFormat('dd MMM yyyy').format(advance.date)}',
-              style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+              style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
             ),
           ],
         ),
@@ -468,14 +494,14 @@ class _RecoveredTab extends StatelessWidget {
                       label: 'Total Recovered',
                       value: currencyFmt.format(totalRecovered),
                       icon: Icons.task_alt_outlined,
-                      color: AppDesignSystem.recoveryColor,
+                      color: context.customColors.success,
                     ),
-                    const SizedBox(width: AppDesignSystem.spacingSm),
+                    const SizedBox(width: AppSpacing.sm),
                     MetricCard(
                       label: 'Workers',
                       value: '${recovered.map((a) => a.labourId).toSet().length}',
                       icon: Icons.people_outline,
-                      color: AppDesignSystem.successColor,
+                      color: context.customColors.success,
                     ),
                   ],
                 ),
@@ -513,24 +539,36 @@ class _RecoveredCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
 
-    return Card(
-      elevation: AppDesignSystem.elevationCard,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDesignSystem.radiusMd)),
+    return Container(
       margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        gradient: context.surfaceGradient,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: context.colors.outline.withValues(alpha: context.isDarkMode ? 0.15 : 0.08),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.2 : 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(AppDesignSystem.spacingMd),
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
         child: Row(
           children: [
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppDesignSystem.recoveryLight,
+                color: context.customColors.successContainer,
                 borderRadius: BorderRadius.circular(22),
               ),
-              child: const Icon(Icons.check_circle_outline,
-                  color: AppDesignSystem.recoveryColor, size: 24),
+              child: Icon(Icons.check_circle_outline,
+                  color: context.customColors.success, size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -544,14 +582,14 @@ class _RecoveredCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     advance.description,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Issued: ${DateFormat('dd MMM yyyy').format(advance.date)}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                    style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
                   ),
                 ],
               ),
@@ -561,10 +599,10 @@ class _RecoveredCard extends StatelessWidget {
               children: [
                 Text(
                   currencyFmt.format(advance.amount),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: AppDesignSystem.recoveryColor,
+                    color: context.customColors.success,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -618,7 +656,7 @@ class _WorkerLedgerTab extends StatelessWidget {
           });
 
           return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            padding: const EdgeInsets.all(AppSpacing.screenPadding),
             itemCount: workers.length,
             itemBuilder: (context, index) {
               final labour = workers[index];
@@ -655,8 +693,8 @@ class _WorkerLedgerTab extends StatelessWidget {
         return AlertDialog(
           title: Text(
             '$workerName\'s Advance History',
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, color: Color(0xFFE65100)),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, color: context.customColors.advance),
           ),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -691,7 +729,7 @@ class _WorkerLedgerTab extends StatelessWidget {
                                   Text(
                                     DateFormat('dd MMM yyyy').format(adv.date),
                                     style: TextStyle(
-                                        fontSize: 12, color: Colors.grey[500]),
+                                        fontSize: 12, color: context.colors.onSurfaceVariant),
                                   ),
                                 ],
                               ),
@@ -699,15 +737,15 @@ class _WorkerLedgerTab extends StatelessWidget {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text(
-                                  currencyFmt.format(adv.remainingAmount),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: adv.status == 'recovered'
-                                        ? AppDesignSystem.recoveryColor
-                                        : AppDesignSystem.warningColor,
+                                  Text(
+                                    currencyFmt.format(adv.remainingAmount),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: adv.status == 'recovered'
+                                          ? context.customColors.success
+                                          : context.customColors.warning,
+                                    ),
                                   ),
-                                ),
                                 const SizedBox(height: 4),
                                 StatusChip(status: adv.status, fontSize: 10),
                               ],
@@ -721,8 +759,8 @@ class _WorkerLedgerTab extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Close',
-                  style: TextStyle(color: Color(0xFFE65100))),
+              child: Text('Close',
+                  style: TextStyle(color: context.customColors.advance)),
             ),
           ],
         );
@@ -753,97 +791,108 @@ class _WorkerLedgerCard extends StatelessWidget {
     final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
     final hasOutstanding = outstanding > 0;
 
-    return Card(
-      elevation: AppDesignSystem.elevationCard,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusLg),
-        side: hasOutstanding
-            ? BorderSide(
-                color: AppDesignSystem.warningColor.withValues(alpha: 0.3),
-                width: 1)
-            : BorderSide.none,
-      ),
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDesignSystem.radiusLg),
-        child: Padding(
-          padding: const EdgeInsets.all(AppDesignSystem.spacingMd),
-          child: Row(
-            children: [
-              // Avatar
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: hasOutstanding
-                    ? AppDesignSystem.warningLight
-                    : AppDesignSystem.successLight,
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: hasOutstanding
-                        ? AppDesignSystem.warningColor
-                        : AppDesignSystem.successColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              // Worker info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          '$advanceCount advance${advanceCount != 1 ? 's' : ''}',
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey[500]),
-                        ),
-                        const SizedBox(width: 8),
-                        Text('·', style: TextStyle(color: Colors.grey[400])),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Issued: ${currencyFmt.format(totalIssued)}',
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey[500]),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Outstanding balance — dominant
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    currencyFmt.format(outstanding),
+      decoration: BoxDecoration(
+        gradient: context.surfaceGradient,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasOutstanding
+              ? context.customColors.warning.withValues(alpha: context.isDarkMode ? 0.35 : 0.2)
+              : context.colors.outline.withValues(alpha: context.isDarkMode ? 0.15 : 0.08),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.2 : 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.cardPadding),
+            child: Row(
+              children: [
+                // Avatar
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: hasOutstanding
+                      ? context.customColors.warningContainer
+                      : context.customColors.successContainer,
+                  child: Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : '?',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                       color: hasOutstanding
-                          ? AppDesignSystem.warningColor
-                          : AppDesignSystem.successColor,
+                          ? context.customColors.warning
+                          : context.customColors.success,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'outstanding',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                ),
+                const SizedBox(width: 14),
+                // Worker info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            '$advanceCount advance${advanceCount != 1 ? 's' : ''}',
+                            style:
+                                TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('·', style: TextStyle(color: context.colors.onSurfaceVariant.withValues(alpha: 0.6))),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Issued: ${currencyFmt.format(totalIssued)}',
+                            style:
+                                TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  const Icon(Icons.chevron_right, color: Colors.grey),
-                ],
-              ),
-            ],
+                ),
+                // Outstanding balance — dominant
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      currencyFmt.format(outstanding),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: hasOutstanding
+                            ? context.customColors.warning
+                            : context.customColors.success,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'outstanding',
+                      style: TextStyle(fontSize: 11, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
+                    ),
+                    const SizedBox(height: 4),
+                    Icon(Icons.chevron_right, color: context.colors.onSurfaceVariant.withValues(alpha: 0.6)),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

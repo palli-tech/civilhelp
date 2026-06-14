@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import '../../../shared/layouts/app_scaffold.dart';
 import '../../../shared/widgets/civil_empty_state.dart';
 import '../providers/site_provider.dart';
@@ -50,12 +51,12 @@ class SitesScreen extends ConsumerWidget {
               ref.invalidate(sitesStreamProvider);
             },
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.screenPadding),
               itemCount: sites.length,
               itemBuilder: (context, index) {
                 final site = sites[index];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.listGap),
                   child: SiteCard(
                     site: site,
                     onTap: () {
@@ -83,7 +84,7 @@ class SitesScreen extends ConsumerWidget {
             icon: Icons.error_outline,
             title: 'Error Loading Sites',
             description: error.toString(),
-            iconColor: Colors.red[400],
+            iconColor: context.colors.error,
             ctaLabel: 'Retry',
             onCta: () => ref.invalidate(sitesStreamProvider),
           );
@@ -113,7 +114,7 @@ class SitesScreen extends ConsumerWidget {
                 );
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text('Delete', style: TextStyle(color: context.colors.error)),
           ),
         ],
       ),

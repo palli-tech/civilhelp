@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/enums/labour_status.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/features/labour/presentation/providers/labour_provider.dart';
@@ -38,10 +39,13 @@ class LabourDetailsScreen extends ConsumerWidget {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(AppSpacing.sectionGap),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.blue[400]!, Colors.blue[600]!],
+                      colors: [
+                        context.customColors.worker,
+                        context.customColors.worker.withValues(alpha: 0.8),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -68,7 +72,7 @@ class LabourDetailsScreen extends ConsumerWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.screenPadding),
                   child: Column(
                     children: [
                       _DetailCard(
@@ -87,7 +91,7 @@ class LabourDetailsScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.screenPadding),
                       _DetailCard(
                         title: 'Work Information',
                         children: [
@@ -110,7 +114,7 @@ class LabourDetailsScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.screenPadding),
                       _DetailCard(
                         title: 'Additional Information',
                         children: [
@@ -127,7 +131,7 @@ class LabourDetailsScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: AppSpacing.sectionGap),
                       _buildActionButtons(context, ref, labour),
                     ],
                   ),
@@ -144,13 +148,13 @@ class LabourDetailsScreen extends ConsumerWidget {
               Icon(
                 Icons.error_outline,
                 size: 64,
-                color: Colors.red[400],
+                color: context.colors.error,
               ),
-              const SizedBox(height: 16),
-              Text('Error loading labour details'),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.screenPadding),
+              const Text('Error loading labour details'),
+              const SizedBox(height: AppSpacing.sm),
               Text(error.toString()),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.sectionGap),
               ElevatedButton(
                 onPressed: () {
                   ref.invalidate(labourByIdProvider(labourId));
@@ -201,7 +205,8 @@ class LabourDetailsScreen extends ConsumerWidget {
               icon: const Icon(Icons.pause),
               label: const Text('Mark as On Leave'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: context.customColors.warning,
+                foregroundColor: context.colors.onPrimary,
               ),
             ),
           ),
@@ -220,7 +225,8 @@ class LabourDetailsScreen extends ConsumerWidget {
               icon: const Icon(Icons.block),
               label: const Text('Mark as Inactive'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
+                backgroundColor: context.colors.outline,
+                foregroundColor: context.colors.onPrimary,
               ),
             ),
           ),
@@ -233,7 +239,8 @@ class LabourDetailsScreen extends ConsumerWidget {
             icon: const Icon(Icons.delete),
             label: const Text('Delete'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: context.colors.error,
+              foregroundColor: context.colors.onError,
             ),
           ),
         ),
@@ -322,7 +329,7 @@ class LabourDetailsScreen extends ConsumerWidget {
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text('Delete', style: TextStyle(color: context.colors.error)),
           ),
         ],
       ),
@@ -342,9 +349,9 @@ class _DetailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: context.colors.outlineVariant),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -379,8 +386,8 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.blue[400]),
-        const SizedBox(width: 12),
+        Icon(icon, size: 20, color: context.customColors.worker),
+        const SizedBox(width: AppSpacing.listGap),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,7 +395,7 @@ class _DetailRow extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: context.colors.onSurfaceVariant,
                     ),
               ),
               const SizedBox(height: 4),

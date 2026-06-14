@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/features/sites/providers/site_provider.dart';
 import 'package:civilhelp/features/labour/presentation/widgets/labour_form.dart';
@@ -114,7 +115,7 @@ class _AddEditLabourScreenState extends ConsumerState<AddEditLabourScreen> {
                     .toList();
 
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.screenPadding),
                   child: LabourForm(
                     key: _formKey,
                     sites: sitesList,
@@ -142,7 +143,7 @@ class _AddEditLabourScreenState extends ConsumerState<AddEditLabourScreen> {
                         .toList();
 
                     return SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppSpacing.screenPadding),
                       child: LabourForm(
                         key: _formKey,
                         fullName: labour.fullName,

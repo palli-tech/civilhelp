@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import '../models/report_filter.dart';
@@ -78,27 +79,33 @@ class _MonthlyPayrollScreenState extends ConsumerState<MonthlyPayrollScreen> {
         final currencyFmt = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.screenPadding),
           itemCount: report.entries.length,
           itemBuilder: (context, index) {
             final entry = report.entries[index];
             return Card(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(bottom: AppSpacing.listGap),
               elevation: 2,
               child: ExpansionTile(
                 title: Text(entry.month, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('Balance: ${currencyFmt.format(entry.closingBalance)}', 
-                  style: TextStyle(color: entry.closingBalance > 0 ? Colors.green : (entry.closingBalance < 0 ? Colors.red : Colors.grey))),
+                subtitle: Text(
+                  'Balance: ${currencyFmt.format(entry.closingBalance)}', 
+                  style: TextStyle(
+                    color: entry.closingBalance > 0 
+                        ? context.customColors.success 
+                        : (entry.closingBalance < 0 ? context.customColors.error : context.colors.outline),
+                  ),
+                ),
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        _buildRow('Earned', currencyFmt.format(entry.totalEarned), Colors.green),
+                        _buildRow('Earned', currencyFmt.format(entry.totalEarned), context.customColors.success),
                         const Divider(),
-                        _buildRow('Advances', currencyFmt.format(entry.totalAdvances), Colors.orange),
+                        _buildRow('Advances', currencyFmt.format(entry.totalAdvances), context.customColors.advance),
                         const Divider(),
-                        _buildRow('Payments', currencyFmt.format(entry.totalPayments), Colors.purple),
+                        _buildRow('Payments', currencyFmt.format(entry.totalPayments), context.customColors.payroll),
                       ],
                     ),
                   )
@@ -119,7 +126,7 @@ class _MonthlyPayrollScreenState extends ConsumerState<MonthlyPayrollScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(label, style: TextStyle(color: context.colors.onSurfaceVariant)),
           Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: valueColor)),
         ],
       ),
