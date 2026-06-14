@@ -89,19 +89,41 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
           padding: const EdgeInsets.all(16.0),
           children: [
             // Top Summary Cards Section
-            GridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 2.5,
-              physics: const NeverScrollableScrollPhysics(),
+            Column(
               children: [
-                _buildSummaryCard('Total Sites', report.totalSites.toString(), Colors.blue),
-                _buildSummaryCard('Total Workers', report.totalWorkers.toString(), Colors.orange),
-                _buildSummaryCard('Total Earned', currencyFmt.format(report.totalEarned), Colors.green),
-                _buildSummaryCard('Total Outstanding', currencyFmt.format(report.totalOutstanding), 
-                  report.totalOutstanding >= 0 ? Colors.teal : Colors.red),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _buildSummaryCard('Total Sites', report.totalSites.toString(), Colors.blue),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildSummaryCard('Total Workers', report.totalWorkers.toString(), Colors.orange),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _buildSummaryCard('Total Earned', currencyFmt.format(report.totalEarned), Colors.green),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildSummaryCard(
+                          'Total Outstanding',
+                          currencyFmt.format(report.totalOutstanding),
+                          report.totalOutstanding >= 0 ? Colors.teal : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -122,22 +144,42 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
                     Text(
                       entry.siteName,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Workers: ${entry.workerCount}', style: const TextStyle(color: Colors.grey)),
-                        Text('Attendance Days: ${entry.attendanceDays}', style: const TextStyle(color: Colors.grey)),
+                        Expanded(
+                          child: Text(
+                            'Workers: ${entry.workerCount}',
+                            style: const TextStyle(color: Colors.grey),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Attendance Days: ${entry.attendanceDays}',
+                            style: const TextStyle(color: Colors.grey),
+                            textAlign: TextAlign.end,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
                     const Divider(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildDetailCol('Earned', entry.totalEarned, currencyFmt),
-                        _buildDetailCol('Advances', entry.totalAdvances, currencyFmt),
-                        _buildDetailCol('Payments', entry.totalPayments, currencyFmt),
+                        Expanded(child: _buildDetailCol('Earned', entry.totalEarned, currencyFmt)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildDetailCol('Advances', entry.totalAdvances, currencyFmt)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildDetailCol('Payments', entry.totalPayments, currencyFmt)),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -148,12 +190,18 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
                           'Outstanding:',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                        Text(
-                          currencyFmt.format(entry.outstandingBalance),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: entry.outstandingBalance >= 0 ? Colors.green : Colors.red,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            currencyFmt.format(entry.outstandingBalance),
+                            textAlign: TextAlign.end,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: entry.outstandingBalance >= 0 ? Colors.green : Colors.red,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -183,6 +231,7 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               title,
@@ -206,15 +255,20 @@ class _SitePerformanceScreenState extends ConsumerState<SitePerformanceScreen> {
   Widget _buildDetailCol(String title, double amount, NumberFormat format) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           title,
           style: const TextStyle(color: Colors.grey, fontSize: 12),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 4),
         Text(
           format.format(amount),
           style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

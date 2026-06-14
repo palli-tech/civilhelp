@@ -17,7 +17,11 @@ class AuthService {
     GoogleSignIn? googleSignIn,
   })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+        _googleSignIn = googleSignIn ??
+            GoogleSignIn(
+              serverClientId:
+                  '390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com',
+            );
 
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
