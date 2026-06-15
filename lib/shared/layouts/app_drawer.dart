@@ -153,41 +153,10 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     );
   }
 
-  Widget _buildStatusItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required bool isDark,
-  }) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 14,
-          color: isDark ? Colors.white60 : Colors.black45,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white60 : Colors.black54,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildProfileCard(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
     final userDataAsync = ref.watch(userDataProvider);
     final tenantCompanyAsync = ref.watch(tenantCompanyStreamProvider);
-    final role = ref.watch(userRoleProvider);
 
     final isDark = context.isDarkMode;
 
@@ -204,8 +173,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     final initials = userName.isNotEmpty
         ? userName.trim().split(RegExp(r'\s+')).map((s) => s[0]).take(2).join().toUpperCase()
         : 'U';
-
-    final formattedRole = role.displayName;
 
     double scale = 1.0;
     if (_isPressed) {
@@ -278,7 +245,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     right: -20,
                     child: Icon(
                       Icons.domain_outlined,
-                      size: 100,
+                      size: 80,
                       color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.04),
                     ),
                   ),
@@ -295,141 +262,94 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             });
                           },
                           child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+                            child: Row(
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                Stack(
                                   children: [
-                                    Stack(
-                                      children: [
-                                        Container(
-                                          width: 56,
-                                          height: 56,
-                                          decoration: const BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                Color(0xFF7B4DFF),
-                                                Color(0xFF5F2EEA),
-                                              ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              initials,
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
-                                              ),
-                                            ),
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Color(0xFF7B4DFF),
+                                            Color(0xFF5F2EEA),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          initials,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
                                           ),
                                         ),
-                                        Positioned(
-                                          bottom: 2,
-                                          right: 2,
-                                          child: Container(
-                                            width: 12,
-                                            height: 12,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF00C853),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: isDark ? const Color(0xFF130D32) : Colors.white,
-                                                width: 2,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
-                                    AnimatedRotation(
-                                      turns: _isMenuOpen ? 0.5 : 0.0,
-                                      duration: const Duration(milliseconds: 220),
-                                      child: Icon(
-                                        Icons.expand_more_rounded,
-                                        color: isDark ? Colors.white70 : Colors.black54,
-                                        size: 24,
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      child: Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF00C853),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isDark ? const Color(0xFF130D32) : Colors.white,
+                                            width: 1.5,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  userName,
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white : Colors.black87,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.5,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF7B4DFF).withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        formattedRole.toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Color(0xFF7B4DFF),
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        companyName,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        userName,
                                         style: TextStyle(
-                                          color: isDark ? Colors.white70 : Colors.black54,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? Colors.white : Colors.black87,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: -0.3,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        companyName,
+                                        style: TextStyle(
+                                          color: isDark ? Colors.white70 : Colors.black54,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 16),
-                                Divider(
-                                  height: 1,
-                                  thickness: 1,
-                                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildStatusItem(
-                                  context,
-                                  icon: Icons.verified_outlined,
-                                  label: 'Verified Company',
-                                  isDark: isDark,
-                                ),
-                                const SizedBox(height: 6),
-                                _buildStatusItem(
-                                  context,
-                                  icon: Icons.check_circle_outline_rounded,
-                                  label: 'Active Account',
-                                  isDark: isDark,
-                                ),
-                                const SizedBox(height: 6),
-                                _buildStatusItem(
-                                  context,
-                                  icon: Icons.star_outline_rounded,
-                                  label: 'Plan: Early Access',
-                                  isDark: isDark,
+                                const SizedBox(width: 8),
+                                AnimatedRotation(
+                                  turns: _isMenuOpen ? 0.5 : 0.0,
+                                  duration: const Duration(milliseconds: 220),
+                                  child: Icon(
+                                    Icons.expand_more_rounded,
+                                    color: isDark ? Colors.white70 : Colors.black54,
+                                    size: 20,
+                                  ),
                                 ),
                               ],
                             ),
@@ -450,7 +370,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                     crossAxisAlignment: CrossAxisAlignment.stretch,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 4),
                                       _buildAccountMenuItem(
                                         context: context,
                                         icon: Icons.person_outline_rounded,
@@ -464,7 +384,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                           Navigator.of(context).pushNamed(AppRoutes.profileSetup);
                                         },
                                       ),
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 6),
                                       _buildAccountMenuItem(
                                         context: context,
                                         icon: Icons.palette_outlined,
@@ -477,7 +397,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                           _showAppearanceDialog(context, ref);
                                         },
                                       ),
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 6),
                                       _buildAccountMenuItem(
                                         context: context,
                                         icon: Icons.logout_outlined,
