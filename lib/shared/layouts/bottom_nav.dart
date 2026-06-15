@@ -74,6 +74,9 @@ class BottomNav extends ConsumerWidget {
     return SafeArea(
       top: false,
       child: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         items: items,
         currentIndex: 0, // Since it's a push-based router, we don't strictly bind currentIndex
         onTap: (index) {

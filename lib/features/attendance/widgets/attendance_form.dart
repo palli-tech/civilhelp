@@ -3,6 +3,7 @@ import 'package:civilhelp/features/labour/data/models/labour_model.dart';
 import 'package:civilhelp/features/sites/models/site_model.dart';
 import '../models/attendance_model.dart';
 
+@deprecated
 class AttendanceForm extends StatefulWidget {
   final GlobalKey<FormState> formKey;
   final List<SiteModel> sites;

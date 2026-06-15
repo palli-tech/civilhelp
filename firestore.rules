@@ -61,6 +61,12 @@ service cloud.firestore {
               get(/databases/$(database)/documents/companies/$(companyId)/payrollPeriods/$(periodId)).data.status == 'paid');
     }
 
+    // Helper to check if a site's attendance is marked completed
+    function isSiteAttendanceCompleted(companyId, siteId, dateStr) {
+      return exists(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr)) &&
+             get(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr)).data.status == 'completed';
+    }
+
     // ─── Global Users ───────────────────────────────────────
 
     match /users/{uid} {
@@ -165,99 +171,98 @@ service cloud.firestore {
     }
 
     // ─── Companies ──────────────────────────────────────────
+    match /companies/{companyId} {
+      allow read: if isTenantMember(companyId);
+      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if isOwner(companyId);
 
- 
-     match /companies/{companyId} {
-       // All tenant members can read company data
-       allow read: if isTenantMember(companyId);
-       // Secure company setup: authenticated user setting themselves as ownerUid
-       allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
-       // Only the owner can modify company details (name, logo, profile, etc.)
-       allow update, delete: if isOwner(companyId);
- 
-       // ─── Sites ──────────────────────────────────────────
-       match /sites/{siteId} {
-         // All tenant members can read sites
-         allow read: if isTenantMember(companyId);
-         // Only owners can create, edit, or delete sites
-         allow write: if isOwner(companyId);
-       }
- 
-       // ─── Labour ─────────────────────────────────────────
-       match /labour/{labourId} {
-         // All tenant members can read labour records
-         allow read: if isTenantMember(companyId);
-         // Only owners can create, edit, or delete labour
-         allow write: if isOwner(companyId);
-       }
- 
-        // ─── Attendance ─────────────────────────────────────
-        match /attendance/{attendanceId} {
-          // All tenant members can read attendance
+      // ─── Sites ──────────────────────────────────────────
+      match /sites/{siteId} {
+        allow read: if isTenantMember(companyId);
+        allow write: if isOwner(companyId);
+
+        match /attendanceCompletions/{dateString} {
           allow read: if isTenantMember(companyId);
-
-          // Owners and supervisors can create attendance, matching deterministic ID, backdate limit, not soft-deleted, and not locked by period
-          allow create: if (isOwner(companyId) || (isSupervisor(companyId) && request.resource.data.siteId in getUserData().assignedSiteIds)) &&
-                        attendanceId == request.resource.data.labourId + '_' + request.resource.data.siteId + '_' + getFormattedDate(request.resource.data.date) &&
-                        get(/databases/$(database)/documents/companies/$(companyId)/labour/$(request.resource.data.labourId)).data.status == 'active' &&
-                        request.resource.data.date.toMillis() <= request.time.toMillis() + 300000 &&
-                        request.time.toMillis() - request.resource.data.date.toMillis() <= getBackdateLimitDays(companyId) * 86400000 &&
-                        request.resource.data.isDeleted == false &&
-                        request.resource.data.paymentStatus == 'unpaid' &&
-                        !isPeriodLocked(companyId, request.resource.data.payrollPeriodId);
-
-          // Owners and supervisors can update attendance if not deleted, not locked by period, and identity fields are unchanged
-          allow update: if (isOwner(companyId) || (isSupervisor(companyId) && resource.data.siteId in getUserData().assignedSiteIds)) &&
-                        resource.data.isDeleted == false &&
-                        resource.data.paymentStatus != 'paid' &&
-                        !isPeriodLocked(companyId, resource.data.payrollPeriodId) &&
-                        request.resource.data.labourId == resource.data.labourId &&
-                        request.resource.data.siteId == resource.data.siteId &&
-                        request.resource.data.date == resource.data.date;
-
-          // No physical deletes allowed
-          allow delete: if false;
-        }
-
-        // ─── Payroll Periods ─────────────────────────────────
-        match /payrollPeriods/{periodId} {
-          allow read: if isTenantMember(companyId);
-          allow write: if isOwner(companyId);
-        }
-
-        // ─── Payments ────────────────────────────────────────
-        match /payments/{paymentId} {
-          allow read: if isTenantMember(companyId);
-          allow create: if isOwner(companyId);
-          allow update, delete: if false;
-        }
-
-        // ─── Payroll Registers ────────────────────────────────
-        match /payrollRegisters/{registerId} {
-          allow read: if isTenantMember(companyId);
-          allow create: if isOwner(companyId);
-          allow update, delete: if false;
-        }
-
-        // ─── Payroll Summaries ────────────────────────────────
-        match /payrollSummaries/{periodId} {
-          allow read: if isTenantMember(companyId);
-          allow create: if isOwner(companyId);
-          allow update, delete: if false;
-        }
-
-        // ─── Advances ────────────────────────────────────────
-        match /advances/{advanceId} {
-          allow read: if isTenantMember(companyId);
-          allow write: if isOwner(companyId);
-        }
-
-        // ─── Advance Recoveries ──────────────────────────────
-        match /advanceRecoveries/{recoveryId} {
-          allow read: if isTenantMember(companyId);
-          allow create: if isOwner(companyId);
-          allow update, delete: if false;
+          allow write: if isOwner(companyId) || (isSupervisor(companyId) && siteId in getUserData().assignedSiteIds);
         }
       }
-   }
+
+      // ─── Labour ─────────────────────────────────────────
+      match /labour/{labourId} {
+        allow read: if isTenantMember(companyId);
+        allow write: if isOwner(companyId);
+      }
+
+      // ─── Attendance ─────────────────────────────────────
+      match /attendance/{attendanceId} {
+        allow read: if isTenantMember(companyId);
+
+        allow create: if (isOwner(companyId) || (isSupervisor(companyId) && request.resource.data.siteId in getUserData().assignedSiteIds && !isSiteAttendanceCompleted(companyId, request.resource.data.siteId, getFormattedDate(request.resource.data.date)))) &&
+                      attendanceId == request.resource.data.labourId + '_' + request.resource.data.siteId + '_' + getFormattedDate(request.resource.data.date) &&
+                      get(/databases/$(database)/documents/companies/$(companyId)/labour/$(request.resource.data.labourId)).data.status == 'active' &&
+                      request.resource.data.date.toMillis() <= request.time.toMillis() + 300000 &&
+                      (isOwner(companyId) || request.time.toMillis() - request.resource.data.date.toMillis() <= getBackdateLimitDays(companyId) * 86400000) &&
+                      request.resource.data.isDeleted == false &&
+                      request.resource.data.paymentStatus == 'unpaid' &&
+                      !isPeriodLocked(companyId, request.resource.data.payrollPeriodId);
+
+        allow update: if (isOwner(companyId) || (isSupervisor(companyId) && resource.data.siteId in getUserData().assignedSiteIds && !isSiteAttendanceCompleted(companyId, resource.data.siteId, getFormattedDate(resource.data.date)))) &&
+                      resource.data.isDeleted == false &&
+                      resource.data.paymentStatus != 'paid' &&
+                      !isPeriodLocked(companyId, resource.data.payrollPeriodId) &&
+                      request.resource.data.labourId == resource.data.labourId &&
+                      request.resource.data.siteId == resource.data.siteId &&
+                      request.resource.data.date == resource.data.date;
+
+        allow delete: if false;
+      }
+
+      // ─── Attendance Unlock Audits ───────────────────────────────
+      match /attendanceUnlockAudits/{auditId} {
+        allow read: if isTenantMember(companyId);
+        allow create: if isOwner(companyId);
+        allow update, delete: if false;
+      }
+
+      // ─── Payroll Periods ─────────────────────────────────
+      match /payrollPeriods/{periodId} {
+        allow read: if isTenantMember(companyId);
+        allow write: if isOwner(companyId);
+      }
+
+      // ─── Payments ────────────────────────────────────────
+      match /payments/{paymentId} {
+        allow read: if isTenantMember(companyId);
+        allow create: if isOwner(companyId);
+        allow update, delete: if false;
+      }
+
+      // ─── Payroll Registers ────────────────────────────────
+      match /payrollRegisters/{registerId} {
+        allow read: if isTenantMember(companyId);
+        allow create: if isOwner(companyId);
+        allow update, delete: if false;
+      }
+
+      // ─── Payroll Summaries ────────────────────────────────
+      match /payrollSummaries/{periodId} {
+        allow read: if isTenantMember(companyId);
+        allow create: if isOwner(companyId);
+        allow update, delete: if false;
+      }
+
+      // ─── Advances ────────────────────────────────────────
+      match /advances/{advanceId} {
+        allow read: if isTenantMember(companyId);
+        allow write: if isOwner(companyId);
+      }
+
+      // ─── Advance Recoveries ──────────────────────────────
+      match /advanceRecoveries/{recoveryId} {
+        allow read: if isTenantMember(companyId);
+        allow create: if isOwner(companyId);
+        allow update, delete: if false;
+      }
+    }
+  }
 }

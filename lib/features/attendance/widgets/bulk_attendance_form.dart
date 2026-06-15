@@ -3,6 +3,7 @@ import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/features/labour/data/models/labour_model.dart';
 import 'package:civilhelp/features/sites/models/site_model.dart';
 
+@deprecated
 class BulkAttendanceForm extends StatefulWidget {
   final List<SiteModel> sites;
   final List<LabourModel> labour;

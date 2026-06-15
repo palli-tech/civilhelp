@@ -66,6 +66,7 @@ final updateAttendanceProvider = FutureProvider.family<void, AttendanceModel>((
   final repository = ref.read(attendanceRepositoryProvider);
   final companyId = await ref.watch(userCompanyIdProvider.future);
   final currentUser = ref.watch(currentUserProvider);
+  final role = ref.watch(userRoleProvider);
 
   // Prevent date collisions: if another attendance exists for same labour+date, block update
   final existing = await repository.getAttendanceForLabourOnDate(
@@ -83,6 +84,7 @@ final updateAttendanceProvider = FutureProvider.family<void, AttendanceModel>((
   await repository.updateAttendance(
     attendance: attendance,
     updatedBy: currentUser?.uid ?? 'unknown',
+    userRole: role.name,
   );
 
   // Invalidate affected streams
@@ -99,6 +101,7 @@ final deleteAttendanceProvider =
 ) async {
   final companyId = await ref.watch(userCompanyIdProvider.future);
   final currentUser = ref.watch(currentUserProvider);
+  final role = ref.watch(userRoleProvider);
 
   await ref
       .read(attendanceRepositoryProvider)
@@ -107,6 +110,7 @@ final deleteAttendanceProvider =
         companyId: companyId,
         deletedBy: currentUser?.uid ?? 'unknown',
         deleteReason: params.deleteReason,
+        userRole: role.name,
       );
 
   // Invalidate all attendance streams after delete
@@ -133,6 +137,7 @@ final createAttendanceProvider =
       final repository = ref.watch(attendanceRepositoryProvider);
       final companyId = await ref.watch(userCompanyIdProvider.future);
       final currentUser = ref.watch(currentUserProvider);
+      final role = ref.watch(userRoleProvider);
 
       // Duplicate prevention: check existing attendance for same labour+date
       final existing = await repository.getAttendanceForLabourOnDate(
@@ -158,6 +163,7 @@ final createAttendanceProvider =
         musterQuantity: params.$8,
         companyId: companyId,
         createdBy: currentUser?.uid ?? 'unknown',
+        userRole: role.name,
       );
 
       ref.invalidate(attendanceStreamProvider);
@@ -186,6 +192,7 @@ final createBulkAttendanceProvider =
       final repository = ref.watch(attendanceRepositoryProvider);
       final companyId = await ref.watch(userCompanyIdProvider.future);
       final currentUser = ref.watch(currentUserProvider);
+      final role = ref.watch(userRoleProvider);
 
       final result = await repository.createBulkAttendance(
         siteId: params.siteId,
@@ -194,6 +201,7 @@ final createBulkAttendanceProvider =
         companyId: companyId,
         createdBy: currentUser?.uid ?? 'unknown',
         labourRecords: params.labourRecords,
+        userRole: role.name,
       );
 
       // Invalidate streams to refresh UI

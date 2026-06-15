@@ -27,20 +27,127 @@ class AttendanceRepository {
     return "${labourId}_${siteId}_$dateString";
   }
 
+  DocumentReference<Map<String, dynamic>> _completionDocRef({
+    required String companyId,
+    required String siteId,
+    required DateTime date,
+  }) {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    return _firestore.doc('companies/$companyId/sites/$siteId/attendanceCompletions/$dateStr');
+  }
+
+  /// Check if site attendance is completed for a date
+  Future<bool> isSiteAttendanceCompleted({
+    required String companyId,
+    required String siteId,
+    required DateTime date,
+  }) async {
+    final doc = await _completionDocRef(companyId: companyId, siteId: siteId, date: date).get();
+    if (!doc.exists) return false;
+    return (doc.data()?['status'] as String? ?? 'draft') == 'completed';
+  }
+
+  /// Mark site attendance as complete
+  Future<void> markSiteAttendanceComplete({
+    required String companyId,
+    required String siteId,
+    required DateTime date,
+    required String completedBy,
+  }) async {
+    await _completionDocRef(companyId: companyId, siteId: siteId, date: date).set({
+      'status': 'completed',
+      'completedBy': completedBy,
+      'completedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Reopen site attendance (Owner/Admin only)
+  Future<void> reopenSiteAttendance({
+    required String companyId,
+    required String siteId,
+    required DateTime date,
+    required String verifiedBy,
+  }) async {
+    await _completionDocRef(companyId: companyId, siteId: siteId, date: date).set({
+      'status': 'draft',
+      'verifiedBy': verifiedBy,
+      'verifiedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Logs an unlock audit record for a frozen attendance entry
+  Future<void> logUnlockAudit({
+    required String companyId,
+    required String attendanceId,
+    required String unlockedBy,
+    required String unlockReason,
+    required String siteId,
+    required String labourId,
+    required DateTime date,
+  }) async {
+    final auditRef = _firestore.collection('companies/$companyId/attendanceUnlockAudits').doc();
+    await auditRef.set({
+      'attendanceId': attendanceId,
+      'unlockedBy': unlockedBy,
+      'unlockedAt': FieldValue.serverTimestamp(),
+      'unlockReason': unlockReason,
+      'siteId': siteId,
+      'labourId': labourId,
+      'date': Timestamp.fromDate(date),
+    });
+  }
+
+  /// Checks if an attendance record has been unlocked in the audit log.
+  Future<bool> isAttendanceUnlocked({
+    required String companyId,
+    required String attendanceId,
+  }) async {
+    final query = await _firestore.collection('companies/$companyId/attendanceUnlockAudits')
+        .where('attendanceId', isEqualTo: attendanceId)
+        .orderBy('unlockedAt', descending: true)
+        .limit(1)
+        .get();
+    return query.docs.isNotEmpty;
+  }
+
   /// Check company backdate configuration limit
   Future<void> _checkBackdateLimit({
     required String companyId,
+    required String attendanceId,
     required DateTime date,
+    required String userRole,
   }) async {
     final companyDoc = await _firestore.collection('companies').doc(companyId).get();
-    final limitDays = companyDoc.data()?['attendanceBackdateLimitDays'] as int? ?? 3;
+    final limitDays = companyDoc.data()?['attendanceBackdateLimitDays'] as int? ?? 7; // Default 7 days
     
     final today = DateTime.now();
     final maxBackdateDate = DateTime(today.year, today.month, today.day).subtract(Duration(days: limitDays));
     final targetDate = DateTime(date.year, date.month, date.day);
 
     if (targetDate.isBefore(maxBackdateDate)) {
-      throw Exception('Attendance date exceeds the company backdate limit of $limitDays days.');
+      if (userRole == 'owner' || userRole == 'admin') {
+        final unlocked = await isAttendanceUnlocked(companyId: companyId, attendanceId: attendanceId);
+        if (!unlocked) {
+          throw Exception('This attendance record exceeds the company backdate limit and is frozen. You must unlock it before editing.');
+        }
+      } else {
+        throw Exception('Attendance record exceeds the company backdate limit and is frozen. It cannot be modified by supervisors.');
+      }
+    }
+  }
+
+  /// Check completion lockout: supervisors cannot edit completed site registers
+  Future<void> _checkCompletionLockout({
+    required String companyId,
+    required String siteId,
+    required DateTime date,
+    required String userRole,
+  }) async {
+    if (userRole != 'owner' && userRole != 'admin') {
+      final completed = await isSiteAttendanceCompleted(companyId: companyId, siteId: siteId, date: date);
+      if (completed) {
+        throw Exception('Attendance for this site on this date is completed and locked.');
+      }
     }
   }
 
@@ -105,6 +212,7 @@ class AttendanceRepository {
     required double musterQuantity,
     required String companyId,
     required String createdBy,
+    String userRole = 'owner',
   }) async {
     final today = DateTime.now();
     final normalizedToday = DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
@@ -112,8 +220,11 @@ class AttendanceRepository {
       throw Exception('Attendance date cannot be in the future.');
     }
 
-    // 1. Enforce backdate limit
-    await _checkBackdateLimit(companyId: companyId, date: date);
+    final docId = generateAttendanceDocId(labourId: labourId, siteId: siteId, date: date);
+
+    // 1. Enforce completion and backdate locks
+    await _checkCompletionLockout(companyId: companyId, siteId: siteId, date: date, userRole: userRole);
+    await _checkBackdateLimit(companyId: companyId, attendanceId: docId, date: date, userRole: userRole);
 
     // 2. Find enclosing payroll period and check lock
     final periodId = await _findEnclosingPeriodId(
@@ -139,7 +250,6 @@ class AttendanceRepository {
     final double earningsSnapshot = musterQuantity * dailyWageSnapshot;
 
     // 4. Generate deterministic document ID
-    final docId = generateAttendanceDocId(labourId: labourId, siteId: siteId, date: date);
     final docRef = _attendanceCollection(companyId).doc(docId);
 
     final data = {
@@ -178,6 +288,7 @@ class AttendanceRepository {
     required String companyId,
     required String createdBy,
     required List<({String labourId, String labourName, String status, double hoursWorked, double musterQuantity})> labourRecords,
+    String userRole = 'owner',
   }) async {
     final today = DateTime.now();
     final normalizedToday = DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
@@ -185,8 +296,15 @@ class AttendanceRepository {
       throw Exception('Attendance date cannot be in the future.');
     }
 
-    // 1. Enforce backdate limit once for performance
-    await _checkBackdateLimit(companyId: companyId, date: date);
+    // 1. Enforce site completion lockout
+    await _checkCompletionLockout(companyId: companyId, siteId: siteId, date: date, userRole: userRole);
+
+    // Load backdate settings once for performance
+    final companyDoc = await _firestore.collection('companies').doc(companyId).get();
+    final limitDays = companyDoc.data()?['attendanceBackdateLimitDays'] as int? ?? 7;
+    final maxBackdateDate = DateTime(today.year, today.month, today.day).subtract(Duration(days: limitDays));
+    final targetDate = DateTime(date.year, date.month, date.day);
+    final isDateFrozen = targetDate.isBefore(maxBackdateDate);
 
     // 2. Find enclosing payroll period and check lock
     final periodId = await _findEnclosingPeriodId(
@@ -215,6 +333,20 @@ class AttendanceRepository {
     for (final record in labourRecords) {
       final docId = generateAttendanceDocId(labourId: record.labourId, siteId: siteId, date: date);
       final docRef = attendanceCollection.doc(docId);
+
+      // Verify backdate/freeze limit for each individual record inside bulk if frozen
+      if (isDateFrozen) {
+        if (userRole == 'owner' || userRole == 'admin') {
+          final unlocked = await isAttendanceUnlocked(companyId: companyId, attendanceId: docId);
+          if (!unlocked) {
+            skipped++;
+            continue;
+          }
+        } else {
+          skipped++;
+          continue;
+        }
+      }
 
       // Verify status: skip inactive
       final workerStatus = labourStatuses[record.labourId] ?? 'active';
@@ -278,7 +410,14 @@ class AttendanceRepository {
   Future<void> updateAttendance({
     required AttendanceModel attendance,
     required String updatedBy,
+    String userRole = 'owner',
   }) async {
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day, 23, 59, 59, 999);
+    if (attendance.date.isAfter(normalizedToday)) {
+      throw Exception('Attendance date cannot be in the future.');
+    }
+
     final expectedId = generateAttendanceDocId(
       labourId: attendance.labourId,
       siteId: attendance.siteId,
@@ -294,21 +433,22 @@ class AttendanceRepository {
       throw Exception('Attendance record not found.');
     }
 
-    // 1. Find enclosing payroll period and check lock
+    // 1. Enforce completions and backdate locks
+    await _checkCompletionLockout(companyId: attendance.companyId, siteId: attendance.siteId, date: attendance.date, userRole: userRole);
+    await _checkBackdateLimit(companyId: attendance.companyId, attendanceId: attendance.id, date: attendance.date, userRole: userRole);
+
+    // 2. Find enclosing payroll period and check lock
     final periodId = await _findEnclosingPeriodId(
       companyId: attendance.companyId,
       date: attendance.date,
       action: 'modify',
     );
 
-    // 2. Lock updates if attendance is already paid
+    // 3. Lock updates if attendance is already paid
     final existingPaymentStatus = snap.data()?['paymentStatus'] as String? ?? 'unpaid';
     if (existingPaymentStatus == 'paid') {
       throw Exception('Cannot modify attendance record that is paid.');
     }
-
-    // Enforce backdate limits on date updates
-    await _checkBackdateLimit(companyId: attendance.companyId, date: attendance.date);
 
     final double dailyWage = (snap.data()?['dailyWageSnapshot'] as num?)?.toDouble() ?? 0.0;
     final double earnings = attendance.musterQuantity * dailyWage;
@@ -331,12 +471,20 @@ class AttendanceRepository {
     required String companyId,
     required String deletedBy,
     required String deleteReason,
+    String userRole = 'owner',
   }) async {
     final docRef = _attendanceCollection(companyId).doc(attendanceId);
     final snap = await docRef.get();
     if (!snap.exists) {
       throw Exception('Attendance record not found.');
     }
+
+    final date = (snap.data()?['date'] as Timestamp).toDate();
+    final siteId = snap.data()?['siteId'] as String? ?? '';
+
+    // Enforce completion and backdate locks
+    await _checkCompletionLockout(companyId: companyId, siteId: siteId, date: date, userRole: userRole);
+    await _checkBackdateLimit(companyId: companyId, attendanceId: attendanceId, date: date, userRole: userRole);
 
     // 1. Find enclosing payroll period and check lock
     final existingDate = (snap.data()?['date'] as Timestamp).toDate();

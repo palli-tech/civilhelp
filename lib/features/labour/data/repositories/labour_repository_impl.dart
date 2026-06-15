@@ -108,6 +108,7 @@ class LabourRepository {
         'assignedSiteName': assignedSiteName,
         'joinedDate': Timestamp.fromDate(joinedDate),
         'status': status,
+        'deactivatedAt': status == 'inactive' ? FieldValue.serverTimestamp() : null,
       });
     } catch (e) {
       rethrow;
@@ -127,6 +128,7 @@ class LabourRepository {
 
       await _firestore.collection(FirestorePathService.labour(companyId)).doc(labourId).update({
         'status': status,
+        'deactivatedAt': status == 'inactive' ? FieldValue.serverTimestamp() : null,
       });
     } catch (e) {
       rethrow;

@@ -15,6 +15,7 @@ class LabourEntity {
   final String companyId;
   final DateTime createdAt;
   final String createdBy;
+  final DateTime? deactivatedAt;
 
   LabourEntity({
     required this.id,
@@ -30,6 +31,7 @@ class LabourEntity {
     required this.companyId,
     required this.createdAt,
     required this.createdBy,
+    this.deactivatedAt,
   }) {
     validatePhone(phoneNumber);
     validateAadhaar(aadhaarNumber);
@@ -63,6 +65,7 @@ class LabourEntity {
     String? companyId,
     DateTime? createdAt,
     String? createdBy,
+    DateTime? deactivatedAt,
   }) {
     return LabourEntity(
       id: id ?? this.id,
@@ -78,7 +81,7 @@ class LabourEntity {
       companyId: companyId ?? this.companyId,
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,
+      deactivatedAt: deactivatedAt ?? this.deactivatedAt,
     );
   }
 }
-

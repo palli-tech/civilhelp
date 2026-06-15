@@ -18,6 +18,7 @@ class LabourModel extends LabourEntity {
     required super.companyId,
     required super.createdAt,
     required super.createdBy,
+    super.deactivatedAt,
   });
 
   factory LabourModel.fromMap(Map<String, dynamic> map, String documentId) {
@@ -47,6 +48,9 @@ class LabourModel extends LabourEntity {
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
       createdBy: map['createdBy'] ?? '',
+      deactivatedAt: map['deactivatedAt'] != null
+          ? (map['deactivatedAt'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -76,6 +80,7 @@ class LabourModel extends LabourEntity {
       'companyId': companyId,
       'createdAt': Timestamp.fromDate(createdAt),
       'createdBy': createdBy,
+      'deactivatedAt': deactivatedAt != null ? Timestamp.fromDate(deactivatedAt!) : null,
     };
   }
 
@@ -94,6 +99,7 @@ class LabourModel extends LabourEntity {
     String? companyId,
     DateTime? createdAt,
     String? createdBy,
+    DateTime? deactivatedAt,
   }) {
     return LabourModel(
       id: id ?? this.id,
@@ -109,6 +115,7 @@ class LabourModel extends LabourEntity {
       companyId: companyId ?? this.companyId,
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,
+      deactivatedAt: deactivatedAt ?? this.deactivatedAt,
     );
   }
 
@@ -127,6 +134,7 @@ class LabourModel extends LabourEntity {
       companyId: companyId,
       createdAt: createdAt,
       createdBy: createdBy,
+      deactivatedAt: deactivatedAt,
     );
   }
 }

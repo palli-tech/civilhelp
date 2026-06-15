@@ -6,6 +6,7 @@ import 'package:civilhelp/shared/widgets/premium_module_card.dart';
 import 'package:civilhelp/shared/widgets/app_design_system.dart';
 import '../models/attendance_model.dart';
 
+@deprecated
 class AttendanceCard extends StatelessWidget {
   final AttendanceModel attendance;
   final VoidCallback? onEdit;
