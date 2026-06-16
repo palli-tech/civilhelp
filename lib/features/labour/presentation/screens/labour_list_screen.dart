@@ -79,9 +79,9 @@ class LabourListScreen extends ConsumerWidget {
                     ? (labourList.fold<double>(0.0, (sum, l) => sum + l.dailyWage) / labourList.length)
                     : 0.0;
 
-                final textScale = MediaQuery.maybeTextScalerOf(context)?.scale(1.0) ?? 1.0;
-                final screenWidth = MediaQuery.of(context).size.width;
-                final isMobile = screenWidth < 700;
+                //final textScale = MediaQuery.maybeTextScalerOf(context)?.scale(1.0) ?? 1.0;
+                //final screenWidth = MediaQuery.of(context).size.width;
+                //final isMobile = screenWidth < 700;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
