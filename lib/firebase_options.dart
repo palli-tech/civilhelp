@@ -63,6 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '390555985671',
     projectId: 'civilhelp-prod',
     storageBucket: 'civilhelp-prod.firebasestorage.app',
+    androidClientId: '390555985671-motodk1fr37fss10hpt50fsuhmuddlsd.apps.googleusercontent.com',
     iosClientId: '390555985671-4rlhgqjm4uav2k8esfqgm7rq57ar7654.apps.googleusercontent.com',
     iosBundleId: 'com.example.civilhelp',
   );
@@ -73,6 +74,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '390555985671',
     projectId: 'civilhelp-prod',
     storageBucket: 'civilhelp-prod.firebasestorage.app',
+    androidClientId: '390555985671-motodk1fr37fss10hpt50fsuhmuddlsd.apps.googleusercontent.com',
     iosClientId: '390555985671-4rlhgqjm4uav2k8esfqgm7rq57ar7654.apps.googleusercontent.com',
     iosBundleId: 'com.example.civilhelp',
   );
@@ -85,4 +87,5 @@ class DefaultFirebaseOptions {
     authDomain: 'civilhelp-prod.firebaseapp.com',
     storageBucket: 'civilhelp-prod.firebasestorage.app',
   );
+
 }

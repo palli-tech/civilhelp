@@ -82,7 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'Construction Management',
+                  'Construction Workforce Management',
                   style: context.text.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.xxxl),
