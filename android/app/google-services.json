@@ -7,12 +7,28 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:390555985671:android:d95a09c54d3610f188c7a2",
+        "mobilesdk_app_id": "1:390555985671:android:1f48e214b856fe6588c7a2",
         "android_client_info": {
-          "package_name": "com.civilhelp.app"
+          "package_name": "com.palliverse.civilhelp"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "390555985671-1tdc6jknvsfjhfv27dh4304fgm3uop0h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.palliverse.civilhelp",
+            "certificate_hash": "832a43ad3ce777d5c86c0348be5652659e948cde"
+          }
+        },
+        {
+          "client_id": "390555985671-lv2geo6q556t4h2hs79an4n0hfbuiqn8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.palliverse.civilhelp",
+            "certificate_hash": "c598f6c94cc902727d6c9a37a4a8b17fc1cf1dc1"
+          }
+        },
         {
           "client_id": "390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com",
           "client_type": 3
@@ -31,46 +47,10 @@
               "client_type": 3
             },
             {
-              "client_id": "390555985671-vvd33923jko492l7dc7h0m6cg30ief39.apps.googleusercontent.com",
+              "client_id": "390555985671-hho3r488uprn5hr94ouaipda5mqr8hhe.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.civilhelp.app"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:390555985671:android:9aae9b7f605db67e88c7a2",
-        "android_client_info": {
-          "package_name": "com.example.civilhelp"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDKsQY6OEJUWPHCfoUidDEeOtzuwJeA1d0"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "390555985671-kii7h2rojhkeaof692f7fmlr152u3p86.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "390555985671-vvd33923jko492l7dc7h0m6cg30ief39.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.civilhelp.app"
+                "bundle_id": "com.palliverse.civilhelp"
               }
             }
           ]

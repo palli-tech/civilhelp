@@ -1,16 +1,16 @@
-//import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:civilhelp/core/providers/company_provider.dart';
 import 'package:civilhelp/core/providers/user_role_provider.dart';
 import 'package:civilhelp/core/enums/user_role.dart';
-//import 'package:civilhelp/core/enums/labour_status.dart';
+import 'package:civilhelp/core/enums/labour_status.dart';
 import 'package:civilhelp/features/auth/providers/auth_provider.dart';
 import '../../labour/data/models/labour_model.dart';
 import '../../labour/presentation/providers/labour_provider.dart';
 import '../../sites/providers/site_provider.dart';
 import '../models/attendance_model.dart';
-//import '../repositories/attendance_repository.dart';
+import '../repositories/attendance_repository.dart';
 import 'attendance_provider.dart';
 
 enum RegisterViewMode { daily, weekly, monthly }
