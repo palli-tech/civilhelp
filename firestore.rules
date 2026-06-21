@@ -76,14 +76,20 @@ service cloud.firestore {
         isOwner(resource.data.companyId)
       );
 
-      allow create: if isAuthenticated() && request.auth.uid == uid && (
-        request.resource.data.onboarded == false
-      );
+      allow create: if isAuthenticated() && request.auth.uid == uid && 
+                    request.resource.data.onboarded == false &&
+                    request.resource.data.email == request.auth.token.email &&
+                    request.resource.data.role in ['pending', 'supervisor', 'owner'] &&
+                    (request.resource.data.role == 'pending' ? request.resource.data.companyId == '' : true) &&
+                    (request.resource.data.role == 'owner' ? get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.ownerUid == request.auth.uid : true) &&
+                    (request.resource.data.role == 'supervisor' ? request.resource.data.companyId != '' : true);
 
       allow update: if isAuthenticated() && (
         // User updating their own profile details
         (
           request.auth.uid == uid &&
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.email == request.auth.token.email &&
           (
             // Scenario A: Standard profile updates (no privilege changes)
             (
@@ -100,10 +106,11 @@ service cloud.firestore {
               request.resource.data.active == true &&
               get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.ownerUid == request.auth.uid
             ) ||
-            // Scenario C: Supervisor/Admin Onboarding (joining a company via invitation)
+            // Scenario C: Supervisor Onboarding (joining a company as supervisor)
             (
               resource.data.companyId == '' &&
-              request.resource.data.role != 'owner' &&
+              request.resource.data.role == 'supervisor' &&
+              request.resource.data.companyId != '' &&
               request.resource.data.active == resource.data.active
             )
           )
@@ -183,7 +190,12 @@ service cloud.firestore {
 
         match /attendanceCompletions/{dateString} {
           allow read: if isTenantMember(companyId);
-          allow write: if isOwner(companyId) || (isSupervisor(companyId) && siteId in getUserData().assignedSiteIds);
+          allow create: if isOwner(companyId) || (
+                           isSupervisor(companyId) && 
+                           siteId in getUserData().assignedSiteIds && 
+                           request.resource.data.status == 'completed'
+                         );
+          allow update, delete: if isOwner(companyId);
         }
       }
 
@@ -206,7 +218,20 @@ service cloud.firestore {
                       request.resource.data.paymentStatus == 'unpaid' &&
                       !isPeriodLocked(companyId, request.resource.data.payrollPeriodId);
 
-        allow update: if (isOwner(companyId) || (isSupervisor(companyId) && resource.data.siteId in getUserData().assignedSiteIds && !isSiteAttendanceCompleted(companyId, resource.data.siteId, getFormattedDate(resource.data.date)))) &&
+        allow update: if (isOwner(companyId) || (
+                        isSupervisor(companyId) && 
+                        resource.data.siteId in getUserData().assignedSiteIds && 
+                        !isSiteAttendanceCompleted(companyId, resource.data.siteId, getFormattedDate(resource.data.date)) &&
+                        // Phase C: Backdate check on update
+                        request.time.toMillis() - resource.data.date.toMillis() <= getBackdateLimitDays(companyId) * 86400000 &&
+                        // Phase B: Immutability of financial, lock, and admin fields
+                        request.resource.data.dailyWageSnapshot == resource.data.dailyWageSnapshot &&
+                        request.resource.data.earningsSnapshot == request.resource.data.musterQuantity * resource.data.dailyWageSnapshot &&
+                        request.resource.data.payrollPeriodId == resource.data.payrollPeriodId &&
+                        request.resource.data.paymentStatus == resource.data.paymentStatus &&
+                        request.resource.data.paymentId == resource.data.paymentId &&
+                        request.resource.data.isDeleted == resource.data.isDeleted
+                      )) &&
                       resource.data.isDeleted == false &&
                       resource.data.paymentStatus != 'paid' &&
                       !isPeriodLocked(companyId, resource.data.payrollPeriodId) &&
