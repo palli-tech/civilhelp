@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/google_signin_button.dart';
+import '../../../core/providers/tenant_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -26,7 +28,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await authService.signInWithGoogle();
 
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/dashboard');
+        ref.invalidate(tenantContextProvider);
+        final tenantContext = await ref.read(tenantContextProvider.future);
+        
+        if (mounted) {
+          if (tenantContext != null) {
+            Navigator.of(context).pushReplacementNamed('/dashboard');
+          } else {
+            Navigator.of(context).pushReplacementNamed('/company-setup');
+          }
+        }
       }
     } catch (e) {
       setState(() {
@@ -37,7 +48,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_errorMessage!),
-            backgroundColor: Colors.red,
+            backgroundColor: context.colors.error,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -57,34 +68,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'CivilHelp',
-                  style: TextStyle(
+                  style: context.text.headlineLarge?.copyWith(
                     fontSize: 48,
                     fontWeight: FontWeight.bold,
+                    color: context.colors.primary,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 Text(
-                  'Construction Management',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  'Construction Workforce Management',
+                  style: context.text.titleMedium,
                 ),
-                const SizedBox(height: 64),
+                const SizedBox(height: AppSpacing.xxxl),
                 GoogleSignInButton(
                   onPressed: _handleGoogleSignIn,
                   isLoading: _isLoading,
                 ),
                 if (_errorMessage != null) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     _errorMessage!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
+                    style: context.text.bodySmall?.copyWith(
+                      color: context.colors.error,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -97,3 +108,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
+

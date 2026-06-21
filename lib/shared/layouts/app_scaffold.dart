@@ -8,12 +8,14 @@ class AppScaffold extends StatelessWidget {
   final Widget child;
   final PreferredSizeWidget? appBar;
   final FloatingActionButton? fab;
+  final bool usePremiumBackground;
 
   const AppScaffold({
     super.key,
     required this.child,
     this.appBar,
     this.fab,
+    this.usePremiumBackground = true,
   });
 
   @override
@@ -26,6 +28,7 @@ class AppScaffold extends StatelessWidget {
       drawer: const AppDrawer(),
       bottomNav: const BottomNav(),
       fab: fab,
+      usePremiumBackground: usePremiumBackground,
     );
   }
 }

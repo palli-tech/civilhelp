@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/app/theme.dart';
 import '../../../shared/layouts/app_scaffold.dart';
+import '../../../shared/widgets/module_header.dart';
 import '../providers/site_provider.dart';
 import '../widgets/site_form.dart';
 
@@ -19,7 +21,7 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
   @override
   void initState() {
     super.initState();
-    _formKey = GlobalKey<_SiteFormState>();
+    _formKey = GlobalKey<SiteFormState>();
   }
 
   Future<void> _handleSubmit() async {
@@ -32,13 +34,15 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
 
     try {
       await ref.read(
-        createSiteProvider((
-          formState.siteName,
-          formState.location,
-          formState.client,
-          formState.startDate,
-          formState.status,
-        )).future,
+        createSiteProvider(
+          (
+                formState.siteName,
+                formState.location,
+                formState.client,
+                formState.startDate,
+                formState.status.name,
+              )
+        ).future,
       );
 
       if (mounted) {
@@ -52,7 +56,7 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error creating site: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.colors.error,
           ),
         );
       }
@@ -68,27 +72,32 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text('Add Site'),
-        elevation: 0,
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          const ModuleHeader(
+            title: 'Add Site',
+            subtitle: 'Register a new project work location',
+            showBackButton: true,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.screenPadding),
         child: Column(
           children: [
             SiteForm(
               key: _formKey,
-              onSubmit: _isLoading ? () {} : _handleSubmit,
+              onSubmit: _isLoading ? () async {} : _handleSubmit,
+              showStatusSelector: false,
             ),
             if (_isLoading)
               Padding(
-                padding: const EdgeInsets.only(top: 16),
+                padding: const EdgeInsets.only(top: AppSpacing.screenPadding),
                 child: SizedBox(
                   height: 48,
                   child: Center(
                     child: CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).colorScheme.primary,
+                        context.colors.primary,
                       ),
                     ),
                   ),
@@ -97,6 +106,9 @@ class _AddSiteScreenState extends ConsumerState<AddSiteScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  ],
+),
+);
+}
 }

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:civilhelp/core/providers/company_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/site_model.dart';
 import '../repositories/site_repository.dart';
@@ -8,24 +9,23 @@ final siteRepositoryProvider = Provider<SiteRepository>((ref) {
   return SiteRepository();
 });
 
-/// Get current user's company ID
-final userCompanyIdProvider = FutureProvider<String>((ref) async {
-  final user = ref.watch(currentUserProvider);
-  // Default company ID - in production, fetch from user document
-  return user?.uid ?? 'default-company';
-});
-
 /// Stream of all sites for the user's company
 final sitesStreamProvider = StreamProvider<List<SiteModel>>((ref) {
   final repository = ref.watch(siteRepositoryProvider);
-  final companyId = ref.watch(userCompanyIdProvider).value ?? 'default-company';
-  return repository.getSitesByCompanyStream(companyId);
+  final userCompanyId = ref.watch(userCompanyIdProvider);
+
+  return userCompanyId.when(
+    data: (companyId) => repository.getSitesByCompanyStream(companyId),
+    loading: () => Stream.value([]),
+    error: (error, _) => Stream.error(error),
+  );
 });
 
 /// Get a single site by ID
 final siteByIdProvider = FutureProvider.family<SiteModel?, String>((ref, siteId) async {
   final repository = ref.watch(siteRepositoryProvider);
-  return repository.getSiteById(siteId);
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+  return repository.getSiteById(companyId: companyId, siteId: siteId);
 });
 
 /// Create a new site
@@ -51,7 +51,7 @@ final createSiteProvider = FutureProvider.family<SiteModel, (
   );
 
   // Refresh the sites list
-  ref.refresh(sitesStreamProvider);
+  ref.invalidate(sitesStreamProvider);
 
   return site;
 });
@@ -67,6 +67,8 @@ final updateSiteProvider = FutureProvider.family<void, (
 )>((ref, params) async {
   final repository = ref.watch(siteRepositoryProvider);
 
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
   await repository.updateSite(
     siteId: params.$1,
     name: params.$2,
@@ -74,19 +76,27 @@ final updateSiteProvider = FutureProvider.family<void, (
     client: params.$4,
     startDate: params.$5,
     status: params.$6,
+    companyId: companyId,
   );
 
+
   // Refresh the sites list and single site
-  ref.refresh(sitesStreamProvider);
-  ref.refresh(siteByIdProvider(params.$1));
+  ref.invalidate(sitesStreamProvider);
+  ref.invalidate(siteByIdProvider(params.$1));
 });
 
 /// Delete a site
 final deleteSiteProvider = FutureProvider.family<void, String>((ref, siteId) async {
   final repository = ref.watch(siteRepositoryProvider);
 
-  await repository.deleteSite(siteId);
+  final companyId = await ref.watch(userCompanyIdProvider.future);
+
+  await repository.deleteSite(
+    companyId: companyId,
+    siteId: siteId,
+  );
 
   // Refresh the sites list
-  ref.refresh(sitesStreamProvider);
+  ref.invalidate(sitesStreamProvider);
 });
+

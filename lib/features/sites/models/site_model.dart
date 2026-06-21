@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:civilhelp/core/enums/site_status.dart';
+
 class SiteModel {
   final String id;
   final String name;
   final String location;
   final String client;
   final DateTime startDate;
-  final String status;
+  final SiteStatus status;
   final String companyId;
   final DateTime createdAt;
   final String createdBy;
@@ -23,22 +25,31 @@ class SiteModel {
     required this.createdBy,
   });
 
-  factory SiteModel.fromMap(Map<String, dynamic> map, String id) {
+  factory SiteModel.fromMap(Map<String, dynamic> map, String documentId) {
     return SiteModel(
-      id: id,
-      name: map['name'] as String? ?? '',
-      location: map['location'] as String? ?? '',
-      client: map['client'] as String? ?? '',
-      startDate: (map['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      status: map['status'] as String? ?? 'active',
-      companyId: map['companyId'] as String? ?? '',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      createdBy: map['createdBy'] as String? ?? '',
+      id: documentId,
+      name: map['name'] ?? '',
+      location: map['location'] ?? '',
+      client: map['client'] ?? '',
+      startDate: (map['startDate'] as Timestamp).toDate(),
+      status: SiteStatus.values.firstWhere(
+        (e) => e.name == map['status'],
+        orElse: () => SiteStatus.active,
+      ),
+      companyId: map['companyId'] ?? '',
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdBy: map['createdBy'] ?? '',
     );
   }
 
-  factory SiteModel.fromFirestore(DocumentSnapshot doc) {
-    return SiteModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+  factory SiteModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+
+    if (data == null) {
+      throw Exception('Site document does not exist');
+    }
+
+    return SiteModel.fromMap(data, doc.id);
   }
 
   Map<String, dynamic> toMap() {
@@ -47,7 +58,7 @@ class SiteModel {
       'location': location,
       'client': client,
       'startDate': Timestamp.fromDate(startDate),
-      'status': status,
+      'status': status.name,
       'companyId': companyId,
       'createdAt': Timestamp.fromDate(createdAt),
       'createdBy': createdBy,
@@ -60,7 +71,7 @@ class SiteModel {
     String? location,
     String? client,
     DateTime? startDate,
-    String? status,
+    SiteStatus? status,
     String? companyId,
     DateTime? createdAt,
     String? createdBy,
@@ -76,39 +87,5 @@ class SiteModel {
       createdAt: createdAt ?? this.createdAt,
       createdBy: createdBy ?? this.createdBy,
     );
-  }
-
-  @override
-  String toString() {
-    return 'SiteModel(id: $id, name: $name, location: $location, client: $client, startDate: $startDate, status: $status, companyId: $companyId, createdAt: $createdAt, createdBy: $createdBy)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    return other is SiteModel &&
-        other.id == id &&
-        other.name == name &&
-        other.location == location &&
-        other.client == client &&
-        other.startDate == startDate &&
-        other.status == status &&
-        other.companyId == companyId &&
-        other.createdAt == createdAt &&
-        other.createdBy == createdBy;
-  }
-
-  @override
-  int get hashCode {
-    return id.hashCode ^
-        name.hashCode ^
-        location.hashCode ^
-        client.hashCode ^
-        startDate.hashCode ^
-        status.hashCode ^
-        companyId.hashCode ^
-        createdAt.hashCode ^
-        createdBy.hashCode;
   }
 }

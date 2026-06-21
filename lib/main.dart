@@ -1,12 +1,17 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app/app.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize local storage database
+  await Hive.initFlutter();
+  await Hive.openBox('settings_box');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

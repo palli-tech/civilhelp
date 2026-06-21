@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:civilhelp/app/theme.dart';
 
 class QuickActionTile extends StatelessWidget {
   final String label;
@@ -27,19 +28,19 @@ class QuickActionTile extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: iconColor ?? Colors.orange,
+                color: iconColor ?? context.colors.primary,
                 size: 24,
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   label,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: context.text.bodyLarge,
                 ),
               ),
               Icon(
                 Icons.chevron_right,
-                color: Colors.grey[400],
+                color: context.colors.outline,
               ),
             ],
           ),

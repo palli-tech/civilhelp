@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+8
 
 environment:
   sdk: ^3.12.0
@@ -42,10 +42,9 @@ dependencies:
 
   # State Management
   flutter_riverpod: ^2.6.1
+  image_picker: ^1.1.2
 
   # Routing
-  go_router: ^14.8.1
-
   # Utilities
   intl: ^0.20.2
   flutter_svg: ^2.1.0
@@ -55,6 +54,9 @@ dependencies:
   # Local Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  pdf: ^3.12.0
+  printing: ^5.14.3
+  excel: ^4.0.6
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -65,6 +67,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  fake_cloud_firestore: ^3.1.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -76,6 +79,15 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:

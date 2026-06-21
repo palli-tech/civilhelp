@@ -1,143 +1,178 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-
-import '../models/site_model.dart';
+import 'package:civilhelp/app/theme.dart';
+import 'package:civilhelp/shared/widgets/status_chip.dart';
+import 'package:civilhelp/shared/widgets/premium_module_card.dart';
 
 class SiteCard extends StatelessWidget {
-  final SiteModel site;
+  final dynamic site;
   final VoidCallback onTap;
   final VoidCallback? onDelete;
+  final int workersCount;
+  final int todayWorkforce;
+  final String lastAttendance;
 
   const SiteCard({
     super.key,
     required this.site,
     required this.onTap,
     this.onDelete,
+    this.workersCount = 0,
+    this.todayWorkforce = 0,
+    this.lastAttendance = 'No attendance yet',
   });
 
-  Color _getStatusColor() {
-    switch (site.status.toLowerCase()) {
-      case 'active':
-        return Colors.green;
-      case 'completed':
-        return Colors.blue;
-      case 'paused':
-        return Colors.orange;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
+  String _statusName() {
+    return site.status.toString().split('.').last;
   }
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('MMM dd, yyyy');
+    final status = _statusName();
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
+    return PremiumModuleCard(
+      onTap: onTap,
+      glowColor: context.customColors.site,
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      site.name,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  PopupMenuButton(
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        child: const Text('Edit'),
-                        onTap: () => Navigator.of(context)
-                            .pushNamed('/edit-site', arguments: site.id),
-                      ),
-                      if (onDelete != null)
-                        PopupMenuItem(
-                          child: const Text('Delete'),
-                          onTap: onDelete,
+              Expanded(
+                child: Row(
+                  children: [
+                    const Text('🏗 ', style: TextStyle(fontSize: 18)),
+                    Expanded(
+                      child: Text(
+                        site.name,
+                        style: context.text.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      site.location,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.person, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      site.client,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    dateFormat.format(site.startDate),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[500],
-                        ),
-                  ),
-                  Chip(
-                    label: Text(
-                      site.status,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    backgroundColor: _getStatusColor(),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    Navigator.of(context).pushNamed('/edit-site', arguments: site.id);
+                  } else if (value == 'delete') {
+                    onDelete?.call();
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Text('Edit'),
                   ),
+                  if (onDelete != null)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete'),
+                    ),
                 ],
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('📍 ', style: TextStyle(fontSize: 14)),
+              Expanded(
+                child: Text(
+                  site.location,
+                  style: context.text.bodyMedium?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Text('👥 ', style: TextStyle(fontSize: 14)),
+              Text(
+                '$workersCount Workers',
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              StatusChip(status: status),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Today\'s Workforce',
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$todayWorkforce',
+                style: context.text.bodySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: context.colors.onSurface,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Last Attendance',
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                lastAttendance,
+                style: context.text.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: context.colors.onSurface,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
