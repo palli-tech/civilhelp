@@ -645,6 +645,18 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             }
                           },
                         ),
+                      if (role.canAccessExpenses)
+                        buildNavItem(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'Expenses',
+                          routeName: AppRoutes.expenses,
+                          onTap: () {
+                            if (currentRoute != AppRoutes.expenses) {
+                              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
+                              Navigator.of(context).pushNamed(AppRoutes.expenses);
+                            }
+                          },
+                        ),
                       if (role.canAccessReports)
                         buildNavItem(
                           icon: Icons.assessment_outlined,

@@ -130,6 +130,17 @@ class BottomNav extends ConsumerWidget {
                 },
               ),
 
+            // Expenses — owner/admin only
+            if (role.canAccessExpenses)
+              ListTile(
+                leading: const Icon(Icons.receipt_long),
+                title: const Text('Expenses'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).pushNamed(AppRoutes.expenses);
+                },
+              ),
+
             // Reports — owner only
             if (role.canAccessReports)
               ListTile(

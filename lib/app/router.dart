@@ -25,12 +25,14 @@ import 'package:civilhelp/features/reports/screens/payment_report_screen.dart';
 import 'package:civilhelp/features/reports/screens/monthly_payroll_screen.dart';
 import 'package:civilhelp/features/reports/screens/outstanding_balance_screen.dart';
 import 'package:civilhelp/features/reports/screens/site_performance_screen.dart';
+import 'package:civilhelp/features/reports/screens/expense_summary_report_screen.dart';
 import 'package:civilhelp/features/settings/screens/settings_screen.dart';
 import 'package:civilhelp/features/settings/screens/company_profile_screen.dart';
 import 'package:civilhelp/features/settings/screens/about_screen.dart';
 import 'package:civilhelp/features/settings/screens/team_management_screen.dart';
 import 'package:civilhelp/features/settings/screens/theme_showcase_screen.dart';
 import 'package:civilhelp/features/company/screens/company_setup_screen.dart';
+import 'package:civilhelp/features/expenses/index.dart';
 import 'package:civilhelp/shared/layouts/tenant_guard.dart';
 import 'package:civilhelp/shared/guards/permission_guard.dart';
 
@@ -51,9 +53,13 @@ class AppRoutes {
   static const attendance = '/attendance';
   static const payments = '/payments';
   static const advances = '/advances';
+  static const expenses = '/expenses';
+  static const addExpense = '/add-expense';
+  static const editExpense = '/edit-expense';
   static const payroll = '/payroll';
   static const payrollProcessing = '/payroll-processing';
   static const reports = '/reports';
+  static const expenseReport = '/reports/expense-summary';
   static const workerLedger = '/worker-ledger';
   static const attendanceSummary = '/attendance-summary';
   static const advanceReport = '/advance-report';
@@ -175,6 +181,17 @@ class AppRouter {
       case AppRoutes.advances:
         return _permissionGuardedRoute(const AdvancesScreen(), settings, Permission.viewAdvances);
 
+      // --- Expenses ---
+      case AppRoutes.expenses:
+        return _permissionGuardedRoute(const ExpensesScreen(), settings, Permission.viewExpenses);
+      case AppRoutes.addExpense:
+        return _permissionGuardedRoute(const AddEditExpenseScreen(), settings, Permission.manageExpenses);
+      case AppRoutes.editExpense:
+        if (args is ExpenseModel) {
+          return _permissionGuardedRoute(AddEditExpenseScreen(expense: args), settings, Permission.manageExpenses);
+        }
+        return _errorRoute('Expense data is missing.');
+
       // --- Payroll ---
       case AppRoutes.payroll:
         return _permissionGuardedRoute(const PayrollDashboardScreen(), settings, Permission.managePayments);
@@ -187,6 +204,8 @@ class AppRouter {
       // --- Reports ---
       case AppRoutes.reports:
         return _permissionGuardedRoute(const ReportsDashboardScreen(), settings, Permission.viewReports);
+      case AppRoutes.expenseReport:
+        return _permissionGuardedRoute(const ExpenseSummaryReportScreen(), settings, Permission.viewExpenses);
       case AppRoutes.workerLedger:
         return _permissionGuardedRoute(const WorkerLedgerScreen(), settings, Permission.viewReports);
       case AppRoutes.attendanceSummary:

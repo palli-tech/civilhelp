@@ -14,6 +14,8 @@ import '../models/report_filter.dart';
 import '../models/worker_ledger_entry.dart';
 import '../models/worker_ledger_report_dto.dart';
 import '../models/report_dtos.dart';
+import 'package:civilhelp/features/expenses/models/expense_model.dart';
+import 'package:civilhelp/features/expenses/repositories/expense_repository.dart';
 import 'package:intl/intl.dart';
 
 class ReportRepository {
@@ -851,6 +853,51 @@ class ReportRepository {
       totalPayments: globalPayments,
       totalOutstanding: globalOutstanding,
       entries: finalEntries,
+    );
+  }
+
+  Future<ExpenseReportDTO> getExpenseReport(ReportFilter filter) async {
+    final expenseRepo = ExpenseRepository(firestore: _firestore);
+
+    final expenses = await expenseRepo.getExpensesByDateRange(
+      companyId: filter.companyId,
+      start: filter.startDate,
+      end: filter.endDate,
+    );
+
+    final List<ExpenseModel> filteredExpenses;
+    if (filter.siteId != null && filter.siteId!.isNotEmpty) {
+      filteredExpenses = expenses.where((e) => e.siteId == filter.siteId).toList();
+    } else {
+      filteredExpenses = expenses;
+    }
+
+    double totalExpenses = 0.0;
+    final Map<String, double> categoryTotals = {};
+
+    for (final exp in filteredExpenses) {
+      totalExpenses += exp.amount;
+      final catName = exp.category.displayName;
+      categoryTotals[catName] = (categoryTotals[catName] ?? 0.0) + exp.amount;
+    }
+
+    final List<ExpenseCategorySummaryEntry> categoryEntries = [];
+    categoryTotals.forEach((catName, total) {
+      final percentage = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0.0;
+      categoryEntries.add(ExpenseCategorySummaryEntry(
+        categoryName: catName,
+        totalAmount: total,
+        percentage: percentage,
+      ));
+    });
+
+    categoryEntries.sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
+
+    return ExpenseReportDTO(
+      totalExpenses: totalExpenses,
+      expenseCount: filteredExpenses.length,
+      categoryEntries: categoryEntries,
+      rawExpenses: filteredExpenses,
     );
   }
 }

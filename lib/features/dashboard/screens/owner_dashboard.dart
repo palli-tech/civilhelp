@@ -4,12 +4,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:civilhelp/app/theme.dart';
 import 'package:civilhelp/app/router.dart';
+import 'package:civilhelp/features/expenses/providers/expense_provider.dart';
 import '../../../shared/layouts/app_scaffold.dart';
 import '../providers/dashboard_metrics_provider.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/quick_action_tile.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/hero_kpi_strip.dart';
+
+class _DashboardCardConfig {
+  final String title;
+  final String value;
+  final IconData icon;
+  final LinearGradient gradient;
+  final IconData overlayIcon;
+  final Color iconColor;
+  final Color iconBackgroundColor;
+  final Color glowColor;
+  final VoidCallback onTap;
+
+  const _DashboardCardConfig({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.gradient,
+    required this.overlayIcon,
+    required this.iconColor,
+    required this.iconBackgroundColor,
+    required this.glowColor,
+    required this.onTap,
+  });
+}
 
 class OwnerDashboard extends ConsumerWidget {
   const OwnerDashboard({super.key});
@@ -22,6 +47,7 @@ class OwnerDashboard extends ConsumerWidget {
     final outstandingAdvances = ref.watch(outstandingAdvanceTotalProvider);
     final pendingPayments = ref.watch(pendingPaymentsCountProvider);
     final currentMonthPayroll = ref.watch(currentMonthPayrollProvider);
+    final currentMonthExpenses = ref.watch(currentMonthExpensesTotalProvider);
 
     final isDark = context.isDarkMode;
 
@@ -41,158 +67,169 @@ class OwnerDashboard extends ConsumerWidget {
       );
     }
 
-    // Grid sizes computed dynamically below in LayoutBuilder
-
-    Widget buildDashboardCard(int index) {
-      switch (index) {
-        case 0:
-          return DashboardCard(
-            title: 'Total Sites',
-            value: formatCount(totalSites),
-            icon: Icons.location_on,
-            gradient: isDark
-                ? const LinearGradient(
-                    colors: [Color(0xFF251A55), Color(0xFF1A123D)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFFF4F0FF), Color(0xFFE8DDFF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            overlayIcon: Icons.business_outlined,
-            iconColor: const Color(0xFF7B4DFF),
-            iconBackgroundColor: const Color(0xFF7B4DFF).withValues(alpha: 0.15),
-            glowColor: const Color(0xFF7B4DFF),
-            onTap: () {
-              Navigator.of(context).pushNamed(AppRoutes.sites);
-            },
-          );
-        case 1:
-          return DashboardCard(
-            title: 'Active Labour',
-            value: formatCount(activeLabour),
-            icon: Icons.people,
-            gradient: isDark
-                ? const LinearGradient(
-                    colors: [Color(0xFF103B2C), Color(0xFF132E27)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFFE8FDF5), Color(0xFFD0FBEB)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            overlayIcon: Icons.groups_rounded,
-            iconColor: const Color(0xFF00D68F),
-            iconBackgroundColor: const Color(0xFF00D68F).withValues(alpha: 0.15),
-            glowColor: const Color(0xFF00D68F),
-            onTap: () {
-              Navigator.of(context).pushNamed(AppRoutes.labour);
-            },
-          );
-        case 2:
-          return DashboardCard(
-            title: "Today's Attendance",
-            value: formatCount(todayAttendance),
-            icon: Icons.today,
-            gradient: isDark
-                ? const LinearGradient(
-                    colors: [Color(0xFF102F55), Color(0xFF152A4B)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFFEBF3FF), Color(0xFFD6E7FF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            overlayIcon: Icons.calendar_today_rounded,
-            iconColor: const Color(0xFF3D8BFF),
-            iconBackgroundColor: const Color(0xFF3D8BFF).withValues(alpha: 0.15),
-            glowColor: const Color(0xFF3D8BFF),
-            onTap: () {
-              Navigator.of(context).pushNamed(AppRoutes.attendance);
-            },
-          );
-        case 3:
-          return DashboardCard(
-            title: 'Outstanding Advances',
-            value: formatAmount(outstandingAdvances),
-            icon: Icons.account_balance_wallet,
-            gradient: isDark
-                ? const LinearGradient(
-                    colors: [Color(0xFF4A1630), Color(0xFF321022)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFFFFECEF), Color(0xFFFFD6DD)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            overlayIcon: Icons.account_balance_wallet_rounded,
-            iconColor: const Color(0xFFFF5A7A),
-            iconBackgroundColor: const Color(0xFFFF5A7A).withValues(alpha: 0.15),
-            glowColor: const Color(0xFFFF5A7A),
-            onTap: () {
-              Navigator.of(context).pushNamed(AppRoutes.advances);
-            },
-          );
-        case 4:
-          return DashboardCard(
-            title: 'Pending Payments',
-            value: formatCount(pendingPayments),
-            icon: Icons.payment,
-            gradient: isDark
-                ? const LinearGradient(
-                    colors: [Color(0xFF3E1B57), Color(0xFF2A143D)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFFFFF7E6), Color(0xFFFFEBD0)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            overlayIcon: Icons.analytics_rounded,
-            iconColor: const Color(0xFFFFAA00),
-            iconBackgroundColor: const Color(0xFFFFAA00).withValues(alpha: 0.15),
-            glowColor: const Color(0xFFFFAA00),
-            onTap: () {
-              Navigator.of(context).pushNamed(AppRoutes.payments);
-            },
-          );
-        case 5:
-          return DashboardCard(
-            title: 'Current Month Payroll',
-            value: formatAmount(currentMonthPayroll),
-            icon: Icons.money,
-            gradient: isDark
-                ? const LinearGradient(
-                    colors: [Color(0xFF4D3110), Color(0xFF35200C)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            overlayIcon: Icons.receipt_long_rounded,
-            iconColor: const Color(0xFFFFAA00),
-            iconBackgroundColor: const Color(0xFFFFAA00).withValues(alpha: 0.15),
-            glowColor: const Color(0xFFFFAA00),
-            onTap: () {
-              Navigator.of(context).pushNamed(AppRoutes.payroll);
-            },
-          );
-        default:
-          return const SizedBox.shrink();
-      }
-    }
+    final cards = [
+      _DashboardCardConfig(
+        title: 'Total Sites',
+        value: formatCount(totalSites),
+        icon: Icons.location_on,
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF251A55), Color(0xFF1A123D)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFF4F0FF), Color(0xFFE8DDFF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        overlayIcon: Icons.business_outlined,
+        iconColor: const Color(0xFF7B4DFF),
+        iconBackgroundColor: const Color(0xFF7B4DFF).withValues(alpha: 0.15),
+        glowColor: const Color(0xFF7B4DFF),
+        onTap: () {
+          Navigator.of(context).pushNamed(AppRoutes.sites);
+        },
+      ),
+      _DashboardCardConfig(
+        title: 'Active Labour',
+        value: formatCount(activeLabour),
+        icon: Icons.people,
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF103B2C), Color(0xFF132E27)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFE8FDF5), Color(0xFFD0FBEB)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        overlayIcon: Icons.groups_rounded,
+        iconColor: const Color(0xFF00D68F),
+        iconBackgroundColor: const Color(0xFF00D68F).withValues(alpha: 0.15),
+        glowColor: const Color(0xFF00D68F),
+        onTap: () {
+          Navigator.of(context).pushNamed(AppRoutes.labour);
+        },
+      ),
+      _DashboardCardConfig(
+        title: "Today's Attendance",
+        value: formatCount(todayAttendance),
+        icon: Icons.today,
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF102F55), Color(0xFF152A4B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFEBF3FF), Color(0xFFD6E7FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        overlayIcon: Icons.calendar_today_rounded,
+        iconColor: const Color(0xFF3D8BFF),
+        iconBackgroundColor: const Color(0xFF3D8BFF).withValues(alpha: 0.15),
+        glowColor: const Color(0xFF3D8BFF),
+        onTap: () {
+          Navigator.of(context).pushNamed(AppRoutes.attendance);
+        },
+      ),
+      _DashboardCardConfig(
+        title: 'Outstanding Advances',
+        value: formatAmount(outstandingAdvances),
+        icon: Icons.account_balance_wallet,
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF4A1630), Color(0xFF321022)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFFFECEF), Color(0xFFFFD6DD)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        overlayIcon: Icons.account_balance_wallet_rounded,
+        iconColor: const Color(0xFFFF5A7A),
+        iconBackgroundColor: const Color(0xFFFF5A7A).withValues(alpha: 0.15),
+        glowColor: const Color(0xFFFF5A7A),
+        onTap: () {
+          Navigator.of(context).pushNamed(AppRoutes.advances);
+        },
+      ),
+      _DashboardCardConfig(
+        title: 'Pending Payments',
+        value: formatCount(pendingPayments),
+        icon: Icons.payment,
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF3E1B57), Color(0xFF2A143D)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFFFF7E6), Color(0xFFFFEBD0)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        overlayIcon: Icons.analytics_rounded,
+        iconColor: const Color(0xFFFFAA00),
+        iconBackgroundColor: const Color(0xFFFFAA00).withValues(alpha: 0.15),
+        glowColor: const Color(0xFFFFAA00),
+        onTap: () {
+          Navigator.of(context).pushNamed(AppRoutes.payments);
+        },
+      ),
+      _DashboardCardConfig(
+        title: 'Current Month Payroll',
+        value: formatAmount(currentMonthPayroll),
+        icon: Icons.money,
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF4D3110), Color(0xFF35200C)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        overlayIcon: Icons.receipt_long_rounded,
+        iconColor: const Color(0xFFFFAA00),
+        iconBackgroundColor: const Color(0xFFFFAA00).withValues(alpha: 0.15),
+        glowColor: const Color(0xFFFFAA00),
+        onTap: () {
+          Navigator.of(context).pushNamed(AppRoutes.payroll);
+        },
+      ),
+      _DashboardCardConfig(
+        title: 'Current Month Expenses',
+        value: formatAmount(currentMonthExpenses),
+        icon: Icons.receipt_long,
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF551A20), Color(0xFF3D1216)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFFFF0F2), Color(0xFFFFD6DC)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        overlayIcon: Icons.receipt_long_outlined,
+        iconColor: const Color(0xFFFF3D57),
+        iconBackgroundColor: const Color(0xFFFF3D57).withValues(alpha: 0.15),
+        glowColor: const Color(0xFFFF3D57),
+        onTap: () {
+          Navigator.of(context).pushNamed(AppRoutes.expenses);
+        },
+      ),
+    ];
 
     final pageContent = SingleChildScrollView(
       padding: const EdgeInsets.symmetric(
@@ -252,8 +289,9 @@ class OwnerDashboard extends ConsumerWidget {
                   mainAxisSpacing: 20,
                   childAspectRatio: childAspectRatio,
                 ),
-                itemCount: 6,
+                itemCount: cards.length,
                 itemBuilder: (context, index) {
+                  final card = cards[index];
                   return TweenAnimationBuilder<double>(
                     tween: Tween<double>(begin: 0.0, end: 1.0),
                     duration: Duration(milliseconds: 300 + (index * 100)),
@@ -267,7 +305,17 @@ class OwnerDashboard extends ConsumerWidget {
                         ),
                       );
                     },
-                    child: buildDashboardCard(index),
+                    child: DashboardCard(
+                      title: card.title,
+                      value: card.value,
+                      icon: card.icon,
+                      gradient: card.gradient,
+                      overlayIcon: card.overlayIcon,
+                      iconColor: card.iconColor,
+                      iconBackgroundColor: card.iconBackgroundColor,
+                      glowColor: card.glowColor,
+                      onTap: card.onTap,
+                    ),
                   );
                 },
               );

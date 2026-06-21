@@ -22,6 +22,10 @@ import 'package:civilhelp/features/advances/screens/advances_screen.dart';
 import 'package:civilhelp/features/advances/providers/advances_providers.dart';
 import 'package:civilhelp/features/reports/screens/reports_dashboard_screen.dart';
 import 'package:civilhelp/features/settings/screens/settings_screen.dart';
+import 'package:civilhelp/features/expenses/index.dart';
+import 'package:civilhelp/features/reports/screens/expense_summary_report_screen.dart';
+import 'package:civilhelp/features/reports/providers/report_provider.dart';
+import 'package:civilhelp/features/reports/models/report_dtos.dart';
 
 class MockAuthService implements AuthService {
   @override
@@ -62,6 +66,17 @@ void main() {
         attendanceTodayStreamProvider.overrideWith((ref) => Stream.value([])),
         advancesListStreamProvider.overrideWith((ref) => Stream.value([])),
         payrollPeriodsStreamProvider.overrideWith((ref) => Stream.value([])),
+        expensesStreamProvider.overrideWith((ref) => Stream.value([])),
+        currentMonthExpensesTotalProvider.overrideWith((ref) => Stream.value(0.0)),
+        expenseReportProvider.overrideWith((ref, filter) => Future.value(const ExpenseReportDTO(
+          totalExpenses: 25000.0,
+          expenseCount: 2,
+          categoryEntries: [
+            ExpenseCategorySummaryEntry(categoryName: 'materials', totalAmount: 15000.0, percentage: 60.0),
+            ExpenseCategorySummaryEntry(categoryName: 'transport', totalAmount: 10000.0, percentage: 40.0),
+          ],
+          rawExpenses: [],
+        ))),
       ],
       child: MaterialApp(
         theme: ThemeData(
@@ -91,7 +106,9 @@ void main() {
     'Attendance': const AttendanceScreen(),
     'Payroll': const PayrollDashboardScreen(),
     'Advances': const AdvancesScreen(),
+    'Expenses': const ExpensesScreen(),
     'Reports': const ReportsDashboardScreen(),
+    'ExpenseReport': const ExpenseSummaryReportScreen(),
     'Settings': const SettingsScreen(),
   };
 

@@ -18,7 +18,7 @@ plugins {
 
 android {
     namespace = "com.palliverse.civilhelp"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

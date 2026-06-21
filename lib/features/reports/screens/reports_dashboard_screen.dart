@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:civilhelp/app/router.dart';
 import 'package:civilhelp/app/theme.dart';
+import 'package:civilhelp/core/providers/user_role_provider.dart';
+import 'package:civilhelp/core/auth/permissions.dart';
 import 'package:civilhelp/shared/layouts/app_scaffold.dart';
 import 'package:civilhelp/shared/widgets/module_header.dart';
 import 'package:civilhelp/shared/widgets/premium_module_card.dart';
 
-class ReportsDashboardScreen extends StatelessWidget {
+class ReportsDashboardScreen extends ConsumerWidget {
   const ReportsDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final role = ref.watch(userRoleProvider);
+    final showExpenses = role.canAccessExpenses;
+
     final reports = [
       (
         title: 'Worker Ledger',
@@ -60,6 +66,14 @@ class ReportsDashboardScreen extends StatelessWidget {
         color: context.customColors.info,
         route: AppRoutes.outstandingBalance,
       ),
+      if (showExpenses)
+        (
+          title: 'Expense Summary',
+          description: 'View aggregated company expenses categorized by categories and sites over a specific period.',
+          icon: Icons.pie_chart,
+          color: const Color(0xFFFF3D57),
+          route: AppRoutes.expenseReport,
+        ),
     ];
 
     return AppScaffold(

@@ -1,3 +1,5 @@
+import 'package:civilhelp/features/expenses/models/expense_model.dart';
+
 class AttendanceSummaryWorkerEntry {
   final String labourId;
   final String labourName;
@@ -157,5 +159,31 @@ class SitePerformanceReportDTO {
     required this.totalPayments,
     required this.totalOutstanding,
     required this.entries,
+  });
+}
+
+class ExpenseCategorySummaryEntry {
+  final String categoryName;
+  final double totalAmount;
+  final double percentage;
+
+  const ExpenseCategorySummaryEntry({
+    required this.categoryName,
+    required this.totalAmount,
+    required this.percentage,
+  });
+}
+
+class ExpenseReportDTO {
+  final double totalExpenses;
+  final int expenseCount;
+  final List<ExpenseCategorySummaryEntry> categoryEntries;
+  final List<ExpenseModel> rawExpenses;
+
+  const ExpenseReportDTO({
+    required this.totalExpenses,
+    required this.expenseCount,
+    required this.categoryEntries,
+    required this.rawExpenses,
   });
 }

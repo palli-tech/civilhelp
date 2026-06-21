@@ -39,6 +39,16 @@ service cloud.firestore {
       return isOwner(companyId) || isSupervisor(companyId);
     }
 
+    // Check if the authenticated user is an admin of the given company
+    function isAdmin(companyId) {
+      return isTenantMember(companyId) && getUserData().role == 'admin';
+    }
+
+    // Check if the authenticated user is either an owner or admin
+    function isOwnerOrAdmin(companyId) {
+      return isOwner(companyId) || isAdmin(companyId);
+    }
+
     // Retrieve company-level configurable backdate limit (defaults to 3)
     function getBackdateLimitDays(companyId) {
       let company = get(/databases/$(database)/documents/companies/$(companyId)).data;
@@ -287,6 +297,12 @@ service cloud.firestore {
         allow read: if isTenantMember(companyId);
         allow create: if isOwner(companyId);
         allow update, delete: if false;
+      }
+
+      // ─── Expenses ────────────────────────────────────────
+      match /expenses/{expenseId} {
+        allow read: if isTenantMember(companyId);
+        allow write: if isOwnerOrAdmin(companyId);
       }
     }
   }

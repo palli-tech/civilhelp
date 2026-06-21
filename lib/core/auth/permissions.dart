@@ -37,6 +37,10 @@ enum Permission {
 
   // User/team management (future)
   manageUsers,
+
+  // Expenses management
+  viewExpenses,
+  manageExpenses,
 }
 
 /// Maps each [UserRole] to the set of [Permission]s it grants.
@@ -63,6 +67,8 @@ const Map<UserRole, Set<Permission>> rolePermissions = {
     Permission.viewSettings,
     Permission.manageSettings,
     Permission.manageUsers,
+    Permission.viewExpenses,
+    Permission.manageExpenses,
   },
 
   UserRole.supervisor: {
@@ -92,6 +98,8 @@ const Map<UserRole, Set<Permission>> rolePermissions = {
     Permission.viewSettings,
     Permission.manageSettings,
     Permission.manageUsers,
+    Permission.viewExpenses,
+    Permission.manageExpenses,
   },
 
   // Future: Partner — placeholder
@@ -126,6 +134,7 @@ extension UserRolePermissions on UserRole {
   bool get canAccessAttendance => hasPermission(Permission.viewAttendance);
   bool get canAccessPayments => hasPermission(Permission.viewPayments);
   bool get canAccessAdvances => hasPermission(Permission.viewAdvances);
+  bool get canAccessExpenses => hasPermission(Permission.viewExpenses);
   bool get canAccessReports => hasPermission(Permission.viewReports);
   bool get canAccessSettings => hasPermission(Permission.viewSettings);
   bool get canAccessCompanyProfile => hasPermission(Permission.manageCompany);

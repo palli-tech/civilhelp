@@ -45,3 +45,8 @@ final sitePerformanceReportProvider = FutureProvider.autoDispose.family<SitePerf
   final repository = ref.watch(reportRepositoryProvider);
   return await repository.getSitePerformanceReport(filter);
 });
+
+final expenseReportProvider = FutureProvider.autoDispose.family<ExpenseReportDTO, ReportFilter>((ref, filter) async {
+  final repository = ref.watch(reportRepositoryProvider);
+  return await repository.getExpenseReport(filter);
+});
