@@ -25,10 +25,10 @@ List<DateTime> _getDaysInWeek(DateTime date) {
 }
 
 String _getLabourTrade(LabourModel worker) {
-  if (worker.dailyWage >= 800) {
+  if (worker.dailyWage >= 900) {
     return 'Skilled Mason';
-  } else if (worker.dailyWage >= 600) {
-    return 'Tile Layer';
+  } else if (worker.dailyWage >= 750) {
+    return 'Mason';
   } else {
     return 'Helper';
   }
@@ -53,7 +53,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     final role = ref.watch(userRoleProvider);
-    final isOwnerOrAdmin = role == UserRole.owner || role == UserRole.admin;
+    final isOwnerOrAdmin = role == UserRole.owner || role == UserRole.partner || role == UserRole.admin;
 
     // Listen to all sites & register state
     final allSitesAsync = ref.watch(sitesStreamProvider);
@@ -324,16 +324,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (MediaQuery.of(context).size.width < 600) ...[
-                      IconButton(
-                        icon: Icon(
-                          Icons.menu,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                      Builder(
+                        builder: (innerContext) => IconButton(
+                          icon: Icon(
+                            Icons.menu,
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            Scaffold.of(innerContext).openDrawer();
+                          },
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () {
-                          Scaffold.of(context).openDrawer();
-                        },
                       ),
                       const SizedBox(width: 8),
                     ],
@@ -1189,10 +1191,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     }
 
     if (isFrozen && !unlocked) {
-      final isOwnerOrAdmin = role == UserRole.owner || role == UserRole.admin;
+      final isOwnerOrAdmin = role == UserRole.owner || role == UserRole.partner || role == UserRole.admin;
       return Center(
         child: Tooltip(
-          message: isOwnerOrAdmin ? 'Frozen. Click to unlock (Owner/Admin)' : 'Frozen & locked',
+          message: isOwnerOrAdmin ? 'Frozen. Click to unlock (Owner/Co-Owner/Admin)' : 'Frozen & locked',
           child: InkWell(
             onTap: isOwnerOrAdmin
                 ? () => _showManualUnlockPopup(context, ref, worker, date)

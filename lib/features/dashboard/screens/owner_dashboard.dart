@@ -384,9 +384,11 @@ class OwnerDashboard extends ConsumerWidget {
                       color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black12,
                     ),
                     QuickActionTile(
-                      label: 'Partner Management',
+                      label: 'Co-Owner Management',
                       icon: Icons.people_outline,
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.teamManagement);
+                      },
                     ),
                   ],
                 ),

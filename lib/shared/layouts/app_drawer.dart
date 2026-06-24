@@ -6,6 +6,7 @@ import 'package:civilhelp/core/auth/permissions.dart';
 import 'package:civilhelp/core/providers/user_role_provider.dart';
 import 'package:civilhelp/app/router.dart';
 import 'package:civilhelp/core/providers/tenant_provider.dart';
+import 'package:civilhelp/core/enums/user_role.dart';
 import '../../features/auth/providers/auth_provider.dart';
 
 class AppDrawer extends ConsumerStatefulWidget {
@@ -585,6 +586,30 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           }
                         },
                       ),
+                      if (role == UserRole.admin) ...[
+                        buildNavItem(
+                          icon: Icons.business_outlined,
+                          title: 'Company Management',
+                          routeName: AppRoutes.companyManagement,
+                          onTap: () {
+                            if (currentRoute != AppRoutes.companyManagement) {
+                              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
+                              Navigator.of(context).pushNamed(AppRoutes.companyManagement);
+                            }
+                          },
+                        ),
+                        buildNavItem(
+                          icon: Icons.analytics_outlined,
+                          title: 'System Analytics',
+                          routeName: AppRoutes.adminAnalytics,
+                          onTap: () {
+                            if (currentRoute != AppRoutes.adminAnalytics) {
+                              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
+                              Navigator.of(context).pushNamed(AppRoutes.adminAnalytics);
+                            }
+                          },
+                        ),
+                      ],
                       if (role.canAccessSites)
                         buildNavItem(
                           icon: Icons.location_on_outlined,

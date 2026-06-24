@@ -23,7 +23,7 @@ enum UserRole {
       case UserRole.admin:
         return 'Admin';
       case UserRole.partner:
-        return 'Partner';
+        return 'Co-Owner';
       case UserRole.pending:
         return 'Pending Setup';
     }
@@ -44,6 +44,10 @@ UserRole parseRole(dynamic value) {
   
   if (roleStr == 'businessowner' || roleStr == 'owner') {
     return UserRole.owner;
+  }
+
+  if (roleStr == 'partner' || roleStr == 'co-owner' || roleStr == 'coowner' || roleStr == 'co_owner') {
+    return UserRole.partner;
   }
   
   for (final role in UserRole.values) {

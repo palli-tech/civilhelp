@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/auth_provider.dart';
 import '../../../core/providers/tenant_provider.dart';
+import '../../../core/enums/user_role.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -27,14 +28,16 @@ class _SplashScreenState
         return;
       }
 
-      // Check tenant context
+      // Check tenant context and user role
       final tenantContext = await ref.read(tenantContextProvider.future);
+      final userData = await ref.read(userDataProvider.future);
+      final role = UserRole.fromString(userData?['role'] as String?);
       if (!mounted) return;
 
-      if (tenantContext != null) {
+      if (role == UserRole.admin || tenantContext != null) {
         Navigator.of(context).pushReplacementNamed('/dashboard');
       } else {
-        Navigator.of(context).pushReplacementNamed('/company-setup');
+        Navigator.of(context).pushReplacementNamed('/company-access-required');
       }
     });
   }

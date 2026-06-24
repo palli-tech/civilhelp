@@ -35,7 +35,7 @@ CivilHelp integrates a strict, multi-tenant permission framework:
   - **Owner**: Full administrative control over companies, sites, workers, payroll, and financials.
   - **Supervisor**: Restricted role focused on logging attendance and managing assigned sites (via site assignment).
   - **Admin**: Executive oversight dashboard.
-  - **Partner**: View-only partner dashboard.
+  - **Co-Owner**: Full administrative access to the company operational workspace (repurposed from Partner).
   - **Pending**: Setup state for unassigned new sign-ups.
 
 ---
