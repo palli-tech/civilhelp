@@ -77,8 +77,9 @@ service cloud.firestore {
 
     // Helper to check if a site's attendance is marked completed
     function isSiteAttendanceCompleted(companyId, siteId, dateStr) {
-      return exists(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr)) &&
-             get(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr)).data.status == 'completed';
+      return exists(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr))
+             ? get(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr)).data.status == 'completed'
+             : false;
     }
 
     // Check if labour exists and is active
@@ -89,9 +90,11 @@ service cloud.firestore {
 
     // Check if company request exists and is approved
     function hasApprovedCompanyRequest(uid) {
-      return uid != null && uid != '' && 
-             exists(/databases/$(database)/documents/company_requests/$(uid)) &&
-             get(/databases/$(database)/documents/company_requests/$(uid)).data.status == 'approved';
+      return uid != null && uid != '' && (
+             exists(/databases/$(database)/documents/company_requests/$(uid))
+             ? get(/databases/$(database)/documents/company_requests/$(uid)).data.status == 'approved'
+             : false
+      );
     }
 
     // ─── Global Users ───────────────────────────────────────
