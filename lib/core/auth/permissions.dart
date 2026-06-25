@@ -80,7 +80,10 @@ const Map<UserRole, Set<Permission>> rolePermissions = {
   },
 
   // Future: Admin — placeholder
-  UserRole.admin: {
+  UserRole.admin: <Permission>{},
+
+  // Partner (Co-Owner) — full operational access
+  UserRole.partner: {
     Permission.viewSites,
     Permission.manageSites,
     Permission.viewLabour,
@@ -101,9 +104,6 @@ const Map<UserRole, Set<Permission>> rolePermissions = {
     Permission.viewExpenses,
     Permission.manageExpenses,
   },
-
-  // Future: Partner — placeholder
-  UserRole.partner: <Permission>{},
 
   // Pending — no permissions
   UserRole.pending: <Permission>{},

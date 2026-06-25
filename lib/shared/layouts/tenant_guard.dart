@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/providers/auth_provider.dart';
 import '../../core/providers/tenant_provider.dart';
+import '../../core/enums/user_role.dart';
+import '../../core/providers/user_role_provider.dart';
 
 class TenantGuard extends ConsumerWidget {
   final Widget child;
@@ -47,13 +49,18 @@ class TenantGuard extends ConsumerWidget {
               );
             }
 
+            final role = ref.watch(userRoleProvider);
+            if (role == UserRole.admin) {
+              return child;
+            }
+
             final tenantState = ref.watch(tenantContextProvider);
 
             return tenantState.when(
               data: (tenant) {
                 if (tenant == null) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    Navigator.of(context).pushReplacementNamed('/company-setup');
+                    Navigator.of(context).pushReplacementNamed('/company-access-required');
                   });
                   return const Scaffold(
                     body: Center(
@@ -101,10 +108,10 @@ class TenantGuard extends ConsumerWidget {
   }
 }
 
-class CompanySetupGuard extends ConsumerWidget {
+class CompanyAccessRequiredGuard extends ConsumerWidget {
   final Widget child;
 
-  const CompanySetupGuard({
+  const CompanyAccessRequiredGuard({
     super.key,
     required this.child,
   });
@@ -136,6 +143,18 @@ class CompanySetupGuard extends ConsumerWidget {
             if (!onboarded) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 Navigator.of(context).pushReplacementNamed('/profile-setup');
+              });
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            final role = ref.watch(userRoleProvider);
+            if (role == UserRole.admin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.of(context).pushReplacementNamed('/dashboard');
               });
               return const Scaffold(
                 body: Center(

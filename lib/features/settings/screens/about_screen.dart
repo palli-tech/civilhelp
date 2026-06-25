@@ -32,7 +32,7 @@ class AboutScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sectionGap),
                       const Text(
-                        'Workforce Management System',
+                        'CivilHelp Workforce Management System',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 22,

@@ -32,14 +32,24 @@ import 'package:civilhelp/features/settings/screens/about_screen.dart';
 import 'package:civilhelp/features/settings/screens/team_management_screen.dart';
 import 'package:civilhelp/features/settings/screens/theme_showcase_screen.dart';
 import 'package:civilhelp/features/company/screens/company_setup_screen.dart';
+import 'package:civilhelp/features/company/screens/company_management_screen.dart';
+import 'package:civilhelp/features/company/screens/company_request_screen.dart';
+import 'package:civilhelp/features/dashboard/screens/admin_analytics_screen.dart';
+import 'package:civilhelp/features/auth/screens/company_access_required_screen.dart';
 import 'package:civilhelp/features/expenses/index.dart';
 import 'package:civilhelp/shared/layouts/tenant_guard.dart';
 import 'package:civilhelp/shared/guards/permission_guard.dart';
+import 'package:civilhelp/shared/guards/role_guard.dart';
+import 'package:civilhelp/core/enums/user_role.dart';
 
 class AppRoutes {
   static const splash = '/';
   static const login = '/login';
   static const companySetup = '/company-setup';
+  static const companyAccessRequired = '/company-access-required';
+  static const companyManagement = '/company-management';
+  static const adminAnalytics = '/admin-analytics';
+  static const companyRequest = '/company-request';
   static const profileSetup = '/profile-setup';
   static const dashboard = '/dashboard';
   static const sites = '/sites';
@@ -122,7 +132,37 @@ class AppRouter {
         );
       case AppRoutes.companySetup:
         return MaterialPageRoute(
-          builder: (_) => const CompanySetupGuard(child: CompanySetupScreen()),
+          builder: (_) => const CompanySetupScreen(),
+          settings: settings,
+        );
+      case AppRoutes.companyAccessRequired:
+        return MaterialPageRoute(
+          builder: (_) => const CompanyAccessRequiredGuard(
+            child: CompanyAccessRequiredScreen(),
+          ),
+          settings: settings,
+        );
+      case AppRoutes.companyRequest:
+        return MaterialPageRoute(
+          builder: (_) => const CompanyAccessRequiredGuard(
+            child: CompanyRequestScreen(),
+          ),
+          settings: settings,
+        );
+      case AppRoutes.adminAnalytics:
+        return MaterialPageRoute(
+          builder: (_) => const RoleGuard(
+            allowedRoles: [UserRole.admin],
+            child: AdminAnalyticsScreen(),
+          ),
+          settings: settings,
+        );
+      case AppRoutes.companyManagement:
+        return MaterialPageRoute(
+          builder: (_) => const RoleGuard(
+            allowedRoles: [UserRole.admin],
+            child: CompanyManagementScreen(),
+          ),
           settings: settings,
         );
       case AppRoutes.profileSetup:

@@ -23,15 +23,11 @@ class DashboardScreen extends ConsumerWidget {
           case UserRole.admin:
             return const AdminDashboard();
           case UserRole.owner:
-            return const OwnerDashboard();
           case UserRole.partner:
-            return const PartnerDashboard();
+            return const OwnerDashboard();
           case UserRole.supervisor:
             return const SupervisorDashboard();
           case UserRole.pending:
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.of(context).pushReplacementNamed('/company-setup');
-            });
             return const Scaffold(
               body: Center(
                 child: CircularProgressIndicator(),

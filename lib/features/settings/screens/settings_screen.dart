@@ -243,12 +243,12 @@ class SettingsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           const Text(
-                            'Workforce Management System',
+                            'CivilHelp Workforce Management System',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Version 1.0.0 (Build 1)',
+                            'Version 1.0.0 (Build 11)',
                             style: TextStyle(color: context.colors.onSurfaceVariant, fontSize: 12),
                           ),
                         ],

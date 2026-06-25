@@ -5,6 +5,7 @@ import 'package:civilhelp/app/theme.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/google_signin_button.dart';
 import '../../../core/providers/tenant_provider.dart';
+import '../../../core/enums/user_role.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -29,13 +30,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       if (mounted) {
         ref.invalidate(tenantContextProvider);
+        ref.invalidate(userDataProvider);
+        
         final tenantContext = await ref.read(tenantContextProvider.future);
+        final userData = await ref.read(userDataProvider.future);
+        final role = UserRole.fromString(userData?['role'] as String?);
         
         if (mounted) {
-          if (tenantContext != null) {
+          if (role == UserRole.admin || tenantContext != null) {
             Navigator.of(context).pushReplacementNamed('/dashboard');
           } else {
-            Navigator.of(context).pushReplacementNamed('/company-setup');
+            Navigator.of(context).pushReplacementNamed('/company-access-required');
           }
         }
       }

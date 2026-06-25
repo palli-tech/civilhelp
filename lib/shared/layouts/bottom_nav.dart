@@ -10,11 +10,24 @@ import '../../features/auth/providers/auth_provider.dart';
 class BottomNav extends ConsumerWidget {
   const BottomNav({super.key});
 
+  void _navigateToRoute(BuildContext context, String routeName, String? currentRoute) {
+    if (currentRoute == routeName) return;
+
+    if (routeName == AppRoutes.dashboard) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } else {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushNamed(routeName);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final role = ref.watch(userRoleProvider);
+    final currentRoute = ModalRoute.of(context)?.settings.name;
 
     final List<BottomNavigationBarItem> items = [];
+    final List<String> routes = [];
     final List<VoidCallback> actions = [];
 
     // Dashboard — always visible
@@ -22,21 +35,54 @@ class BottomNav extends ConsumerWidget {
       icon: Icon(Icons.dashboard),
       label: 'Dashboard',
     ));
-    actions.add(() => Navigator.of(context).pushNamed(AppRoutes.dashboard));
+    routes.add(AppRoutes.dashboard);
+    actions.add(() => _navigateToRoute(context, AppRoutes.dashboard, currentRoute));
 
-    if (role == UserRole.supervisor) {
+    if (role == UserRole.admin) {
+      // Companies
+      items.add(const BottomNavigationBarItem(
+        icon: Icon(Icons.business),
+        label: 'Companies',
+      ));
+      routes.add(AppRoutes.companyManagement);
+      actions.add(() => _navigateToRoute(context, AppRoutes.companyManagement, currentRoute));
+
+      // Analytics
+      items.add(const BottomNavigationBarItem(
+        icon: Icon(Icons.analytics),
+        label: 'Analytics',
+      ));
+      routes.add(AppRoutes.adminAnalytics);
+      actions.add(() => _navigateToRoute(context, AppRoutes.adminAnalytics, currentRoute));
+
+      // Logout
+      items.add(const BottomNavigationBarItem(
+        icon: Icon(Icons.logout),
+        label: 'Logout',
+      ));
+      routes.add('');
+      actions.add(() async {
+        final authService = ref.read(authServiceProvider);
+        await authService.signOut();
+        if (context.mounted) {
+          Navigator.of(context).pushReplacementNamed('/login');
+        }
+      });
+    } else if (role == UserRole.supervisor) {
       // Attendance for Supervisor
       items.add(const BottomNavigationBarItem(
         icon: Icon(Icons.calendar_today),
         label: 'Attendance',
       ));
-      actions.add(() => Navigator.of(context).pushNamed(AppRoutes.attendance));
+      routes.add(AppRoutes.attendance);
+      actions.add(() => _navigateToRoute(context, AppRoutes.attendance, currentRoute));
 
       // Logout directly in BottomNav for Supervisor
       items.add(const BottomNavigationBarItem(
         icon: Icon(Icons.logout),
         label: 'Logout',
       ));
+      routes.add('');
       actions.add(() async {
         final authService = ref.read(authServiceProvider);
         await authService.signOut();
@@ -51,7 +97,8 @@ class BottomNav extends ConsumerWidget {
           icon: Icon(Icons.location_on),
           label: 'Sites',
         ));
-        actions.add(() => Navigator.of(context).pushNamed(AppRoutes.sites));
+        routes.add(AppRoutes.sites);
+        actions.add(() => _navigateToRoute(context, AppRoutes.sites, currentRoute));
       }
 
       // Attendance — owner + supervisor
@@ -60,7 +107,8 @@ class BottomNav extends ConsumerWidget {
           icon: Icon(Icons.calendar_today),
           label: 'Attendance',
         ));
-        actions.add(() => Navigator.of(context).pushNamed(AppRoutes.attendance));
+        routes.add(AppRoutes.attendance);
+        actions.add(() => _navigateToRoute(context, AppRoutes.attendance, currentRoute));
       }
 
       // More — owner/admin only
@@ -68,7 +116,24 @@ class BottomNav extends ConsumerWidget {
         icon: Icon(Icons.more_horiz),
         label: 'More',
       ));
-      actions.add(() => _showMoreMenu(context, ref));
+      routes.add('');
+      actions.add(() => _showMoreMenu(context, ref, currentRoute));
+    }
+
+    // Calculate current active index
+    int currentIndex = 0;
+    for (int i = 0; i < routes.length; i++) {
+      if (routes[i] == currentRoute) {
+        currentIndex = i;
+        break;
+      }
+    }
+
+    if (currentIndex == 0 && currentRoute != AppRoutes.dashboard) {
+      final moreIndex = items.indexWhere((item) => item.label == 'More');
+      if (moreIndex != -1) {
+        currentIndex = moreIndex;
+      }
     }
 
     return SafeArea(
@@ -76,9 +141,9 @@ class BottomNav extends ConsumerWidget {
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
         items: items,
-        currentIndex: 0, // Since it's a push-based router, we don't strictly bind currentIndex
+        currentIndex: currentIndex,
         onTap: (index) {
           if (index < actions.length) {
             actions[index]();
@@ -88,7 +153,7 @@ class BottomNav extends ConsumerWidget {
     );
   }
 
-  void _showMoreMenu(BuildContext context, WidgetRef ref) {
+  void _showMoreMenu(BuildContext context, WidgetRef ref, String? currentRoute) {
     final role = ref.read(userRoleProvider);
 
     showModalBottomSheet(
@@ -104,7 +169,7 @@ class BottomNav extends ConsumerWidget {
                 title: const Text('Labour'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).pushNamed(AppRoutes.labour);
+                  _navigateToRoute(context, AppRoutes.labour, currentRoute);
                 },
               ),
 
@@ -115,7 +180,7 @@ class BottomNav extends ConsumerWidget {
                 title: const Text('Payroll'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).pushNamed(AppRoutes.payroll);
+                  _navigateToRoute(context, AppRoutes.payroll, currentRoute);
                 },
               ),
 
@@ -126,7 +191,7 @@ class BottomNav extends ConsumerWidget {
                 title: const Text('Advances'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).pushNamed(AppRoutes.advances);
+                  _navigateToRoute(context, AppRoutes.advances, currentRoute);
                 },
               ),
 
@@ -137,7 +202,7 @@ class BottomNav extends ConsumerWidget {
                 title: const Text('Expenses'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).pushNamed(AppRoutes.expenses);
+                  _navigateToRoute(context, AppRoutes.expenses, currentRoute);
                 },
               ),
 
@@ -148,7 +213,7 @@ class BottomNav extends ConsumerWidget {
                 title: const Text('Reports'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).pushNamed(AppRoutes.reports);
+                  _navigateToRoute(context, AppRoutes.reports, currentRoute);
                 },
               ),
 
@@ -159,7 +224,7 @@ class BottomNav extends ConsumerWidget {
                 title: const Text('Settings'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).pushNamed(AppRoutes.settings);
+                  _navigateToRoute(context, AppRoutes.settings, currentRoute);
                 },
               ),
 

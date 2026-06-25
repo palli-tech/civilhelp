@@ -89,7 +89,7 @@ class TeamManagementRepository {
         .collection('companies')
         .doc(companyId)
         .collection('invitations')
-        .doc();
+        .doc(normalized);
 
     final invitation = {
       'id': docRef.id,

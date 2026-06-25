@@ -6,6 +6,7 @@ class QuickActionTile extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final Color? iconColor;
+  final Widget? trailing;
 
   const QuickActionTile({
     super.key,
@@ -13,6 +14,7 @@ class QuickActionTile extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.iconColor,
+    this.trailing,
   });
 
   @override
@@ -38,6 +40,10 @@ class QuickActionTile extends StatelessWidget {
                   style: context.text.bodyLarge,
                 ),
               ),
+              if (trailing != null) ...[
+                trailing!,
+                const SizedBox(width: 8),
+              ],
               Icon(
                 Icons.chevron_right,
                 color: context.colors.outline,

@@ -170,6 +170,8 @@ class _DashboardCardState extends State<DashboardCard> {
                             children: [
                               Text(
                                 widget.value,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontFamily: 'NotoSans',
                                   fontSize: isMobile ? 24.0 : 36.0,
@@ -181,6 +183,8 @@ class _DashboardCardState extends State<DashboardCard> {
                               SizedBox(height: isMobile ? 4.0 : 6.0),
                               Text(
                                 widget.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontFamily: 'NotoSans',
                                   fontSize: isMobile ? 12.0 : 14.0,

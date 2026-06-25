@@ -24,7 +24,8 @@ service firebase.storage {
 
     // Protect company branding uploads (logo, etc.)
     match /companies/{companyId}/branding/{allPaths=**} {
-      allow read, write: if isTenantMember(companyId);
+      allow read: if isTenantMember(companyId);
+      allow write: if isTenantMember(companyId) && (getUserData().role == 'owner' || getUserData().role == 'admin');
     }
   }
 }

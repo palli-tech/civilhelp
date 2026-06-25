@@ -681,8 +681,7 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
                         decoration: const InputDecoration(labelText: 'Role'),
                         items: const [
                           DropdownMenuItem(value: UserRole.supervisor, child: Text('Supervisor')),
-                          DropdownMenuItem(value: UserRole.admin, child: Text('Admin')),
-                          DropdownMenuItem(value: UserRole.partner, child: Text('Partner')),
+                          DropdownMenuItem(value: UserRole.partner, child: Text('Co-Owner')),
                         ],
                         onChanged: (val) {
                           if (val != null) {
@@ -802,7 +801,6 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               UserRole.supervisor,
-              UserRole.admin,
               UserRole.partner,
             ].map((role) {
               return ListTile(

@@ -21,11 +21,12 @@ class InvitationRepository {
 
   /// Creates a new invitation inside the company's subcollection.
   Future<void> createInvitation(InvitationModel invitation) async {
+    final normalized = normalizeEmail(invitation.email);
     final docRef = _firestore
         .collection('companies')
         .doc(invitation.companyId)
         .collection('invitations')
-        .doc();
+        .doc(normalized);
         
     final completeInvitation = invitation.copyWith(id: docRef.id);
     await docRef.set(completeInvitation.toFirestore());

@@ -18,8 +18,10 @@ service cloud.firestore {
     // Verify if the user belongs to the company, is active, and the company itself is active
     function isTenantMember(companyId) {
       return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              getUserData().companyId == companyId &&
              (getUserData().active == true || getUserData().isActive == true) &&
+             exists(/databases/$(database)/documents/companies/$(companyId)) &&
              (get(/databases/$(database)/documents/companies/$(companyId)).data.active == true || 
               get(/databases/$(database)/documents/companies/$(companyId)).data.isActive == true);
     }
@@ -51,8 +53,10 @@ service cloud.firestore {
 
     // Retrieve company-level configurable backdate limit (defaults to 3)
     function getBackdateLimitDays(companyId) {
-      let company = get(/databases/$(database)/documents/companies/$(companyId)).data;
-      return company.attendanceBackdateLimitDays != null ? company.attendanceBackdateLimitDays : 3;
+      return exists(/databases/$(database)/documents/companies/$(companyId)) ? (
+        get(/databases/$(database)/documents/companies/$(companyId)).data.attendanceBackdateLimitDays != null ?
+        get(/databases/$(database)/documents/companies/$(companyId)).data.attendanceBackdateLimitDays : 3
+      ) : 3;
     }
 
     // Helper to format Timestamp as YYYY-MM-DD string
@@ -73,8 +77,24 @@ service cloud.firestore {
 
     // Helper to check if a site's attendance is marked completed
     function isSiteAttendanceCompleted(companyId, siteId, dateStr) {
-      return exists(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr)) &&
-             get(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr)).data.status == 'completed';
+      return exists(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr))
+             ? get(/databases/$(database)/documents/companies/$(companyId)/sites/$(siteId)/attendanceCompletions/$(dateStr)).data.status == 'completed'
+             : false;
+    }
+
+    // Check if labour exists and is active
+    function isLabourActive(companyId, labourId) {
+      return exists(/databases/$(database)/documents/companies/$(companyId)/labour/$(labourId)) &&
+             get(/databases/$(database)/documents/companies/$(companyId)/labour/$(labourId)).data.status == 'active';
+    }
+
+    // Check if company request exists and is approved
+    function hasApprovedCompanyRequest(uid) {
+      return uid != null && uid != '' && (
+             exists(/databases/$(database)/documents/company_requests/$(uid))
+             ? get(/databases/$(database)/documents/company_requests/$(uid)).data.status == 'approved'
+             : false
+      );
     }
 
     // ─── Global Users ───────────────────────────────────────
@@ -82,17 +102,16 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isAuthenticated() && (
         request.auth.uid == uid || 
-        getUserData().role == 'admin' ||
-        isOwner(resource.data.companyId)
+        (resource != null && resource.data.companyId != null && resource.data.companyId != '' && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == resource.data.companyId &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner')
       );
 
       allow create: if isAuthenticated() && request.auth.uid == uid && 
                     request.resource.data.onboarded == false &&
                     request.resource.data.email == request.auth.token.email &&
-                    request.resource.data.role in ['pending', 'supervisor', 'owner'] &&
-                    (request.resource.data.role == 'pending' ? request.resource.data.companyId == '' : true) &&
-                    (request.resource.data.role == 'owner' ? get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.ownerUid == request.auth.uid : true) &&
-                    (request.resource.data.role == 'supervisor' ? request.resource.data.companyId != '' : true);
+                    request.resource.data.role == 'pending' &&
+                    request.resource.data.companyId == '';
 
       allow update: if isAuthenticated() && (
         // User updating their own profile details
@@ -121,7 +140,12 @@ service cloud.firestore {
               resource.data.companyId == '' &&
               request.resource.data.role == 'supervisor' &&
               request.resource.data.companyId != '' &&
-              request.resource.data.active == resource.data.active
+              request.resource.data.active == resource.data.active &&
+              exists(/databases/$(database)/documents/companies/$(request.resource.data.companyId)/invitations/$(request.auth.token.email)) &&
+              get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)/invitations/$(request.auth.token.email)).data.status == 'accepted' &&
+              get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)/invitations/$(request.auth.token.email)).data.acceptedByUid == request.auth.uid &&
+              get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)/invitations/$(request.auth.token.email)).data.role == 'supervisor' &&
+              request.resource.data.assignedSiteIds == get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)/invitations/$(request.auth.token.email)).data.assignedSiteIds
             )
           )
         ) ||
@@ -149,6 +173,12 @@ service cloud.firestore {
           ))
         )
       );
+    }
+
+    // ─── Company Requests ──────────────────────────────────
+    match /company_requests/{requestId} {
+      allow read: if isAuthenticated() && (request.auth.uid == requestId || getUserData().role == 'admin');
+      allow write: if false;
     }
 
     // ─── Global Invitations ─────────────────────────────────
@@ -190,7 +220,9 @@ service cloud.firestore {
     // ─── Companies ──────────────────────────────────────────
     match /companies/{companyId} {
       allow read: if isTenantMember(companyId);
-      allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && 
+                    request.resource.data.ownerUid == request.auth.uid &&
+                    hasApprovedCompanyRequest(request.auth.uid);
       allow update, delete: if isOwner(companyId);
 
       // ─── Sites ──────────────────────────────────────────
@@ -221,14 +253,15 @@ service cloud.firestore {
 
         allow create: if (isOwner(companyId) || (isSupervisor(companyId) && request.resource.data.siteId in getUserData().assignedSiteIds && !isSiteAttendanceCompleted(companyId, request.resource.data.siteId, getFormattedDate(request.resource.data.date)))) &&
                       attendanceId == request.resource.data.labourId + '_' + request.resource.data.siteId + '_' + getFormattedDate(request.resource.data.date) &&
-                      get(/databases/$(database)/documents/companies/$(companyId)/labour/$(request.resource.data.labourId)).data.status == 'active' &&
+                      isLabourActive(companyId, request.resource.data.labourId) &&
                       request.resource.data.date.toMillis() <= request.time.toMillis() + 300000 &&
                       (isOwner(companyId) || request.time.toMillis() - request.resource.data.date.toMillis() <= getBackdateLimitDays(companyId) * 86400000) &&
                       request.resource.data.isDeleted == false &&
                       request.resource.data.paymentStatus == 'unpaid' &&
                       !isPeriodLocked(companyId, request.resource.data.payrollPeriodId);
 
-        allow update: if (isOwner(companyId) || (
+        allow update: if request.method == 'update' && (
+                      (isOwner(companyId) || (
                         isSupervisor(companyId) && 
                         resource.data.siteId in getUserData().assignedSiteIds && 
                         !isSiteAttendanceCompleted(companyId, resource.data.siteId, getFormattedDate(resource.data.date)) &&
@@ -247,7 +280,8 @@ service cloud.firestore {
                       !isPeriodLocked(companyId, resource.data.payrollPeriodId) &&
                       request.resource.data.labourId == resource.data.labourId &&
                       request.resource.data.siteId == resource.data.siteId &&
-                      request.resource.data.date == resource.data.date;
+                      request.resource.data.date == resource.data.date
+                    );
 
         allow delete: if false;
       }
