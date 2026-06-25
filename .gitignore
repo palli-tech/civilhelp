@@ -11,6 +11,13 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+*.zip
+test_security/
+*.txt
+*.log
+.firebase/
+*.rej
+
 
 # IntelliJ related
 *.iml
@@ -45,4 +52,3 @@ app.*.map.json
 /android/app/release
 /android/key.properties
 
-*.zip
